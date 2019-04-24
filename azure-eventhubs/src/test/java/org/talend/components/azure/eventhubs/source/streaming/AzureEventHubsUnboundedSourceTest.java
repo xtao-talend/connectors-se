@@ -23,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.talend.components.azure.common.Protocol;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
+import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.maven.MavenDecrypter;
@@ -48,19 +48,19 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
     @Test
     void testStreamingInput() {
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
+        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
         dataSet.setDatastore(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
-        dataSet.setPartitionId("1");
-        inputConfiguration.setConsumerGroupName("consumer-group-1");
-        inputConfiguration.setDataset(dataSet);
+        dataSet.setConsumerGroupName("consumer-group-1");
 
         AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
         connectionAccount.setAccountName(ACCOUNT_NAME);
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
-        inputConfiguration.setStorageConn(connectionAccount);
-        inputConfiguration.setContainerName("eventhub-test");
+        dataSet.setStorageConn(connectionAccount);
+        dataSet.setContainerName("eventhub-test");
+
+        inputConfiguration.setDataset(dataSet);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
         Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)

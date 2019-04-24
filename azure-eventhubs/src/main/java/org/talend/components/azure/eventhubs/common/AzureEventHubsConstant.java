@@ -16,25 +16,17 @@ import java.nio.charset.Charset;
 
 public class AzureEventHubsConstant {
 
+    public static final String DEFAULT_CONSUMER_GROUP = "$Default";
+
     /**
      * Represents the setting name for the account key.
      */
     public static final String ACCOUNT_KEY_NAME = "AccountKey";
 
     /**
-     * Represents the setting name for the token credential.
-     */
-    public static final String ACCOUNT_TOKEN_NAME = "AccountToken";
-
-    /**
      * Represents the setting name for the account name.
      */
     public static final String ACCOUNT_NAME_NAME = "AccountName";
-
-    /**
-     * Represents the final terms of each root storage DNS name.
-     */
-    public static final String DNS_NAME_FORMAT = "%s.%s";
 
     /**
      * Represents the root storage DNS name.

@@ -39,14 +39,11 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final UiActionService service;
-
     private final RecordBuilderFactory recordBuilderFactory;
 
     public AzureEventHubsStreamInputMapper(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            final UiActionService service, final RecordBuilderFactory recordBuilderFactory) {
+            final RecordBuilderFactory recordBuilderFactory) {
         this.configuration = configuration;
-        this.service = service;
         this.recordBuilderFactory = recordBuilderFactory;
     }
 
@@ -62,6 +59,6 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
 
     @Emitter
     public AzureEventHubsUnboundedSource createWorker() {
-        return new AzureEventHubsUnboundedSource(configuration, service, recordBuilderFactory);
+        return new AzureEventHubsUnboundedSource(configuration, recordBuilderFactory);
     }
 }

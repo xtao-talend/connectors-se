@@ -18,6 +18,7 @@ import java.io.Serializable;
 
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
+import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
@@ -26,27 +27,12 @@ import org.talend.sdk.component.api.meta.Documentation;
 import lombok.Data;
 
 @Data
-@GridLayout({ @GridLayout.Row({ "dataset" }), @GridLayout.Row({ "consumerGroupName" }), @GridLayout.Row({ "storageConn" }),
-        @GridLayout.Row({ "containerName" }) })
+@GridLayout({ @GridLayout.Row({ "dataset" }) })
 @Documentation("Consume message from eventhubs configuration")
 public class AzureEventHubsStreamInputConfiguration implements Serializable {
 
-    private static final String DEFAULT_CONSUMER_GROUP = "$Default";
-
     @Option
     @Documentation("The dataset to consume")
-    private AzureEventHubsDataSet dataset;
-
-    @Option
-    @Documentation("The consumer group name that this receiver should be grouped under")
-    private String consumerGroupName = DEFAULT_CONSUMER_GROUP;
-
-    @Option
-    @Documentation("Connection for the Azure Storage account to use for persisting leases and checkpoints.")
-    private AzureStorageConnectionAccount storageConn;
-
-    @Option
-    @Documentation("Azure Storage container name for use by built-in lease and checkpoint manager.")
-    private String containerName;
+    private AzureEventHubsStreamDataSet dataset;
 
 }

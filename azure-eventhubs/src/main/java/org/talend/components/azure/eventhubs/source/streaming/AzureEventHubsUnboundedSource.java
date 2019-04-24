@@ -65,11 +65,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final UiActionService service;
-
     private final RecordBuilderFactory builderFactory;
-
-    private PartitionReceiver receiver;
 
     private ScheduledExecutorService executorService;
 
@@ -78,9 +74,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     private EventProcessorHost host;
 
     public AzureEventHubsUnboundedSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            final UiActionService service, final RecordBuilderFactory builderFactory) {
+            final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
-        this.service = service;
         this.builderFactory = builderFactory;
     }
 
@@ -90,9 +85,9 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             final String hostNamePrefix = "talend";
             executorService = Executors.newScheduledThreadPool(1);
             final String storageConnectionString = String.format("%s=%s;%s=%s;%s=%s;%s=%s", DEFAULT_ENDPOINTS_PROTOCOL_NAME,
-                    configuration.getStorageConn().getProtocol(), ACCOUNT_NAME_NAME,
-                    configuration.getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
-                    configuration.getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
+                    configuration.getDataset().getStorageConn().getProtocol(), ACCOUNT_NAME_NAME,
+                    configuration.getDataset().getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
+                    configuration.getDataset().getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
             final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder()//
                     .setEndpoint(new URI(configuration.getDataset().getDatastore().getEndpoint()));
             eventHubConnectionString.setSasKeyName(configuration.getDataset().getDatastore().getSasKeyName());
@@ -103,8 +98,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             options.setMaxBatchSize(100);
             options.setExceptionNotification(new ErrorNotificationHandler());
             host = new EventProcessorHost(EventProcessorHost.createHostName(hostNamePrefix),
-                    configuration.getDataset().getEventHubName(), configuration.getConsumerGroupName(),
-                    eventHubConnectionString.toString(), storageConnectionString, configuration.getContainerName(),
+                    configuration.getDataset().getEventHubName(), configuration.getDataset().getConsumerGroupName(),
+                    eventHubConnectionString.toString(), storageConnectionString, configuration.getDataset().getContainerName(),
                     executorService);
             processor = host.registerEventProcessor(EventProcessor.class, options);
 
@@ -118,16 +113,14 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     @Producer
     public Record next() {
-        if (!receivedEvents.isEmpty()) {
-            EventData eventData = receivedEvents.poll();
-            if (eventData != null) {
-                Record.Builder recordBuilder = builderFactory.newRecordBuilder();
-                recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-                // TODO remove this later
-                log.info(eventData.getSystemProperties().getSequenceNumber() + " --> "
-                        + new String(eventData.getBytes(), DEFAULT_CHARSET));
-                return recordBuilder.build();
-            }
+        EventData eventData = receivedEvents.poll();
+        if (eventData != null) {
+            Record.Builder recordBuilder = builderFactory.newRecordBuilder();
+            recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
+            // TODO remove this later
+            log.info(eventData.getSystemProperties().getSequenceNumber() + " --> "
+                    + new String(eventData.getBytes(), DEFAULT_CHARSET));
+            return recordBuilder.build();
         }
         return null;
     }
@@ -147,7 +140,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                 log.error("Failure while unregistering: " + e.toString());
                 return null;
             }).get(); // Wait for everything to finish before exiting main!
-            executorService.shutdown();
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -163,7 +155,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
         @Override
         public void accept(ExceptionReceivedEventArgs t) {
-            System.out.println("Host " + t.getHostname() + " received general error notification during " + t.getAction() + ": "
+            log.warn("Host " + t.getHostname() + " received general error notification during " + t.getAction() + ": "
                     + t.getException().toString());
         }
     }
@@ -196,25 +188,22 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             // make sure checkpoint update when not reach the batch
             if (needUpdateCheckpoint && eventData != null) {
                 context.checkpoint(eventData).get();
+                needUpdateCheckpoint = false;
             }
             log.debug("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
         }
 
-        // onError is called when an error occurs in EventProcessorHost code that is tied to this partition, such as a
-        // receiver
-        // failure.
-        // It is NOT called for exceptions thrown out of onOpen/onClose/onEvents. EventProcessorHost is responsible for
-        // recovering
-        // from
-        // the error, if possible, or shutting the event processor down if not, in which case there will be a call to
-        // onClose. The
-        // notification provided to onError is primarily informational.
+        // onError is called when an error occurs in EventProcessorHost code that is tied to this partition, such as a receiver
+        // failure. It is NOT called for exceptions thrown out of onOpen/onClose/onEvents. EventProcessorHost is responsible for
+        // recovering from the error, if possible, or shutting the event processor down if not, in which case there will be a call
+        // to onClose. The notification provided to onError is primarily informational.
         @Override
         public void onError(PartitionContext context, Throwable error) {
             // make sure checkpoint update when not reach the batch
             if (needUpdateCheckpoint && eventData != null) {
                 try {
                     context.checkpoint(eventData).get();
+                    needUpdateCheckpoint = false;
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                 } catch (ExecutionException e) {
@@ -225,9 +214,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
         }
 
         /**
-         *
-         * onEvents is called when events are received on this partition of the Event Hub. The maximum number of events in a batch
-         * can be controlled via EventProcessorOptions. Also,
+         * onEvents is called when events are received on this partition of the Event Hub.
+         * The maximum number of events in a batch can be controlled via EventProcessorOptions. Also,
          * if the "invoke processor after receive timeout" option is set to true,
          * this method will be called with null when a receive timeout occurs.
          */
@@ -240,19 +228,15 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                 receivedEvents.add(data);
                 eventData = data;
                 needUpdateCheckpoint = true;
-                // It is important to have a try-catch around the processing of each event. Throwing out of onEvents
-                // deprives
-                // you of the chance to process any remaining events in the batch.
+                // It is important to have a try-catch around the processing of each event. Throwing out of onEvents deprives you
+                // of the chance to process any remaining events in the batch.
                 try {
                     eventCount++;
 
-                    // Checkpointing persists the current position in the event streaming for this partition and means
-                    // that the next
-                    // time any host opens an event processor on this event hub+consumer group+partition combination, it
-                    // will start receiving at the event after this one. Checkpointing is usually not a fast operation, so there
-                    // is
-                    // a tradeoff between checkpointing frequently (to minimize the number of events that will be reprocessed
-                    // after
+                    // Checkpointing persists the current position in the event streaming for this partition and means that the
+                    // next time any host opens an event processor on this event hub+consumer group+partition combination, it will
+                    // start receiving at the event after this one. Checkpointing is usually not a fast operation, so there is a
+                    // tradeoff between checkpointing frequently (to minimize the number of events that will be reprocessed after
                     // a crash, or if the partition lease is stolen) and checkpointing infrequently (to reduce the impact on event
                     // processing performance). Checkpointing every five events is an arbitrary choice for this sample.
                     this.checkpointBatchingCount++;

@@ -10,7 +10,8 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.eventhubs.source;
+
+package org.talend.components.azure.eventhubs.source.batch;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CONSUMER_GROUP;
@@ -32,8 +33,12 @@ import org.junit.jupiter.api.TestInstance;
 import org.junit.rules.ExpectedException;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
+<<<<<<< HEAD:azure-eventhubs/src/test/java/org/talend/components/azure/eventhubs/source/AzureEventHubsSourceTest.java
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.service.Messages;
+=======
+import org.talend.components.azure.eventhubs.source.batch.AzureEventHubsInputConfiguration;
+>>>>>>> ea0b72778... feat(TDI-42242):split dataset for streaming:azure-eventhubs/src/test/java/org/talend/components/azure/eventhubs/source/batch/AzureEventHubsSourceTest.java
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
