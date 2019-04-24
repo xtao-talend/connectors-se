@@ -16,12 +16,39 @@ import java.nio.charset.Charset;
 
 public class AzureEventHubsConstant {
 
-    public static final String DEFAULT_CONSUMER_GROUP = "$Default";
+    /**
+     * Represents the setting name for the account key.
+     */
+    public static final String ACCOUNT_KEY_NAME = "AccountKey";
 
-    public static final String DEFAULT_PARTITION_ID = "0";
+    /**
+     * Represents the setting name for the token credential.
+     */
+    public static final String ACCOUNT_TOKEN_NAME = "AccountToken";
 
-    public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+    /**
+     * Represents the setting name for the account name.
+     */
+    public static final String ACCOUNT_NAME_NAME = "AccountName";
 
-    public static final String PAYLOAD_COLUMN = "payload";
+    /**
+     * Represents the final terms of each root storage DNS name.
+     */
+    public static final String DNS_NAME_FORMAT = "%s.%s";
+
+    /**
+     * Represents the root storage DNS name.
+     */
+    public static final String DEFAULT_DNS = "core.windows.net";
+
+    /**
+     * Represents the setting name for a custom storage endpoint suffix.
+     */
+    public static final String ENDPOINT_SUFFIX_NAME = "EndpointSuffix";
+
+    /**
+     * The setting name for using the default storage endpoints with the specified protocol.
+     */
+    public static final String DEFAULT_ENDPOINTS_PROTOCOL_NAME = "DefaultEndpointsProtocol";
 
 }
