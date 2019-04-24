@@ -16,6 +16,7 @@ package org.talend.components.azure.eventhubs.source.streaming;
 
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_KEY_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_NAME_NAME;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.CHECKPOINTING_EVERY;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DNS;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_ENDPOINTS_PROTOCOL_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ENDPOINT_SUFFIX_NAME;
@@ -23,7 +24,9 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 import java.io.Serializable;
 import java.net.URI;
 import java.nio.charset.Charset;
+import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -73,10 +76,14 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private EventProcessorHost host;
 
+    private static Map<String, Object> checkpointBatch = new HashMap<>();
+
     public AzureEventHubsUnboundedSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
             final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
         this.builderFactory = builderFactory;
+        // TODO make it configurable
+        checkpointBatch.put(CHECKPOINTING_EVERY, 1);
     }
 
     @PostConstruct
@@ -224,6 +231,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
         public void onEvents(PartitionContext context, Iterable<EventData> events) throws Exception {
             log.debug("Partition " + context.getPartitionId() + " got event batch");
             int eventCount = 0;
+            Object value = checkpointBatch.get(CHECKPOINTING_EVERY);
+            int checkpointingPer = value == null ? 1 : (int) value;
             for (EventData data : events) {
                 receivedEvents.add(data);
                 eventData = data;
@@ -240,7 +249,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     // a crash, or if the partition lease is stolen) and checkpointing infrequently (to reduce the impact on event
                     // processing performance). Checkpointing every five events is an arbitrary choice for this sample.
                     this.checkpointBatchingCount++;
-                    if ((checkpointBatchingCount % 5) == 0) {
+                    if ((checkpointBatchingCount % checkpointingPer) == 0) {
                         log.debug("Updating Partition " + context.getPartitionId() + " checkpointing at "
                                 + data.getSystemProperties().getOffset() + "," + data.getSystemProperties().getSequenceNumber());
                         // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing

@@ -43,4 +43,6 @@ public class AzureEventHubsConstant {
      */
     public static final String DEFAULT_ENDPOINTS_PROTOCOL_NAME = "DefaultEndpointsProtocol";
 
+    public static final String CHECKPOINTING_EVERY = "CHECKPOINTING_EVERY";
+
 }
