@@ -45,4 +45,6 @@ public class AzureEventHubsConstant {
 
     public static final String CHECKPOINTING_EVERY = "CHECKPOINTING_EVERY";
 
+    public static final String PARTITION_ID = "PARTITION_ID";
+
 }

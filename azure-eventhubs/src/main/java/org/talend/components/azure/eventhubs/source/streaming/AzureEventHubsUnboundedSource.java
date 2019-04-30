@@ -20,6 +20,7 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DNS;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_ENDPOINTS_PROTOCOL_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ENDPOINT_SUFFIX_NAME;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PARTITION_ID;
 
 import java.io.Serializable;
 import java.net.URI;
@@ -29,7 +30,6 @@ import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
@@ -37,16 +37,15 @@ import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
-import org.talend.components.azure.eventhubs.service.UiActionService;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.input.Producer;
 import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
+import com.google.common.collect.EvictingQueue;
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.PartitionReceiver;
 import com.microsoft.azure.eventprocessorhost.CloseReason;
 import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
 import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
@@ -76,14 +75,16 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private EventProcessorHost host;
 
-    private static Map<String, Object> checkpointBatch = new HashMap<>();
+    private static int commitEvery;
+
+    private static boolean processOpened;
+
+    private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
 
     public AzureEventHubsUnboundedSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
             final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
         this.builderFactory = builderFactory;
-        // TODO make it configurable
-        checkpointBatch.put(CHECKPOINTING_EVERY, 1);
     }
 
     @PostConstruct
@@ -102,7 +103,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             eventHubConnectionString.setEventHubName(configuration.getDataset().getEventHubName());
 
             EventProcessorOptions options = new EventProcessorOptions();
-            options.setMaxBatchSize(100);
             options.setExceptionNotification(new ErrorNotificationHandler());
             host = new EventProcessorHost(EventProcessorHost.createHostName(hostNamePrefix),
                     configuration.getDataset().getEventHubName(), configuration.getDataset().getConsumerGroupName(),
@@ -111,6 +111,10 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             processor = host.registerEventProcessor(EventProcessor.class, options);
 
             log.info("Registering host named " + host.getHostName());
+
+            commitEvery = configuration.getCommitOffsetEvery();
+            processOpened = true;
+            receivedEvents.clear();
 
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
@@ -122,10 +126,17 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     public Record next() {
         EventData eventData = receivedEvents.poll();
         if (eventData != null) {
+            String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
+            if (!lastEventDataMap.containsKey(partitionKey)) {
+                Queue<EventData> lastEvent = EvictingQueue.create(1);
+                lastEvent.add(eventData);
+                lastEventDataMap.put(partitionKey, lastEvent);
+            } else {
+                lastEventDataMap.get(partitionKey).add(eventData);
+            }
             Record.Builder recordBuilder = builderFactory.newRecordBuilder();
             recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-            // TODO remove this later
-            log.info(eventData.getSystemProperties().getSequenceNumber() + " --> "
+            log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
                     + new String(eventData.getBytes(), DEFAULT_CHARSET));
             return recordBuilder.build();
         }
@@ -135,6 +146,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     @PreDestroy
     public void release() {
         try {
+            processOpened = false;
+            log.info("closing...");
             processor.thenCompose((unused) -> {
                 // This stage will only execute if registerEventProcessor succeeded.
                 //
@@ -143,11 +156,9 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                 // releases the leases for other instances of EventProcessorHost to claim.
                 log.info("Unregistering host named " + host.getHostName());
                 return host.unregisterEventProcessor();
-            }).exceptionally((e) -> {
-                log.error("Failure while unregistering: " + e.toString());
-                return null;
             }).get(); // Wait for everything to finish before exiting main!
         } catch (Exception e) {
+            log.error("Failure while unregistering: " + e.toString());
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
@@ -171,8 +182,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
         private int checkpointBatchingCount = 0;
 
-        private EventData eventData;
-
         private boolean needUpdateCheckpoint;
 
         // OnOpen is called when a new event processor instance is created by the host. In a real implementation, this
@@ -193,28 +202,40 @@ public class AzureEventHubsUnboundedSource implements Serializable {
         @Override
         public void onClose(PartitionContext context, CloseReason reason) throws Exception {
             // make sure checkpoint update when not reach the batch
-            if (needUpdateCheckpoint && eventData != null) {
-                context.checkpoint(eventData).get();
-                needUpdateCheckpoint = false;
+            if (lastEventDataMap.containsKey(context.getPartitionId())) {
+                EventData eventData = lastEventDataMap.get(context.getPartitionId()).poll();
+                if (eventData != null) {
+                    log.info("####################: " + receivedEvents.size());
+                    receivedEvents.clear();
+                    context.checkpoint(eventData).get();
+                    log.info("[onClose]onErrorUpdating Partition " + context.getPartitionId() + " checkpointing at "
+                            + eventData.getSystemProperties().getOffset() + ","
+                            + eventData.getSystemProperties().getSequenceNumber());
+                }
             }
-            log.debug("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
+            log.info("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
         }
 
         // onError is called when an error occurs in EventProcessorHost code that is tied to this partition, such as a receiver
         // failure. It is NOT called for exceptions thrown out of onOpen/onClose/onEvents. EventProcessorHost is responsible for
-        // recovering from the error, if possible, or shutting the event processor down if not, in which case there will be a call
         // to onClose. The notification provided to onError is primarily informational.
         @Override
         public void onError(PartitionContext context, Throwable error) {
             // make sure checkpoint update when not reach the batch
-            if (needUpdateCheckpoint && eventData != null) {
-                try {
-                    context.checkpoint(eventData).get();
-                    needUpdateCheckpoint = false;
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                } catch (ExecutionException e) {
-                    e.printStackTrace();
+            receivedEvents.clear();
+            if (lastEventDataMap.containsKey(context.getPartitionId())) {
+                EventData eventData = lastEventDataMap.get(context.getPartitionId()).poll();
+                if (eventData != null) {
+                    try {
+                        log.info("####################: " + receivedEvents.size());
+                        receivedEvents.clear();
+                        context.checkpoint(eventData).get();
+                        log.info("[onError] Updating Partition " + context.getPartitionId() + " checkpointing at "
+                                + eventData.getSystemProperties().getOffset() + ","
+                                + eventData.getSystemProperties().getSequenceNumber());
+                    } catch (Exception e) {
+                        log.error("Partition " + context.getPartitionId() + " onError: " + e.getMessage());
+                    }
                 }
             }
             log.error("Partition " + context.getPartitionId() + " onError: " + error.toString());
@@ -228,14 +249,16 @@ public class AzureEventHubsUnboundedSource implements Serializable {
          */
 
         @Override
-        public void onEvents(PartitionContext context, Iterable<EventData> events) throws Exception {
+        public void onEvents(PartitionContext context, Iterable<EventData> events) {
+            if (!processOpened) {
+                // ignore the received event data, this would not handled by component
+                return;
+            }
             log.debug("Partition " + context.getPartitionId() + " got event batch");
             int eventCount = 0;
-            Object value = checkpointBatch.get(CHECKPOINTING_EVERY);
-            int checkpointingPer = value == null ? 1 : (int) value;
             for (EventData data : events) {
+                data.getProperties().put(PARTITION_ID, context.getPartitionId());
                 receivedEvents.add(data);
-                eventData = data;
                 needUpdateCheckpoint = true;
                 // It is important to have a try-catch around the processing of each event. Throwing out of onEvents deprives you
                 // of the chance to process any remaining events in the batch.
@@ -249,8 +272,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     // a crash, or if the partition lease is stolen) and checkpointing infrequently (to reduce the impact on event
                     // processing performance). Checkpointing every five events is an arbitrary choice for this sample.
                     this.checkpointBatchingCount++;
-                    if ((checkpointBatchingCount % checkpointingPer) == 0) {
-                        log.debug("Updating Partition " + context.getPartitionId() + " checkpointing at "
+                    if ((checkpointBatchingCount % commitEvery) == 0) {
+                        log.info("[onEvents]Updating Partition " + context.getPartitionId() + " checkpointing at "
                                 + data.getSystemProperties().getOffset() + "," + data.getSystemProperties().getSequenceNumber());
                         // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing
                         // before exiting onEvents or before creating the next checkpoint, to detect errors and to
@@ -261,9 +284,9 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                 } catch (Exception e) {
                     log.error("Processing failed for an event: " + e.toString());
                 }
+                log.debug("Partition " + context.getPartitionId() + " batch size was " + eventCount + " for host "
+                        + context.getOwner());
             }
-            log.debug("Partition " + context.getPartitionId() + " batch size was " + eventCount + " for host "
-                    + context.getOwner());
         }
     }
 }

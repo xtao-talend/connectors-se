@@ -58,9 +58,34 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
         dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName("eventhub-test");
+        dataSet.setContainerName("eventhub-test-1");
 
         inputConfiguration.setDataset(dataSet);
+
+        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
+        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
+                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
+                .run();
+        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
+    }
+
+    @Test
+    void testStreamingInputCommitOffset() {
+        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
+        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        dataSet.setDatastore(getDataStore());
+        dataSet.setEventHubName(EVENTHUB_NAME);
+        dataSet.setConsumerGroupName("consumer-group-2");
+
+        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
+        connectionAccount.setAccountName(ACCOUNT_NAME);
+        connectionAccount.setProtocol(Protocol.HTTPS);
+        connectionAccount.setAccountKey(ACCOUNT_KEY);
+        dataSet.setStorageConn(connectionAccount);
+        dataSet.setContainerName(EVENTHUB_NAME);
+
+        inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setCommitOffsetEvery(5);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
         Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)

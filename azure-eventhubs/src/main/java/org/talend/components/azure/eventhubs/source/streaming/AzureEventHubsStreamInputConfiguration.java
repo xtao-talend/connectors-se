@@ -27,12 +27,16 @@ import org.talend.sdk.component.api.meta.Documentation;
 import lombok.Data;
 
 @Data
-@GridLayout({ @GridLayout.Row({ "dataset" }) })
+@GridLayout({ @GridLayout.Row({ "dataset" }), @GridLayout.Row({ "commitOffsetEvery" }) })
 @Documentation("Consume message from eventhubs configuration")
 public class AzureEventHubsStreamInputConfiguration implements Serializable {
 
     @Option
     @Documentation("The dataset to consume")
     private AzureEventHubsStreamDataSet dataset;
+
+    @Option
+    @Documentation("How frequently checkpointing")
+    private int commitOffsetEvery = 5;
 
 }
