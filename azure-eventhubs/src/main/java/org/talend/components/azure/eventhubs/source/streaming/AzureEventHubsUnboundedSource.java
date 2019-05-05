@@ -158,7 +158,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                 return host.unregisterEventProcessor();
             }).get(); // Wait for everything to finish before exiting main!
         } catch (Exception e) {
-            log.error("Failure while unregistering: " + e.toString());
+            log.error("Failure while unregistering: " + e.getMessage());
             throw new IllegalStateException(e.getMessage(), e);
         }
     }
