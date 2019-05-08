@@ -16,7 +16,6 @@ package org.talend.components.azure.eventhubs.source.streaming;
 
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_KEY_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_NAME_NAME;
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.CHECKPOINTING_EVERY;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DNS;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_ENDPOINTS_PROTOCOL_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ENDPOINT_SUFFIX_NAME;
@@ -26,12 +25,14 @@ import java.io.Serializable;
 import java.net.URI;
 import java.nio.charset.Charset;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
+import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
@@ -63,7 +64,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private static final String PAYLOAD_COLUMN = "payload";
 
-    private static Queue<EventData> receivedEvents = new LinkedList<EventData>();
+    private static BlockingQueue<EventData> receivedEvents = new LinkedBlockingQueue<EventData>(10);
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
@@ -114,7 +115,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
             commitEvery = configuration.getCommitOffsetEvery();
             processOpened = true;
-            receivedEvents.clear();
 
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);
@@ -123,8 +123,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     }
 
     @Producer
-    public Record next() {
-        EventData eventData = receivedEvents.poll();
+    public Record next() throws InterruptedException {
+        EventData eventData = receivedEvents.poll(5, TimeUnit.SECONDS);
         if (eventData != null) {
             String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
             if (!lastEventDataMap.containsKey(partitionKey)) {
@@ -136,8 +136,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             }
             Record.Builder recordBuilder = builderFactory.newRecordBuilder();
             recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-            log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
-                    + new String(eventData.getBytes(), DEFAULT_CHARSET));
+            // log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
+            // + new String(eventData.getBytes(), DEFAULT_CHARSET));
             return recordBuilder.build();
         }
         return null;
@@ -182,8 +182,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
         private int checkpointBatchingCount = 0;
 
-        private boolean needUpdateCheckpoint;
-
         // OnOpen is called when a new event processor instance is created by the host. In a real implementation, this
         // is the place to do initialization so that events can be processed when they arrive, such as opening a
         // database
@@ -208,7 +206,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     log.info("####################: " + receivedEvents.size());
                     receivedEvents.clear();
                     context.checkpoint(eventData).get();
-                    log.info("[onClose]onErrorUpdating Partition " + context.getPartitionId() + " checkpointing at "
+                    log.debug("[onClose]onErrorUpdating Partition " + context.getPartitionId() + " checkpointing at "
                             + eventData.getSystemProperties().getOffset() + ","
                             + eventData.getSystemProperties().getSequenceNumber());
                 }
@@ -222,15 +220,13 @@ public class AzureEventHubsUnboundedSource implements Serializable {
         @Override
         public void onError(PartitionContext context, Throwable error) {
             // make sure checkpoint update when not reach the batch
-            receivedEvents.clear();
             if (lastEventDataMap.containsKey(context.getPartitionId())) {
                 EventData eventData = lastEventDataMap.get(context.getPartitionId()).poll();
                 if (eventData != null) {
                     try {
-                        log.info("####################: " + receivedEvents.size());
                         receivedEvents.clear();
                         context.checkpoint(eventData).get();
-                        log.info("[onError] Updating Partition " + context.getPartitionId() + " checkpointing at "
+                        log.debug("[onError] Updating Partition " + context.getPartitionId() + " checkpointing at "
                                 + eventData.getSystemProperties().getOffset() + ","
                                 + eventData.getSystemProperties().getSequenceNumber());
                     } catch (Exception e) {
@@ -249,17 +245,19 @@ public class AzureEventHubsUnboundedSource implements Serializable {
          */
 
         @Override
-        public void onEvents(PartitionContext context, Iterable<EventData> events) {
-            if (!processOpened) {
-                // ignore the received event data, this would not handled by component
-                return;
-            }
+        public void onEvents(PartitionContext context, Iterable<EventData> events) throws InterruptedException {
             log.debug("Partition " + context.getPartitionId() + " got event batch");
             int eventCount = 0;
             for (EventData data : events) {
                 data.getProperties().put(PARTITION_ID, context.getPartitionId());
-                receivedEvents.add(data);
-                needUpdateCheckpoint = true;
+                while (processOpened && !receivedEvents.offer(data, 5, TimeUnit.SECONDS)) {
+                    // if process still open, try to offer data
+                }
+                if (!processOpened) {
+                    // ignore the received event data, this would not handled by component
+                    receivedEvents.clear();
+                    return;
+                }
                 // It is important to have a try-catch around the processing of each event. Throwing out of onEvents deprives you
                 // of the chance to process any remaining events in the batch.
                 try {
@@ -273,13 +271,12 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     // processing performance). Checkpointing every five events is an arbitrary choice for this sample.
                     this.checkpointBatchingCount++;
                     if ((checkpointBatchingCount % commitEvery) == 0) {
-                        log.info("[onEvents]Updating Partition " + context.getPartitionId() + " checkpointing at "
+                        log.debug("[onEvents]Updating Partition " + context.getPartitionId() + " checkpointing at "
                                 + data.getSystemProperties().getOffset() + "," + data.getSystemProperties().getSequenceNumber());
                         // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing
                         // before exiting onEvents or before creating the next checkpoint, to detect errors and to
                         // ensure proper ordering.
                         context.checkpoint(data).get();
-                        needUpdateCheckpoint = false;
                     }
                 } catch (Exception e) {
                     log.error("Processing failed for an event: " + e.toString());
