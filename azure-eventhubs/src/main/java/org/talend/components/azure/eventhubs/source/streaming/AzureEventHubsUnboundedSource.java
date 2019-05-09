@@ -64,7 +64,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private static final String PAYLOAD_COLUMN = "payload";
 
-    private static BlockingQueue<EventData> receivedEvents = new LinkedBlockingQueue<EventData>(10);
+    private static BlockingQueue<EventData> receivedEvents = new LinkedBlockingQueue<EventData>(1);
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
@@ -106,7 +106,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             EventProcessorOptions options = new EventProcessorOptions();
             options.setExceptionNotification(new ErrorNotificationHandler());
             host = new EventProcessorHost(EventProcessorHost.createHostName(hostNamePrefix),
-                    configuration.getDataset().getEventHubName(), configuration.getDataset().getConsumerGroupName(),
+                    configuration.getDataset().getEventHubName(), configuration.getConsumerGroupName(),
                     eventHubConnectionString.toString(), storageConnectionString, configuration.getDataset().getContainerName(),
                     executorService);
             processor = host.registerEventProcessor(EventProcessor.class, options);
@@ -136,8 +136,8 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             }
             Record.Builder recordBuilder = builderFactory.newRecordBuilder();
             recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-            // log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
-            // + new String(eventData.getBytes(), DEFAULT_CHARSET));
+            log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
+                    + new String(eventData.getBytes(), DEFAULT_CHARSET));
             return recordBuilder.build();
         }
         return null;
