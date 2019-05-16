@@ -17,6 +17,7 @@ import java.io.Serializable;
 
 import org.talend.components.azure.common.Protocol;
 import org.talend.sdk.component.api.configuration.Option;
+import org.talend.sdk.component.api.configuration.action.Suggestable;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.widget.Credential;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -31,6 +32,7 @@ public class AzureStorageConnectionAccount implements AzureStorageConnectable, S
     @Documentation("Name of the storage account you need to access. "
             + "A storage account name can be found in the Storage accounts dashboard of the Microsoft Azure Storage system to be used. "
             + "Ensure that the administrator of the system has granted you the appropriate access permissions to this storage account.")
+    @Suggestable("test")
     private String accountName;
 
     @Option
