@@ -98,9 +98,9 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     configuration.getDataset().getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
                     configuration.getDataset().getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
             final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder()//
-                    .setEndpoint(new URI(configuration.getDataset().getDatastore().getEndpoint()));
-            eventHubConnectionString.setSasKeyName(configuration.getDataset().getDatastore().getSasKeyName());
-            eventHubConnectionString.setSasKey(configuration.getDataset().getDatastore().getSasKey());
+                    .setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));
+            eventHubConnectionString.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
+            eventHubConnectionString.setSasKey(configuration.getDataset().getConnection().getSasKey());
             eventHubConnectionString.setEventHubName(configuration.getDataset().getEventHubName());
 
             EventProcessorOptions options = new EventProcessorOptions();

@@ -27,18 +27,18 @@ import lombok.Data;
 
 @Data
 @DataSet("AzureEventHubsStreamDataSet")
-@GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "eventHubName" }), @GridLayout.Row({ "storageConn" }),
+@GridLayout({ @GridLayout.Row({ "connection" }), @GridLayout.Row({ "eventHubName" }), @GridLayout.Row({ "storageConn" }),
         @GridLayout.Row({ "containerName" }) })
 @Documentation("The dataset consume message in eventhubs")
 public class AzureEventHubsStreamDataSet implements BaseDataSet {
 
     @Option
     @Documentation("Connection information to eventhubs")
-    private AzureEventHubsDataStore datastore;
+    private AzureEventHubsDataStore connection;
 
     @Option
     @Required
-    @Validable(value = "checkEventHub", parameters = { "datastore", "." })
+    @Validable(value = "checkEventHub", parameters = { "connection", "." })
     @Documentation("The name of the event hub connect to")
     private String eventHubName;
 
