@@ -16,23 +16,22 @@ package org.talend.components.azure.eventhubs.source.streaming;
 
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_KEY_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ACCOUNT_NAME_NAME;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DNS;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_ENDPOINTS_PROTOCOL_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ENDPOINT_SUFFIX_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PARTITION_ID;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
 
 import java.io.Serializable;
 import java.net.URI;
-import java.nio.charset.Charset;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
-import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import javax.annotation.PostConstruct;
@@ -60,11 +59,7 @@ import lombok.extern.slf4j.Slf4j;
 @Documentation("Source to consume eventhubs messages")
 public class AzureEventHubsUnboundedSource implements Serializable {
 
-    private static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
-
-    private static final String PAYLOAD_COLUMN = "payload";
-
-    private static BlockingQueue<EventData> receivedEvents = new LinkedBlockingQueue<EventData>(1);
+    private static Queue<EventData> receivedEvents = new LinkedList<EventData>();
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
@@ -78,7 +73,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     private static int commitEvery;
 
-    private static boolean processOpened;
+    private static volatile boolean processOpened;
 
     private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
 
@@ -124,7 +119,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
 
     @Producer
     public Record next() throws InterruptedException {
-        EventData eventData = receivedEvents.poll(5, TimeUnit.SECONDS);
+        EventData eventData = receivedEvents.poll();
         if (eventData != null) {
             String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
             if (!lastEventDataMap.containsKey(partitionKey)) {
@@ -215,7 +210,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
         }
 
         // onError is called when an error occurs in EventProcessorHost code that is tied to this partition, such as a receiver
-        // failure. It is NOT called for exceptions thrown out of onOpen/onClose/onEvents. EventProcessorHost is responsible for
         // to onClose. The notification provided to onError is primarily informational.
         @Override
         public void onError(PartitionContext context, Throwable error) {
@@ -250,7 +244,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             int eventCount = 0;
             for (EventData data : events) {
                 data.getProperties().put(PARTITION_ID, context.getPartitionId());
-                while (processOpened && !receivedEvents.offer(data, 5, TimeUnit.SECONDS)) {
+                while (processOpened && !receivedEvents.offer(data)) {
                     // if process still open, try to offer data
                 }
                 if (!processOpened) {

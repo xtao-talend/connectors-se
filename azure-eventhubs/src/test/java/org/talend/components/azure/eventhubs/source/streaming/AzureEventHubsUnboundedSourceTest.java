@@ -36,6 +36,7 @@ import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.maven.MavenDecrypter;
 import org.talend.sdk.component.maven.Server;
 import org.talend.sdk.component.runtime.manager.chain.Job;
+
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
@@ -138,6 +139,35 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
         inputConfiguration.setCommitOffsetEvery(5);
+
+        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
+        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
+                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
+                .run();
+
+        // expect return 400 records
+        // can't stop the streaming job. So need check the result manually
+        // final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
+    }
+
+    @Test
+    void testStreamingommitOffset10() {
+        final String containerName = "eventhub-test-streaming-commitevery";
+        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
+        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        dataSet.setConnection(getDataStore());
+        dataSet.setEventHubName(EVENTHUB_NAME);
+
+        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
+        connectionAccount.setAccountName(ACCOUNT_NAME);
+        connectionAccount.setProtocol(Protocol.HTTPS);
+        connectionAccount.setAccountKey(ACCOUNT_KEY);
+        dataSet.setStorageConn(connectionAccount);
+        dataSet.setContainerName(containerName);
+
+        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
+        inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setCommitOffsetEvery(10);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
         Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
