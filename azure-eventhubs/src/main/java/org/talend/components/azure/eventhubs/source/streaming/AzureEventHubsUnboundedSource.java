@@ -118,7 +118,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     }
 
     @Producer
-    public Record next() throws InterruptedException {
+    public Record next() {
         EventData eventData = receivedEvents.poll();
         if (eventData != null) {
             String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
@@ -244,13 +244,12 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             int eventCount = 0;
             for (EventData data : events) {
                 data.getProperties().put(PARTITION_ID, context.getPartitionId());
-                while (processOpened && !receivedEvents.offer(data)) {
-                    // if process still open, try to offer data
-                }
                 if (!processOpened) {
                     // ignore the received event data, this would not handled by component
                     receivedEvents.clear();
                     return;
+                } else {
+                    receivedEvents.add(data);
                 }
                 // It is important to have a try-catch around the processing of each event. Throwing out of onEvents deprives you
                 // of the chance to process any remaining events in the batch.

@@ -19,7 +19,6 @@ import static java.util.Collections.singletonList;
 import java.io.Serializable;
 import java.util.List;
 
-import org.talend.components.azure.eventhubs.service.UiActionService;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
@@ -32,7 +31,7 @@ import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 @Version(1)
-@Icon(value = Icon.IconType.DEFAULT)
+@Icon(value = Icon.IconType.AZURE_EVENT_HUBS)
 @PartitionMapper(name = "AzureEventHubsInputStream", infinite = true)
 @Documentation("Mapper to consume mesage from eventhubs")
 public class AzureEventHubsStreamInputMapper implements Serializable {

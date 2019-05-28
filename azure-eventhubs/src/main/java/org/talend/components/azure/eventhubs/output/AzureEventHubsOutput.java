@@ -53,7 +53,7 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 
 @Slf4j
 @Version
-@Icon(Icon.IconType.DEFAULT)
+@Icon(Icon.IconType.AZURE_EVENT_HUBS)
 @Processor(name = "AzureEventHubsOutput")
 @Documentation("AzureEventHubs output")
 public class AzureEventHubsOutput implements Serializable {
