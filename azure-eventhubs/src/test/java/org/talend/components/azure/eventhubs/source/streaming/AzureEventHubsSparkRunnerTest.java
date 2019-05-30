@@ -14,12 +14,28 @@
 
 package org.talend.components.azure.eventhubs.source.streaming;
 
+import static java.util.Collections.emptyMap;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
+import org.apache.beam.runners.spark.SparkContextOptions;
+import org.apache.beam.runners.spark.SparkRunner;
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.testing.PAssert;
+import org.apache.beam.sdk.transforms.PTransform;
+import org.apache.beam.sdk.values.PBegin;
+import org.apache.beam.sdk.values.PCollection;
+import org.apache.spark.SparkConf;
+import org.apache.spark.SparkContext;
+import org.apache.spark.api.java.JavaSparkContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
@@ -32,9 +48,13 @@ import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
+import org.talend.sdk.component.junit.SimpleFactory;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.maven.MavenDecrypter;
 import org.talend.sdk.component.maven.Server;
+import org.talend.sdk.component.runtime.beam.TalendIO;
+import org.talend.sdk.component.runtime.input.Mapper;
+import org.talend.sdk.component.runtime.manager.ComponentManager;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +63,7 @@ import lombok.extern.slf4j.Slf4j;
 @Disabled("Run manually follow the comment")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @WithComponents("org.talend.components.azure.eventhubs")
-class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
+class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
 
     protected static final String EVENTHUB_NAME = "eh-streaming-test";
 
@@ -62,7 +82,7 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         UNIQUE_ID = Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
 
-    @BeforeAll
+//    @BeforeAll
     void prepareData() {
         log.warn("a) Eventhub \"" + EVENTHUB_NAME + "\" was created ? ");
         log.warn("b) Partition count is 4 ? ");
@@ -111,72 +131,43 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
 
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
+        final Map<String, String> map = SimpleFactory.configurationByExample()
+                .forInstance(inputConfiguration)
+                .configured().toMap();
 
-        // expect return 400 records
-        // can't stop the streaming job. So need check the result manually
-        // final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
+        final ComponentManager manager = ComponentManager.instance();
+
+        PTransform<PBegin, PCollection<Record>> instance = TalendIO.read(manager.findMapper("AzureEventHubs", "AzureEventHubsInputStream", 1, map).get());
+
+        Pipeline pipeline = createPipeline();
+        PCollection<Record> input = pipeline.apply(instance);
+        PAssert.that(input).satisfies(input1 -> {
+            Record record = input1.iterator().next();
+            assertNotNull(record);
+            try {
+                log.info(record.toString());
+            } catch (Exception e) {
+            }
+            return null;
+        });
+        pipeline.run().waitUntilFinish();
     }
 
-    @Test
-    void testStreamingInputCommitOffset() {
-        final String containerName = "eventhub-test-streaming-commitevery";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
+    public Pipeline createPipeline() {
+         PipelineOptions options = PipelineOptionsFactory.create();
+        SparkContextOptions sparkOpts = options.as(SparkContextOptions.class);
 
-        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
-        connectionAccount.setAccountName(ACCOUNT_NAME);
-        connectionAccount.setProtocol(Protocol.HTTPS);
-        connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
+        SparkConf conf = new SparkConf();
+        conf.setAppName("test");
+        conf.setMaster("local[2]");
+        conf.set("spark.driver.allowMultipleContexts", "true");
+        JavaSparkContext jsc = new JavaSparkContext(new SparkContext(conf));
+        sparkOpts.setProvidedSparkContext(jsc);
+        sparkOpts.setUsesProvidedSparkContext(true);
+        sparkOpts.setRunner(SparkRunner.class);
 
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setCommitOffsetEvery(5);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-
-        // expect return 400 records
-        // can't stop the streaming job. So need check the result manually
-        // final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
+        return Pipeline.create(sparkOpts);
     }
 
-    @Test
-    void testStreamingommitOffset10() {
-        final String containerName = "eventhub-test-streaming-commitevery-3";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
-        connectionAccount.setAccountName(ACCOUNT_NAME);
-        connectionAccount.setProtocol(Protocol.HTTPS);
-        connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
-
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setCommitOffsetEvery(10);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-
-        // expect return 400 records
-        // can't stop the streaming job. So need check the result manually
-        // final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-    }
 
 }
