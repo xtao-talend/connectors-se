@@ -106,7 +106,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                     executorService);
             processor = host.registerEventProcessor(EventProcessor.class, options);
 
-            log.info("Registering host named " + host.getHostName());
+            log.debug("Registering host named " + host.getHostName());
 
             commitEvery = configuration.getCommitOffsetEvery();
             processOpened = true;
@@ -131,8 +131,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             }
             Record.Builder recordBuilder = builderFactory.newRecordBuilder();
             recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-            log.info(partitionKey + "-" + eventData.getSystemProperties().getSequenceNumber() + " --> "
-                    + new String(eventData.getBytes(), DEFAULT_CHARSET));
             return recordBuilder.build();
         }
         return null;
@@ -142,14 +140,14 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     public void release() {
         try {
             processOpened = false;
-            log.info("closing...");
+            log.debug("closing...");
             processor.thenCompose((unused) -> {
                 // This stage will only execute if registerEventProcessor succeeded.
                 //
                 // Processing of events continues until unregisterEventProcessor is called. Unregistering shuts down the
                 // receivers on all currently owned leases, shuts down the instances of the event processor class, and
                 // releases the leases for other instances of EventProcessorHost to claim.
-                log.info("Unregistering host named " + host.getHostName());
+                log.debug("Unregistering host named " + host.getHostName());
                 return host.unregisterEventProcessor();
             }).get(); // Wait for everything to finish before exiting main!
         } catch (Exception e) {
@@ -198,7 +196,6 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             if (lastEventDataMap.containsKey(context.getPartitionId())) {
                 EventData eventData = lastEventDataMap.get(context.getPartitionId()).poll();
                 if (eventData != null) {
-                    log.info("####################: " + receivedEvents.size());
                     receivedEvents.clear();
                     context.checkpoint(eventData).get();
                     log.debug("[onClose]onErrorUpdating Partition " + context.getPartitionId() + " checkpointing at "
@@ -206,7 +203,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
                             + eventData.getSystemProperties().getSequenceNumber());
                 }
             }
-            log.info("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
+            log.debug("Partition " + context.getPartitionId() + " is closing for reason " + reason.toString());
         }
 
         // onError is called when an error occurs in EventProcessorHost code that is tied to this partition, such as a receiver
