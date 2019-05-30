@@ -17,6 +17,7 @@ import java.io.Serializable;
 import org.talend.components.azure.eventhubs.datastore.AzureEventHubsDataStore;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Validable;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
@@ -26,7 +27,8 @@ import lombok.Data;
 
 @Data
 @DataSet("AzureEventHubsDataSet")
-@GridLayout({ @GridLayout.Row({ "connection" }), @GridLayout.Row({ "eventHubName" }) })
+@GridLayout({ @GridLayout.Row({ "connection" }), @GridLayout.Row({ "eventHubName" }), @GridLayout.Row("valueFormat"),
+        @GridLayout.Row("fieldDelimiter") })
 @Documentation("The dataset consume message in eventhubs")
 public class AzureEventHubsDataSet implements BaseDataSet {
 
@@ -39,5 +41,33 @@ public class AzureEventHubsDataSet implements BaseDataSet {
     @Validable(value = "checkEventHub", parameters = { "connection", "." })
     @Documentation("The name of the event hub connect to")
     private String eventHubName;
+
+    @Option
+    @ActiveIf(target = ".", value = "-2147483648")
+    @Documentation("The format of the records stored in eventhub.")
+    private ValueFormat valueFormat = ValueFormat.CSV;
+
+    @Option
+    @ActiveIf(target = ".", value = "-2147483648")
+    @Documentation("The field delimiter of the eventhub message value.")
+    private FieldDelimiterType fieldDelimiter = FieldDelimiterType.SEMICOLON;
+
+    public enum ValueFormat {
+        CSV
+    }
+
+    public enum FieldDelimiterType {
+        SEMICOLON(";");
+
+        private final String value;
+
+        FieldDelimiterType(final String value) {
+            this.value = value;
+        }
+
+        public String getDelimiter() {
+            return value;
+        }
+    }
 
 }

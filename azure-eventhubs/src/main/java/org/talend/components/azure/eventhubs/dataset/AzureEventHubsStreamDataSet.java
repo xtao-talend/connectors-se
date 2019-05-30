@@ -18,6 +18,7 @@ import org.talend.components.azure.common.connection.AzureStorageConnectionAccou
 import org.talend.components.azure.eventhubs.datastore.AzureEventHubsDataStore;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Validable;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
@@ -28,7 +29,7 @@ import lombok.Data;
 @Data
 @DataSet("AzureEventHubsStreamDataSet")
 @GridLayout({ @GridLayout.Row({ "connection" }), @GridLayout.Row({ "eventHubName" }), @GridLayout.Row({ "storageConn" }),
-        @GridLayout.Row({ "containerName" }) })
+        @GridLayout.Row({ "containerName" }), @GridLayout.Row("valueFormat"), @GridLayout.Row("fieldDelimiter") })
 @Documentation("The dataset consume message in eventhubs")
 public class AzureEventHubsStreamDataSet implements BaseDataSet {
 
@@ -49,5 +50,33 @@ public class AzureEventHubsStreamDataSet implements BaseDataSet {
     @Option
     @Documentation("Azure Storage container name for use by built-in lease and checkpoint manager.")
     private String containerName;
+
+    @Option
+    @ActiveIf(target = ".", value = "-2147483648")
+    @Documentation("The format of the records stored in eventhub.")
+    private AzureEventHubsDataSet.ValueFormat valueFormat = AzureEventHubsDataSet.ValueFormat.CSV;
+
+    @Option
+    @ActiveIf(target = ".", value = "-2147483648")
+    @Documentation("The field delimiter of the eventhub message value.")
+    private AzureEventHubsDataSet.FieldDelimiterType fieldDelimiter = AzureEventHubsDataSet.FieldDelimiterType.SEMICOLON;
+
+    public enum ValueFormat {
+        CSV
+    }
+
+    public enum FieldDelimiterType {
+        SEMICOLON(";");
+
+        private final String value;
+
+        FieldDelimiterType(final String value) {
+            this.value = value;
+        }
+
+        public String getDelimiter() {
+            return value;
+        }
+    }
 
 }
