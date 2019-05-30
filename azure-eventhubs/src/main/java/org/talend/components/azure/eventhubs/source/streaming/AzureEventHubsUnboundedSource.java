@@ -89,9 +89,9 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             final String hostNamePrefix = "talend";
             executorService = Executors.newScheduledThreadPool(1);
             final String storageConnectionString = String.format("%s=%s;%s=%s;%s=%s;%s=%s", DEFAULT_ENDPOINTS_PROTOCOL_NAME,
-                    configuration.getDataset().getStorageConn().getProtocol(), ACCOUNT_NAME_NAME,
-                    configuration.getDataset().getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
-                    configuration.getDataset().getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
+                    configuration.getStorageConn().getProtocol(), ACCOUNT_NAME_NAME,
+                    configuration.getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
+                    configuration.getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
             final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder()//
                     .setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));
             eventHubConnectionString.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
@@ -102,7 +102,7 @@ public class AzureEventHubsUnboundedSource implements Serializable {
             options.setExceptionNotification(new ErrorNotificationHandler());
             host = new EventProcessorHost(EventProcessorHost.createHostName(hostNamePrefix),
                     configuration.getDataset().getEventHubName(), configuration.getConsumerGroupName(),
-                    eventHubConnectionString.toString(), storageConnectionString, configuration.getDataset().getContainerName(),
+                    eventHubConnectionString.toString(), storageConnectionString, configuration.getContainerName(),
                     executorService);
             processor = host.registerEventProcessor(EventProcessor.class, options);
 

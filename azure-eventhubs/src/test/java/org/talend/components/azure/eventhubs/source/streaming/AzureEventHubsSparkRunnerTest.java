@@ -14,7 +14,6 @@
 
 package org.talend.components.azure.eventhubs.source.streaming;
 
-import static java.util.Collections.emptyMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
@@ -36,7 +35,6 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -44,7 +42,6 @@ import org.talend.components.azure.common.Protocol;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -53,7 +50,6 @@ import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.maven.MavenDecrypter;
 import org.talend.sdk.component.maven.Server;
 import org.talend.sdk.component.runtime.beam.TalendIO;
-import org.talend.sdk.component.runtime.input.Mapper;
 import org.talend.sdk.component.runtime.manager.ComponentManager;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
@@ -82,7 +78,7 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
         UNIQUE_ID = Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
 
-//    @BeforeAll
+    // @BeforeAll
     void prepareData() {
         log.warn("a) Eventhub \"" + EVENTHUB_NAME + "\" was created ? ");
         log.warn("b) Partition count is 4 ? ");
@@ -117,7 +113,7 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
     void testStreamingInput() {
         final String containerName = "eventhub-test-streaming";
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
 
@@ -125,19 +121,19 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
         connectionAccount.setAccountName(ACCOUNT_NAME);
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setStorageConn(connectionAccount);
+        inputConfiguration.setContainerName(containerName);
 
-        final Map<String, String> map = SimpleFactory.configurationByExample()
-                .forInstance(inputConfiguration)
-                .configured().toMap();
+        final Map<String, String> map = SimpleFactory.configurationByExample().forInstance(inputConfiguration).configured()
+                .toMap();
 
         final ComponentManager manager = ComponentManager.instance();
 
-        PTransform<PBegin, PCollection<Record>> instance = TalendIO.read(manager.findMapper("AzureEventHubs", "AzureEventHubsInputStream", 1, map).get());
+        PTransform<PBegin, PCollection<Record>> instance = TalendIO
+                .read(manager.findMapper("AzureEventHubs", "AzureEventHubsInputStream", 1, map).get());
 
         Pipeline pipeline = createPipeline();
         PCollection<Record> input = pipeline.apply(instance);
@@ -154,7 +150,7 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
     }
 
     public Pipeline createPipeline() {
-         PipelineOptions options = PipelineOptionsFactory.create();
+        PipelineOptions options = PipelineOptionsFactory.create();
         SparkContextOptions sparkOpts = options.as(SparkContextOptions.class);
 
         SparkConf conf = new SparkConf();
@@ -168,6 +164,5 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
 
         return Pipeline.create(sparkOpts);
     }
-
 
 }

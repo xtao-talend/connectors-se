@@ -28,7 +28,6 @@ import org.talend.components.azure.common.Protocol;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -97,7 +96,7 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
     void testStreamingInput() {
         final String containerName = "eventhub-test-streaming";
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
 
@@ -105,11 +104,11 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         connectionAccount.setAccountName(ACCOUNT_NAME);
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setStorageConn(connectionAccount);
+        inputConfiguration.setContainerName(containerName);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
         Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
@@ -125,7 +124,7 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
     void testStreamingInputCommitOffset() {
         final String containerName = "eventhub-test-streaming-commitevery";
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
 
@@ -133,11 +132,11 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         connectionAccount.setAccountName(ACCOUNT_NAME);
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setStorageConn(connectionAccount);
+        inputConfiguration.setContainerName(containerName);
         inputConfiguration.setCommitOffsetEvery(5);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
@@ -154,7 +153,7 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
     void testStreamingommitOffset10() {
         final String containerName = "eventhub-test-streaming-commitevery-3";
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
-        final AzureEventHubsStreamDataSet dataSet = new AzureEventHubsStreamDataSet();
+        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
 
@@ -162,11 +161,11 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         connectionAccount.setAccountName(ACCOUNT_NAME);
         connectionAccount.setProtocol(Protocol.HTTPS);
         connectionAccount.setAccountKey(ACCOUNT_KEY);
-        dataSet.setStorageConn(connectionAccount);
-        dataSet.setContainerName(containerName);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setStorageConn(connectionAccount);
+        inputConfiguration.setContainerName(containerName);
         inputConfiguration.setCommitOffsetEvery(10);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
