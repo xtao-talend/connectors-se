@@ -28,13 +28,12 @@
         -->
         <talend.documentation.htmlAndPdf>false</talend.documentation.htmlAndPdf>
 
-        <!--
-        if you want to deploy into the studio you can use the related goal:
-
-        mvn package talend-component:deploy-in-studio -Dtalend.component.studioHome=/path/to/studio
-
-        TIP: it is recommended to set this property into your settings.xml in an active by default profile.
-        -->
+        <jsoup.version>1.11.3</jsoup.version>
+        <apache.poi.version>4.0.1</apache.poi.version>
+        <avro.version>1.8.2</avro.version>
+        <parquet.version>1.10.1</parquet.version>
+        <hadoop.version>3.2.0</hadoop.version>
+        <excel.streamer.version>2.1.0</excel.streamer.version>
         <talend.component.studioHome />
     </properties>
 
@@ -44,6 +43,71 @@
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
             <version>8.1.0</version>
+        </dependency>
+
+        <!-- CSV format -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
+        </dependency>
+
+        <!-- Excel HTML format -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
+        </dependency>
+
+        <!-- Excel format -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.monitorjbl</groupId>
+            <artifactId>xlsx-streamer</artifactId>
+            <version>${excel.streamer.version}</version>
+        </dependency>
+        <!-- Avro format -->
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- PARQUET b -->
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-avro</artifactId>
+            <version>${parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure</artifactId>
+            <version>${hadoop.version}</version>
         </dependency>
 
         <dependency>

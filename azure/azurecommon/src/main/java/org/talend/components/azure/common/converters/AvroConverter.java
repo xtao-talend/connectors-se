@@ -10,7 +10,7 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.runtime.converters;
+package org.talend.components.azure.common.converters;
 
 import java.nio.ByteBuffer;
 import java.time.Instant;
@@ -54,7 +54,9 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
 
     private static final String RECORD_NAME = "talend_";
 
-    private static final String RECORD_NAMESPACE = "org.talend.components.azureblob";
+    protected static final String DEFAULT_RECORD_NAMESPACE = "org.talend.components.azure";
+
+    private String currentRecordNamespace;
 
     private RecordBuilderFactory recordBuilderFactory;
 
@@ -63,11 +65,20 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
     private org.apache.avro.Schema avroSchema;
 
     public static AvroConverter of(RecordBuilderFactory factory) {
-        return new AvroConverter(factory);
+        return new AvroConverter(factory, DEFAULT_RECORD_NAMESPACE);
     }
 
-    protected AvroConverter(RecordBuilderFactory factory) {
+    public static AvroConverter of(RecordBuilderFactory factory, String recordNamespace) {
+        return new AvroConverter(factory, recordNamespace);
+    }
+
+    protected AvroConverter(RecordBuilderFactory factory, String currentRecordNamespace) {
         recordBuilderFactory = factory;
+        if (currentRecordNamespace != null) {
+            this.currentRecordNamespace = currentRecordNamespace;
+        } else {
+            this.currentRecordNamespace = DEFAULT_RECORD_NAMESPACE;
+        }
     }
 
     @Override
@@ -280,7 +291,7 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
             fields.add(field);
         }
         return org.apache.avro.Schema.createRecord(RECORD_NAME + String.valueOf(schema.hashCode()).replace("-", ""), "",
-                RECORD_NAMESPACE, false, fields);
+                currentRecordNamespace, false, fields);
     }
 
     protected Record avroToRecord(GenericRecord genericRecord, List<org.apache.avro.Schema.Field> fields) {
@@ -350,7 +361,7 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
         case LONG:
             if (AVRO_LOGICAL_TYPE_DATE.equals(logicalType) || AVRO_LOGICAL_TYPE_TIME_MILLIS.equals(logicalType)
                     || AVRO_LOGICAL_TYPE_TIMESTAMP_MILLIS.equals(logicalType)) {
-                builder.withType(Schema.Type.DATETIME);
+                builder.withType(Type.DATETIME);
                 break;
             }
         case STRING:
@@ -414,21 +425,20 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
             recordBuilder.withArray(entry, (List<String>) value);
             break;
         case BYTES:
-            recordBuilder.withArray(entry,
-                    ((GenericData.Array<ByteBuffer>) value).stream().map(ByteBuffer::array).collect(toList()));
+            recordBuilder.withArray(entry, ((Array<ByteBuffer>) value).stream().map(ByteBuffer::array).collect(toList()));
             break;
         case INT:
-            recordBuilder.withArray(entry, (GenericData.Array<Long>) value);
+            recordBuilder.withArray(entry, (Array<Long>) value);
             break;
         case FLOAT:
         case DOUBLE:
-            recordBuilder.withArray(entry, (GenericData.Array<Double>) value);
+            recordBuilder.withArray(entry, (Array<Double>) value);
             break;
         case BOOLEAN:
-            recordBuilder.withArray(entry, (GenericData.Array<Boolean>) value);
+            recordBuilder.withArray(entry, (Array<Boolean>) value);
             break;
         case LONG:
-            recordBuilder.withArray(entry, (GenericData.Array<Long>) value);
+            recordBuilder.withArray(entry, (Array<Long>) value);
             break;
         default:
             throw new IllegalStateException(String.format(ERROR_UNDEFINED_TYPE, entry.getType().name()));
@@ -450,7 +460,7 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
             recordBuilder.withString(entry, value != null ? value.toString() : null);
             break;
         case BYTES:
-            byte[] bytes = value != null ? ((java.nio.ByteBuffer) value).array() : null;
+            byte[] bytes = value != null ? ((ByteBuffer) value).array() : null;
             recordBuilder.withBytes(entry, bytes);
             break;
         case INT:

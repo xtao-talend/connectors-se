@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.talend.components.azure.runtime.converters;
+package org.talend.components.azure.common.converters;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -19,9 +19,7 @@ import java.util.Set;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.StringUtils;
-import org.talend.components.azure.common.csv.CSVFormatOptions;
-import org.talend.components.azure.runtime.input.SchemaUtils;
-import org.talend.components.azure.service.FormatUtils;
+import org.talend.components.azure.common.SchemaUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -42,15 +40,14 @@ public class CSVConverter implements RecordConverter<CSVRecord> {
 
     public RecordBuilderFactory recordBuilderFactory;
 
-    private CSVConverter(RecordBuilderFactory recordBuilderFactory, CSVFormatOptions csvFormatOptions) {
+    private CSVConverter(RecordBuilderFactory recordBuilderFactory, boolean useHeader, CSVFormat csvFormat) {
         this.recordBuilderFactory = recordBuilderFactory;
-        this.isHeaderUsed = csvFormatOptions.isUseHeader();
-        this.csvFormat = createCSVFormat(FormatUtils.getFieldDelimiterValue(csvFormatOptions),
-                FormatUtils.getRecordDelimiterValue(csvFormatOptions), csvFormatOptions.getTextEnclosureCharacter(),
-                csvFormatOptions.getEscapeCharacter());
+        this.isHeaderUsed = useHeader;
+        this.csvFormat = csvFormat;
     }
 
-    private CSVFormat createCSVFormat(char fieldDelimiter, String recordDelimiter, String textEnclosure, String escapeChar) {
+    public static CSVFormat createCSVFormat(char fieldDelimiter, String recordDelimiter, String textEnclosure,
+            String escapeChar) {
         // CSVFormat.RFC4180 use " as quote and no escape char and "," as field
         // delimiter and only quote if quote is set and necessary
         CSVFormat format = CSVFormat.RFC4180.withDelimiter(fieldDelimiter);
@@ -83,8 +80,8 @@ public class CSVConverter implements RecordConverter<CSVRecord> {
         return format;
     }
 
-    public static CSVConverter of(RecordBuilderFactory recordBuilderFactory, CSVFormatOptions csvFormatOptions) {
-        return new CSVConverter(recordBuilderFactory, csvFormatOptions);
+    public static CSVConverter of(RecordBuilderFactory recordBuilderFactory, boolean useHeader, CSVFormat csvFormat) {
+        return new CSVConverter(recordBuilderFactory, useHeader, csvFormat);
     }
 
     @Override

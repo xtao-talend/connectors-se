@@ -25,9 +25,10 @@ import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
 import org.talend.components.azure.common.Protocol;
+import org.talend.components.azure.common.converters.ParquetConverter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
-import org.talend.components.azure.runtime.converters.ParquetConverter;
 import org.talend.components.azure.service.AzureBlobComponentServices;
+import org.talend.components.azure.service.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
@@ -99,7 +100,7 @@ public class ParquetBlobFileReader extends BlobFileReader {
         @Override
         protected Record convertToRecord(GenericRecord next) {
             if (converter == null) {
-                converter = ParquetConverter.of(getRecordBuilderFactory());
+                converter = ParquetConverter.of(getRecordBuilderFactory(), FormatUtils.AZURE_BLOB_NAMESPACE);
             }
 
             return converter.toRecord(next);

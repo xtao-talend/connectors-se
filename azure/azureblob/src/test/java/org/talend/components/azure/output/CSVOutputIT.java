@@ -26,10 +26,11 @@ import org.junit.jupiter.api.Test;
 import org.talend.components.azure.BaseIT;
 import org.talend.components.azure.BlobTestUtils;
 import org.talend.components.azure.common.FileFormat;
+import org.talend.components.azure.common.converters.CSVConverter;
 import org.talend.components.azure.common.csv.CSVFormatOptions;
 import org.talend.components.azure.common.csv.RecordDelimiter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
-import org.talend.components.azure.runtime.converters.CSVConverter;
+import org.talend.components.azure.service.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -90,9 +91,12 @@ class CSVOutputIT extends BaseIT {
         Job.components().component("inputFlow", "test://emitter").component("outputComponent", "Azure://Output?" + outputConfig)
                 .connections().from("inputFlow").to("outputComponent").build().run();
         BlobTestUtils.recordBuilderFactory = componentsHandler.findService(RecordBuilderFactory.class);
+        CSVFormatOptions csvFormatOptions = blobOutputProperties.getDataset().getCsvOptions();
         List<Record> retrievedRecords = BlobTestUtils.readDataFromCSVDirectory(blobOutputProperties.getDataset().getDirectory(),
                 storageAccount, blobOutputProperties.getDataset(),
-                CSVConverter.of(recordBuilderFactory, blobOutputProperties.getDataset().getCsvOptions()).getCsvFormat());
+                CSVConverter.createCSVFormat(FormatUtils.getFieldDelimiterValue(csvFormatOptions),
+                        FormatUtils.getRecordDelimiterValue(csvFormatOptions), csvFormatOptions.getTextEnclosureCharacter(),
+                        csvFormatOptions.getEscapeCharacter()));
 
         Assert.assertEquals(recordSize, retrievedRecords.size());
         Assert.assertEquals(testRecord.getSchema().getEntries().size(), retrievedRecords.get(0).getSchema().getEntries().size());

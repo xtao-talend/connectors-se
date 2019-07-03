@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.talend.components.azure.runtime.input;
+package org.talend.components.azure.common;
 
 import java.util.Set;
 

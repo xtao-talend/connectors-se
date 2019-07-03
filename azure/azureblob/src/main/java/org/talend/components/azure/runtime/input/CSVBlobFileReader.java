@@ -23,10 +23,12 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.talend.components.azure.common.Encoding;
+import org.talend.components.azure.common.converters.CSVConverter;
+import org.talend.components.azure.common.csv.CSVFormatOptions;
 import org.talend.components.azure.common.exception.BlobRuntimeException;
 import org.talend.components.azure.dataset.AzureBlobDataset;
-import org.talend.components.azure.runtime.converters.CSVConverter;
 import org.talend.components.azure.service.AzureBlobComponentServices;
+import org.talend.components.azure.service.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
@@ -128,13 +130,18 @@ public class CSVBlobFileReader extends BlobFileReader {
         }
 
         private void initMetadataIfNeeded() {
-            if (converter == null) {
-                converter = CSVConverter.of(getRecordBuilderFactory(), getConfig().getCsvOptions());
-            }
+            CSVFormatOptions csvFormatOptions = getConfig().getCsvOptions();
 
             if (format == null) {
-                format = converter.getCsvFormat();
+                format = CSVConverter.createCSVFormat(FormatUtils.getFieldDelimiterValue(csvFormatOptions),
+                        FormatUtils.getRecordDelimiterValue(csvFormatOptions), csvFormatOptions.getTextEnclosureCharacter(),
+                        csvFormatOptions.getEscapeCharacter());
             }
+
+            if (converter == null) {
+                converter = CSVConverter.of(getRecordBuilderFactory(), csvFormatOptions.isUseHeader(), format);
+            }
+
         }
 
         private void closePreviousInputStream() {

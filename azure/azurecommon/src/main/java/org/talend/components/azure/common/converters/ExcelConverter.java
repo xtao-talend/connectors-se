@@ -11,7 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 
-package org.talend.components.azure.runtime.converters;
+package org.talend.components.azure.common.converters;
 
 import java.sql.Date;
 import java.util.ArrayList;
@@ -23,7 +23,6 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.CellType;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
-import org.talend.components.azure.common.exception.BlobRuntimeException;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -98,7 +97,7 @@ public class ExcelConverter implements RecordConverter<Row> {
                 }
                 switch (cellType) {
                 case ERROR:
-                    throw new BlobRuntimeException("Error cell exists in excel document in the " + i + 1 + " column");
+                    throw new UnsupportedOperationException("Error cell exists in excel document in the " + i + 1 + " column");
                 case STRING:
                     entryBuilder.withType(Schema.Type.STRING);
                     break;

@@ -35,13 +35,13 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.talend.components.azure.common.FileFormat;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
+import org.talend.components.azure.common.converters.CSVConverter;
 import org.talend.components.azure.common.csv.CSVFormatOptions;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.datastore.AzureCloudConnection;
-import org.talend.components.azure.runtime.converters.CSVConverter;
+import org.talend.components.azure.service.FormatUtils;
 import org.talend.components.azure.source.BlobInputProperties;
 import org.talend.sdk.component.api.record.Record;
-import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import org.talend.sdk.component.maven.MavenDecrypter;
 import org.talend.sdk.component.maven.Server;
@@ -109,11 +109,13 @@ public class BlobTestUtils {
         }
     }
 
-    private static byte[] createCSVFileContent(int recordsSize, List<String> columns, CSVFormatOptions formatOptions)
+    private static byte[] createCSVFileContent(int recordsSize, List<String> columns, CSVFormatOptions csvFormatOptions)
             throws Exception {
         ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
         BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(byteArrayOutputStream));
-        CSVFormat format = CSVConverter.of(recordBuilderFactory, formatOptions).getCsvFormat();
+        CSVFormat format = CSVConverter.createCSVFormat(FormatUtils.getFieldDelimiterValue(csvFormatOptions),
+                FormatUtils.getRecordDelimiterValue(csvFormatOptions), csvFormatOptions.getTextEnclosureCharacter(),
+                csvFormatOptions.getEscapeCharacter());
 
         CSVPrinter printer = new CSVPrinter(writer, format);
 
@@ -131,7 +133,7 @@ public class BlobTestUtils {
     public static List<Record> readDataFromCSVDirectory(String directoryName, CloudStorageAccount connectionAccount,
             AzureBlobDataset config, CSVFormat format) throws URISyntaxException, StorageException, IOException {
         List<CSVRecord> csvRecords = readCSVRecords(directoryName, connectionAccount, config, format);
-        CSVConverter converter = CSVConverter.of(recordBuilderFactory, config.getCsvOptions());
+        CSVConverter converter = CSVConverter.of(recordBuilderFactory, config.getCsvOptions().isUseHeader(), format);
         return csvRecords.stream().map(converter::toRecord).collect(Collectors.toList());
     }
 

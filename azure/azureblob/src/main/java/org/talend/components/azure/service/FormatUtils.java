@@ -21,6 +21,8 @@ import org.talend.components.azure.dataset.AzureBlobDataset;
 
 public class FormatUtils {
 
+    public static final String AZURE_BLOB_NAMESPACE = "org.talend.components.azureblob";
+
     public static String getUsedEncodingValue(AzureBlobDataset dataset) {
         switch (dataset.getFileFormat()) {
         case CSV:
