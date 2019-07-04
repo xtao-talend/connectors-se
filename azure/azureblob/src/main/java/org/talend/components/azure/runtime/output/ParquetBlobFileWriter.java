@@ -24,12 +24,12 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.avro.AvroParquetWriter;
 import org.apache.parquet.hadoop.ParquetFileWriter;
 import org.apache.parquet.hadoop.ParquetWriter;
-import org.talend.components.azure.common.converters.ParquetConverter;
+import org.talend.components.common.Constants;
+import org.talend.components.common.converters.ParquetConverter;
 import org.talend.components.azure.common.exception.BlobRuntimeException;
-import org.talend.components.azure.common.service.AzureComponentServices;
+import org.talend.components.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.output.BlobOutputConfiguration;
 import org.talend.components.azure.service.AzureBlobComponentServices;
-import org.talend.components.azure.service.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 
 import com.microsoft.azure.storage.StorageException;
@@ -45,7 +45,7 @@ public class ParquetBlobFileWriter extends BlobFileWriter {
     public ParquetBlobFileWriter(BlobOutputConfiguration config, AzureBlobComponentServices connectionServices) throws Exception {
         super(config, connectionServices);
         this.config = config;
-        this.converter = ParquetConverter.of(null, FormatUtils.AZURE_BLOB_NAMESPACE);
+        this.converter = ParquetConverter.of(null, Constants.AZURE_BLOB_NAMESPACE);
     }
 
     @Override

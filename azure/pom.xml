@@ -16,24 +16,21 @@
     <modules>
         <module>azurecommon</module>
         <module>azureblob</module>
+        <module>azure-dls-gen2</module>
     </modules>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!--
-        Set it to true if you want the documentation to be rendered as HTML and PDF
-
-        You can also use it on the command line: -Dtalend.documentation.htmlAndPdf=true
-        -->
         <talend.documentation.htmlAndPdf>false</talend.documentation.htmlAndPdf>
 
+        <commons-csv.version>1.7</commons-csv.version>
         <jsoup.version>1.11.3</jsoup.version>
         <apache.poi.version>4.0.1</apache.poi.version>
         <avro.version>1.8.2</avro.version>
         <parquet.version>1.10.1</parquet.version>
         <hadoop.version>3.2.0</hadoop.version>
         <excel.streamer.version>2.1.0</excel.streamer.version>
+        <common.lang.version>3.9</common.lang.version>
         <talend.component.studioHome />
     </properties>
 
@@ -108,6 +105,11 @@
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-azure</artifactId>
             <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>${common.lang.version}</version>
         </dependency>
 
         <dependency>

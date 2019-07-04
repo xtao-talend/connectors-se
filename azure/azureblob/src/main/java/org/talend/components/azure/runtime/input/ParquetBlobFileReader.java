@@ -24,18 +24,18 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
-import org.talend.components.azure.common.Protocol;
-import org.talend.components.azure.common.converters.ParquetConverter;
+import org.talend.components.common.Constants;
+import org.talend.components.common.connection.azurestorage.Protocol;
+import org.talend.components.common.converters.ParquetConverter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.service.AzureBlobComponentServices;
-import org.talend.components.azure.service.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import lombok.extern.slf4j.Slf4j;
-import static org.talend.components.azure.common.service.AzureComponentServices.SAS_PATTERN;
+import static org.talend.components.common.service.azurestorage.AzureComponentServices.SAS_PATTERN;
 
 @Slf4j
 public class ParquetBlobFileReader extends BlobFileReader {
@@ -100,7 +100,7 @@ public class ParquetBlobFileReader extends BlobFileReader {
         @Override
         protected Record convertToRecord(GenericRecord next) {
             if (converter == null) {
-                converter = ParquetConverter.of(getRecordBuilderFactory(), FormatUtils.AZURE_BLOB_NAMESPACE);
+                converter = ParquetConverter.of(getRecordBuilderFactory(), Constants.AZURE_BLOB_NAMESPACE);
             }
 
             return converter.toRecord(next);

@@ -18,14 +18,7 @@
         Used to inject service from the azurecommon module into the azureblob services
         -->
         <talend.scan.scannedDependencies>org.talend.components:azurecommon</talend.scan.scannedDependencies>
-        
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <!--
-        Set it to true if you want the documentation to be rendered as HTML and PDF
-
-        You can also use it on the command line: -Dtalend.documentation.htmlAndPdf=true
-        -->
         <talend.documentation.htmlAndPdf>false</talend.documentation.htmlAndPdf>
 
         <mockito.version>2.23.0</mockito.version>
@@ -145,7 +138,7 @@
                     </compilerArgs>
                 </configuration>
             </plugin>
-            <plugin>
+            <!--<plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <executions>
@@ -172,7 +165,7 @@
                         </goals>
                     </execution>
                 </executions>
-            </plugin>
+            </plugin>-->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-failsafe-plugin</artifactId>

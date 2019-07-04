@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.talend.components.azure.common.exception.BlobRuntimeException;
-import org.talend.components.azure.common.service.AzureComponentServices;
+import org.talend.components.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.service.Service;
