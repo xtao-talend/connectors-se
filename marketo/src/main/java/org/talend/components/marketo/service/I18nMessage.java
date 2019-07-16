@@ -46,4 +46,8 @@ public interface I18nMessage {
     String periodAgo2y();
 
     String invalidDateTime();
+
+    String invalidListId();
+
+    String invalidActivities();
 }

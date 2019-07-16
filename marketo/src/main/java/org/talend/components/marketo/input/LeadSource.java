@@ -20,6 +20,7 @@ import java.util.function.Supplier;
 
 import javax.json.JsonObject;
 
+import org.talend.components.marketo.MarketoRuntimeException;
 import org.talend.components.marketo.dataset.MarketoDataSet;
 import org.talend.components.marketo.dataset.MarketoDataSet.DateTimeMode;
 import org.talend.components.marketo.dataset.MarketoDataSet.LeadAction;
@@ -65,7 +66,11 @@ public class LeadSource extends MarketoSource {
     }
 
     private JsonObject getLeadsByListId() {
-        Integer listId = Integer.parseInt(configuration.getDataSet().getListId());
+        String list = configuration.getDataSet().getListId();
+        if (list == null || list.isEmpty()) {
+            throw new MarketoRuntimeException(i18n.invalidListId());
+        }
+        Integer listId = Integer.parseInt(list);
         String fields = configuration.getDataSet().getFields() == null ? null
                 : configuration.getDataSet().getFields().stream().collect(joining(","));
         return handleResponse(listClient.getLeadsByListId(accessToken, nextPageToken, listId, fields));
@@ -78,14 +83,7 @@ public class LeadSource extends MarketoSource {
         } else {
             result = ZonedDateTime.now().minus(Period.parse(configuration.getDataSet().getSinceDateTimeRelative()))
                     .format(DateTimeFormatter.ofPattern(DATETIME_FORMAT));
-
         }
-        log.warn("[computeDateTimeFromConfiguration] SinceDateTime [{}] : {} / {} => {}",
-                configuration.getDataSet().getDateTimeMode(), //
-                configuration.getDataSet().getSinceDateTimeRelative(), //
-                configuration.getDataSet().getSinceDateTimeAbsolute(), //
-                result);
-
         return result;
     }
 
@@ -97,19 +95,15 @@ public class LeadSource extends MarketoSource {
      * @return
      */
     private JsonObject getLeadActivities() {
+        if (configuration.getDataSet().getActivityTypeIds().isEmpty()) {
+            throw new MarketoRuntimeException(i18n.invalidActivities());
+        }
         if (nextPageToken == null) {
             nextPageToken = getPagingToken(computeDateTimeFromConfiguration());
         }
-        String activityTypeIds = "";
-        if (!configuration.getDataSet().getActivityTypeIds().isEmpty()) {
-            activityTypeIds = configuration.getDataSet().getActivityTypeIds().stream().collect(joining(","));
-        }
+        String activityTypeIds = configuration.getDataSet().getActivityTypeIds().stream().collect(joining(","));
         String listId = configuration.getDataSet().getListId();
         return handleResponse(leadClient.getLeadActivities(accessToken, nextPageToken, activityTypeIds, "", listId, ""));
-    }
-
-    public JsonObject getActivities() {
-        return handleResponse(leadClient.getActivities(accessToken));
     }
 
     public String getPagingToken(String dateTime) {
