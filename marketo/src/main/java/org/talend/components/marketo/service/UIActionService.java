@@ -231,23 +231,6 @@ public class UIActionService extends MarketoService {
         }
     }
 
-    @Suggestions(CUSTOM_OBJECT_NAMES)
-    public SuggestionValues getCustomObjectNames(@Option final MarketoDataStore dataStore) {
-        log.debug("[getCustomObjectNames] {}.", dataStore);
-        try {
-            initClients(dataStore);
-            String aToken = authorizationClient.getAccessToken(dataStore);
-            List<Item> coNames = new ArrayList<>();
-            for (JsonObject l : parseResultFromResponse(customObjectClient.listCustomObjects(aToken, ""))
-                    .getValuesAs(JsonObject.class)) {
-                coNames.add(new SuggestionValues.Item(String.valueOf(l.getString(ATTR_NAME)), l.getString(ATTR_NAME)));
-            }
-            return new SuggestionValues(true, coNames);
-        } catch (Exception e) {
-            throw new MarketoRuntimeException(e.getMessage());
-        }
-    }
-
     @Suggestions(DATE_RANGES)
     public SuggestionValues getDateSuggestions(final String mode) {
         List<Item> suggestedDates = new ArrayList<>();

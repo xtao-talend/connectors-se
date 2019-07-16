@@ -47,7 +47,6 @@ import lombok.experimental.Accessors;
 import lombok.extern.slf4j.Slf4j;
 
 import static java.util.stream.Collectors.joining;
-import static java.util.stream.Collectors.toList;
 import static org.talend.components.marketo.MarketoApiConstants.ATTR_ACCESS_TOKEN;
 import static org.talend.components.marketo.MarketoApiConstants.ATTR_ACTIVITY_DATE;
 import static org.talend.components.marketo.MarketoApiConstants.ATTR_ACTIVITY_TYPE_ID;
@@ -106,27 +105,12 @@ public class MarketoService {
 
     @Getter
     @Service
-    protected CustomObjectClient customObjectClient;
-
-    @Getter
-    @Service
-    protected CompanyClient companyClient;
-
-    @Getter
-    @Service
-    protected OpportunityClient opportunityClient;
-
-    @Getter
-    @Service
     protected ListClient listClient;
 
     public void initClients(MarketoDataStore dataStore) {
         authorizationClient.base(dataStore.getEndpoint());
         leadClient.base(dataStore.getEndpoint());
         listClient.base(dataStore.getEndpoint());
-        customObjectClient.base(dataStore.getEndpoint());
-        companyClient.base(dataStore.getEndpoint());
-        opportunityClient.base(dataStore.getEndpoint());
     }
 
     /**
@@ -162,8 +146,6 @@ public class MarketoService {
         if (response.status() == 200 && response.body() != null && response.body().getJsonArray(ATTR_RESULT) != null) {
             return response.body().getJsonArray(ATTR_RESULT);
         }
-        log.error("[parseResultFromResponse] Error: [{}] headers:{}; body: {}.", response.status(), response.headers(),
-                response.body());
         throw new IllegalArgumentException(i18n.invalidOperation());
     }
 
@@ -181,7 +163,6 @@ public class MarketoService {
             s = getLeadActivitiesSchema();
             break;
         }
-        log.warn("[getEntitySchema] schema: {}", s.getEntries().stream().map(Entry::getName).collect(toList()));
         return s;
     }
 

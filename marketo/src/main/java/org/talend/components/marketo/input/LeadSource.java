@@ -32,10 +32,6 @@ import org.talend.sdk.component.api.configuration.Option;
 import lombok.extern.slf4j.Slf4j;
 
 import static java.util.stream.Collectors.joining;
-import static org.talend.components.marketo.MarketoApiConstants.ATTR_ACCESS_TOKEN;
-import static org.talend.components.marketo.MarketoApiConstants.ATTR_FIELDS;
-import static org.talend.components.marketo.MarketoApiConstants.ATTR_FILTER_TYPE;
-import static org.talend.components.marketo.MarketoApiConstants.ATTR_FILTER_VALUES;
 import static org.talend.components.marketo.MarketoApiConstants.ATTR_NEXT_PAGE_TOKEN;
 import static org.talend.components.marketo.MarketoApiConstants.DATETIME_FORMAT;
 
@@ -73,34 +69,6 @@ public class LeadSource extends MarketoSource {
         String fields = configuration.getDataSet().getFields() == null ? null
                 : configuration.getDataSet().getFields().stream().collect(joining(","));
         return handleResponse(listClient.getLeadsByListId(accessToken, nextPageToken, listId, fields));
-    }
-
-    private Boolean isLeadUrlSizeGreaterThan8k(String filterType, String filterValues, String fields) {
-        int pathSize = 20;
-        int endpointSize = configuration.getDataSet().getDataStore().getEndpoint().length();
-        int queryParameterNamesSize = ATTR_ACCESS_TOKEN.length() + 1 + (accessToken == null ? 0 : accessToken.length()) + //
-                ATTR_NEXT_PAGE_TOKEN.length() + 1 + (nextPageToken == null ? 0 : nextPageToken.length()) + //
-                endpointSize + //
-                pathSize + //
-                ATTR_ACCESS_TOKEN.length() + 1 + //
-                ATTR_FILTER_TYPE.length() + 1 + //
-                ATTR_FILTER_VALUES.length() + 1 + //
-                ATTR_FIELDS.length() + 1; //
-        int queryParameterValuesSize = (filterType == null ? 0 : filterType.length())
-                + (filterValues == null ? 0 : filterValues.length()) + (fields == null ? 0 : fields.length());
-        int total = queryParameterNamesSize + queryParameterValuesSize;
-        return total >= (8 * 1024);
-    }
-
-    private String buildLeadForm(String filterType, String filterValues, String fields) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(ATTR_FILTER_TYPE + "=" + filterType.trim());
-        sb.append("&");
-        sb.append(ATTR_FILTER_VALUES + "=" + filterValues.trim());
-        sb.append("&");
-        sb.append(ATTR_FIELDS + "=" + fields.trim());
-
-        return sb.toString();
     }
 
     private String computeDateTimeFromConfiguration() {
