@@ -16,7 +16,7 @@ import java.net.URISyntaxException;
 import java.util.EnumSet;
 import java.util.Iterator;
 
-import org.talend.components.common.service.azurestorage.AzureComponentServices;
+import org.talend.components.azure.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.common.exception.BlobRuntimeException;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.service.AzureBlobComponentServices;

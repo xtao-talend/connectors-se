@@ -17,7 +17,7 @@ import java.net.URISyntaxException;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.talend.components.common.service.azurestorage.AzureComponentServices;
+import org.talend.components.azure.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.output.BlobOutputConfiguration;
 import org.talend.components.azure.service.AzureBlobComponentServices;
 import org.talend.sdk.component.api.record.Record;

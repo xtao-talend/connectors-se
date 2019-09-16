@@ -29,7 +29,7 @@ import javax.json.JsonStructure;
 import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
-import org.talend.components.common.converters.JsonRecordConverter;
+import org.talend.components.azure.common.converters.JsonRecordConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;

@@ -21,11 +21,9 @@ import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
 import java.util.Iterator;
 
-import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.talend.components.adlsgen2.common.format.FileFormatRuntimeException;
-import org.talend.components.common.converters.CSVConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;

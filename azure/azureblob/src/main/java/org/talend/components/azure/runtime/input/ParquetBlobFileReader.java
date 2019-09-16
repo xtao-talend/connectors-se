@@ -23,9 +23,9 @@ import org.apache.parquet.avro.AvroParquetReader;
 import org.apache.parquet.hadoop.ParquetReader;
 import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
-import org.talend.components.common.Constants;
-import org.talend.components.common.connection.azurestorage.Protocol;
-import org.talend.components.common.converters.ParquetConverter;
+import org.talend.components.azure.common.Constants;
+import org.talend.components.azure.common.connection.azurestorage.Protocol;
+import org.talend.components.azure.common.converters.ParquetConverter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.service.AzureBlobComponentServices;
 import org.talend.components.azure.service.MessageService;
@@ -35,7 +35,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.ListBlobItem;
 import lombok.extern.slf4j.Slf4j;
-import static org.talend.components.common.service.azurestorage.AzureComponentServices.SAS_PATTERN;
+import static org.talend.components.azure.common.service.azurestorage.AzureComponentServices.SAS_PATTERN;
 
 @Slf4j
 public class ParquetBlobFileReader extends BlobFileReader {
