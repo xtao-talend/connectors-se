@@ -10,7 +10,6 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package org.talend.components.couchbase.source;
 
 import com.couchbase.client.java.Bucket;
@@ -163,6 +162,22 @@ public class CouchbaseInputTest extends CouchbaseUtilTest {
         assertFalse(res.isEmpty());
 
         assertEquals(2, res.get(0).getSchema().getEntries().size());
+    }
+
+    @Test
+    @DisplayName("Execution of customN1QL query")
+    void n1qlQueryInputDBTest() {
+        insertTestDataToDB();
+
+        CouchbaseInputConfiguration configurationWithN1ql = getInputConfiguration();
+        configurationWithN1ql.setUseN1QLQuery(true);
+        configurationWithN1ql.setQuery("SELECT `t_long_max`, `t_string`, `t_double_max` FROM " + BUCKET_NAME);
+        executeJob(configurationWithN1ql);
+
+        final List<Record> res = componentsHandler.getCollectedData(Record.class);
+        assertEquals(2, res.size());
+        assertEquals(3, res.get(0).getSchema().getEntries().size());
+        assertEquals(3, res.get(1).getSchema().getEntries().size());
     }
 
     private CouchbaseInputConfiguration getInputConfiguration() {

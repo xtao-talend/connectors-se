@@ -10,7 +10,6 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package org.talend.components.azure.source;
 
 import java.io.IOException;
@@ -36,7 +35,6 @@ import com.microsoft.azure.storage.StorageException;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 @WithComponents("org.talend.components.azure")
-@Disabled
 class ParquetInputIT extends BaseIT {
 
     private static BlobInputProperties blobInputProperties;
@@ -45,7 +43,7 @@ class ParquetInputIT extends BaseIT {
     void initDataset() {
         AzureBlobDataset dataset = new AzureBlobDataset();
         dataset.setConnection(dataStore);
-        // dataset.setFileFormat(FileFormat.PARQUET);
+        dataset.setFileFormat(FileFormat.PARQUET);
 
         dataset.setContainerName(containerName);
         dataset.setDirectory("excelHTML");

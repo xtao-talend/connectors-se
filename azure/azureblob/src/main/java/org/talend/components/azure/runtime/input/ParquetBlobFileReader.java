@@ -10,7 +10,6 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package org.talend.components.azure.runtime.input;
 
 import java.io.IOException;
@@ -29,6 +28,7 @@ import org.talend.components.common.connection.azurestorage.Protocol;
 import org.talend.components.common.converters.ParquetConverter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.service.AzureBlobComponentServices;
+import org.talend.components.azure.service.MessageService;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
@@ -41,8 +41,9 @@ import static org.talend.components.common.service.azurestorage.AzureComponentSe
 public class ParquetBlobFileReader extends BlobFileReader {
 
     public ParquetBlobFileReader(AzureBlobDataset config, RecordBuilderFactory recordBuilderFactory,
-            AzureBlobComponentServices connectionServices) throws URISyntaxException, StorageException {
-        super(config, recordBuilderFactory, connectionServices);
+            AzureBlobComponentServices connectionServices, MessageService messageService)
+            throws URISyntaxException, StorageException {
+        super(config, recordBuilderFactory, connectionServices, messageService);
     }
 
     @Override

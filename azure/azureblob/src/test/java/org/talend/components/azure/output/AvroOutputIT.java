@@ -10,7 +10,6 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-
 package org.talend.components.azure.output;
 
 import java.net.URISyntaxException;
@@ -39,7 +38,6 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 @WithComponents("org.talend.components.azure")
-@Disabled
 class AvroOutputIT extends BaseIT {
 
     private BlobOutputConfiguration blobOutputProperties;
@@ -62,7 +60,7 @@ class AvroOutputIT extends BaseIT {
     void initDataset() {
         AzureBlobDataset dataset = new AzureBlobDataset();
         dataset.setConnection(dataStore);
-        // dataset.setFileFormat(FileFormat.AVRO);
+        dataset.setFileFormat(FileFormat.AVRO);
 
         dataset.setContainerName(containerName);
         dataset.setDirectory("avroDir");
