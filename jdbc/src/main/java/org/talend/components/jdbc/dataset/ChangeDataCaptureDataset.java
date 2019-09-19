@@ -24,6 +24,10 @@ import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.widget.Code;
 import org.talend.sdk.component.api.meta.Documentation;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.StringTokenizer;
+
 import static org.talend.components.jdbc.output.platforms.PlatformFactory.get;
 import static org.talend.components.jdbc.service.UIActionService.ACTION_SUGGESTION_TABLE_NAMES;
 import static org.talend.components.jdbc.service.UIActionService.ACTION_VALIDATION_READONLY_QUERY;
@@ -66,19 +70,45 @@ public class ChangeDataCaptureDataset implements BaseDataSet {
         return "select * from " + get(connection, null).identifier(getStreamTableName());
     }
 
-    private String getQN(String db, String schema, String table) {
+    private String getQN0(String db, String schema, String table) {
         return db + "." + schema + "." + table;
     }
 
     // Snowflake CDC specific !!!
     public String createStreamTableIfNotExist() {
-
-        // hardcoded for tests, need to be retrieved from JDBC url
-        String dbName = "DEMO_DB";
-        String schema = "PUBLIC";
-        //
-
-        return "create stream if not exists " + getQN(dbName, schema, streamTableName) + " on table "
-                + getQN(dbName, schema, tableName);
+        return "create stream if not exists " + getQN(streamTableName) + " on table " + getQN(tableName);
     }
+
+    private String getQN(String table) {
+        String jdbcUrl = connection.getJdbcUrl();
+        String[] splitParts = jdbcUrl.split("\\?");
+        if (splitParts.length == 1)
+            return table;
+        else {
+            String queryParamsAsString = splitParts[1];
+            String[] queryParamsStringSplit = queryParamsAsString.split("&");
+            Map<String, String> queryParamsMap = new HashMap<String, String>();
+            for (int i = 0; i < queryParamsStringSplit.length; i++) {
+                String part = queryParamsStringSplit[i];
+                String[] keyAndValue = part.split("=");
+                if (keyAndValue.length < 2)
+                    continue;
+                String key = keyAndValue[0];
+                String value = keyAndValue[1];
+                queryParamsMap.put(key, value);
+            }
+
+            String db = queryParamsMap.get("db");
+            String schema = queryParamsMap.get("schema");
+            String qn = table;
+            if (schema != null && !schema.isEmpty())
+                qn = schema + "." + table;
+            if (db != null && !db.isEmpty())
+                qn = db + "." + qn;
+
+            return qn;
+        }
+
+    }
+
 }
