@@ -19,13 +19,21 @@ import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.meta.Documentation;
 
 @Data
-@GridLayout(value = { @GridLayout.Row({ "dataSet" }) })
-@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "dataSet" }) })
+@GridLayout({ @GridLayout.Row({ "dataSet" }), @GridLayout.Row("changeOffsetOnRead") })
 @Documentation("Stream table input configuration")
 public class InputCaptureDataChangeConfig implements InputConfig {
 
     @Option
     @Documentation("stream table name dataset")
     private ChangeDataCaptureDataset dataSet;
+
+    @Option
+    @Documentation("Change offset on read")
+    private ChangeOffsetOnReadStrategy changeOffsetOnRead = ChangeOffsetOnReadStrategy.NO;
+
+    public enum ChangeOffsetOnReadStrategy {
+        YES,
+        NO
+    }
 
 }

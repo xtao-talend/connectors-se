@@ -90,6 +90,8 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             throw new IllegalArgumentException(i18n.errorUnauthorizedQuery());
         }
 
+        boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
+
         String createStreamStatement = this.cdcDataset.createStreamTableIfNotExist();
         log.info("Update statement is: " + createStreamStatement);
 
@@ -108,6 +110,23 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             statement.setFetchSize(inputConfig.getDataSet().getFetchSize());
             log.info("Query to execute: " + inputConfig.getDataSet().getQuery());
             resultSet = statement.executeQuery(inputConfig.getDataSet().getQuery());
+
+            if (commit) {
+                log.info("consumption=yes");
+                String createStreamCounterStatement = this.cdcDataset.createCounterTableIfNotExist();
+                statement = connection.createStatement();
+                log.info("Statement to execute: " + createStreamCounterStatement);
+                int resultCreateCounter = statement.executeUpdate(createStreamCounterStatement);
+                log.info("Update statement changed records: " + resultCreateCounter);
+
+                String consumeRecordsStreamStatement = this.cdcDataset.createStatementConsumeStreamTable();
+                statement = connection.createStatement();
+                log.info("Statement to execute: " + consumeRecordsStreamStatement);
+                int resultConsumeRecordsStream = statement.executeUpdate(consumeRecordsStreamStatement);
+                log.info("Update statement changed records: " + resultConsumeRecordsStream);
+            } else {
+                log.info("consumption=no");
+            }
         } catch (final SQLException e) {
             throw toIllegalStateException(e);
         }

@@ -17,20 +17,16 @@ import lombok.experimental.Delegate;
 import org.talend.components.jdbc.datastore.JdbcConnection;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Suggestable;
-import org.talend.sdk.component.api.configuration.action.Validable;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
-import org.talend.sdk.component.api.configuration.ui.widget.Code;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import static org.talend.components.jdbc.output.platforms.PlatformFactory.get;
 import static org.talend.components.jdbc.service.UIActionService.ACTION_SUGGESTION_TABLE_NAMES;
-import static org.talend.components.jdbc.service.UIActionService.ACTION_VALIDATION_READONLY_QUERY;
 import static org.talend.sdk.component.api.configuration.ui.layout.GridLayout.FormType.ADVANCED;
 
 @Data
@@ -70,13 +66,23 @@ public class ChangeDataCaptureDataset implements BaseDataSet {
         return "select * from " + get(connection, null).identifier(getStreamTableName());
     }
 
-    private String getQN0(String db, String schema, String table) {
-        return db + "." + schema + "." + table;
-    }
-
     // Snowflake CDC specific !!!
     public String createStreamTableIfNotExist() {
         return "create stream if not exists " + getQN(streamTableName) + " on table " + getQN(tableName);
+    }
+
+    // Snowflake CDC specific !!!
+    public String createCounterTableIfNotExist() {
+        return "create table if not exists " + getQN(getCounterTableName(streamTableName)) + "(c number(8))";
+    }
+
+    public String createStatementConsumeStreamTable() {
+        return "insert into " + getQN(getCounterTableName(streamTableName)) + "(c) " + " select count(*) from "
+                + getQN(streamTableName);
+    }
+
+    private String getCounterTableName(String streamTableName) {
+        return streamTableName + "_COUNTER";
     }
 
     private String getQN(String table) {
