@@ -23,6 +23,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <talend.documentation.htmlAndPdf>false</talend.documentation.htmlAndPdf>
 
+        <azure.sdk.version>8.1.0</azure.sdk.version>
         <commons-csv.version>1.7</commons-csv.version>
         <jsoup.version>1.11.3</jsoup.version>
         <apache.poi.version>4.0.1</apache.poi.version>
@@ -39,7 +40,7 @@
         <dependency>
             <groupId>com.microsoft.azure</groupId>
             <artifactId>azure-storage</artifactId>
-            <version>8.1.0</version>
+            <version>${azure.sdk.version}</version>
         </dependency>
 
         <!-- CSV format -->
