@@ -24,7 +24,7 @@ import org.apache.avro.io.DatumWriter;
 import org.talend.components.adlsgen2.output.OutputConfiguration;
 import org.talend.components.adlsgen2.service.AdlsGen2Service;
 import org.talend.components.azure.common.Constants;
-import org.talend.components.azure.common.converters.AvroConverter;
+import org.talend.components.common.converters.AvroConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 

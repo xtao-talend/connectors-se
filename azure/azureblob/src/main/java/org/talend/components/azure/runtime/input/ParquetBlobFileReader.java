@@ -25,10 +25,10 @@ import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.apache.parquet.io.InputFile;
 import org.talend.components.azure.common.Constants;
 import org.talend.components.azure.common.connection.azurestorage.Protocol;
-import org.talend.components.azure.common.converters.ParquetConverter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.components.azure.service.AzureBlobComponentServices;
 import org.talend.components.azure.service.MessageService;
+import org.talend.components.common.converters.ParquetConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 

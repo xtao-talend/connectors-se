@@ -30,7 +30,7 @@ import org.talend.components.adlsgen2.input.InputConfiguration;
 import org.talend.components.adlsgen2.service.AdlsGen2Service;
 import org.talend.components.adlsgen2.service.BlobInformations;
 import org.talend.components.azure.common.Constants;
-import org.talend.components.azure.common.converters.ParquetConverter;
+import org.talend.components.common.converters.ParquetConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 

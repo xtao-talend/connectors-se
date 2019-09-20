@@ -10,15 +10,16 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.common.converters;
+package org.talend.components.common.converters;
 
-import java.io.Serializable;
+import org.talend.sdk.component.api.record.Record;
+import org.talend.sdk.component.api.record.Schema;
 
-import javax.json.JsonObject;
+public interface RecordConverter<T> {
 
-public interface JsonConverter<T> extends Serializable {
+    Schema inferSchema(T record);
 
-    JsonObject toJson(T value);
+    Record toRecord(T record);
 
-    T fromJson(JsonObject record);
+    T fromRecord(Record record);
 }

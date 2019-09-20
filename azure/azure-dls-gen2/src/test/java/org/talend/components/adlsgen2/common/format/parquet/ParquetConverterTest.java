@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
 import org.talend.components.adlsgen2.common.format.avro.AvroConfiguration;
 import org.talend.components.azure.common.Constants;
-import org.talend.components.azure.common.converters.ParquetConverter;
+import org.talend.components.common.converters.ParquetConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.junit5.WithComponents;
 
