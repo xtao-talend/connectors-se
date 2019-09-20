@@ -94,14 +94,13 @@ public class ChangeDataCaptureDataset implements BaseDataSet {
             String queryParamsAsString = splitParts[1];
             String[] queryParamsStringSplit = queryParamsAsString.split("&");
             Map<String, String> queryParamsMap = new HashMap<String, String>();
-            for (int i = 0; i < queryParamsStringSplit.length; i++) {
-                String part = queryParamsStringSplit[i];
+            for (String part : queryParamsStringSplit) {
                 String[] keyAndValue = part.split("=");
-                if (keyAndValue.length < 2)
-                    continue;
-                String key = keyAndValue[0];
-                String value = keyAndValue[1];
-                queryParamsMap.put(key, value);
+                if (keyAndValue.length >= 2) {
+                    String key = keyAndValue[0];
+                    String value = keyAndValue[1];
+                    queryParamsMap.put(key, value);
+                }
             }
 
             String db = queryParamsMap.get("db");

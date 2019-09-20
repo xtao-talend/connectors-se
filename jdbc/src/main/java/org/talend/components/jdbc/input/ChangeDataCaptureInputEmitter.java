@@ -25,8 +25,7 @@ import org.talend.components.jdbc.service.JdbcService;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
-import org.talend.sdk.component.api.input.Emitter;
-import org.talend.sdk.component.api.input.Producer;
+import org.talend.sdk.component.api.input.*;
 import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
@@ -44,9 +43,7 @@ import static org.talend.sdk.component.api.record.Schema.Type.*;
 import static org.talend.sdk.component.api.record.Schema.Type.STRING;
 
 @Slf4j
-@Version
-@Icon(value = Icon.IconType.DATASTORE)
-@Emitter(name = "StreamTableNameInput")
+
 @Documentation("JDBC input using stream table name")
 public class ChangeDataCaptureInputEmitter implements Serializable {
 
