@@ -87,8 +87,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             throw new IllegalArgumentException(i18n.errorUnauthorizedQuery());
         }
 
-        boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
-
         String createStreamStatement = this.cdcDataset.createStreamTableIfNotExist();
         log.info("Update statement is: " + createStreamStatement);
 
@@ -102,6 +100,19 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             int result = statement.executeUpdate(createStreamStatement);
             log.info("Update statement changed records: " + result);
 
+        } catch (final SQLException e) {
+            throw toIllegalStateException(e);
+        }
+    }
+
+    @Producer
+    public Record next() {
+        log.info("Next is called");
+        boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
+
+        try {
+            Thread.currentThread().sleep(5000);
+
             // then read from stream table
             statement = connection.createStatement();
             statement.setFetchSize(inputConfig.getDataSet().getFetchSize());
@@ -110,6 +121,10 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
             if (commit) {
                 log.info("consumption=yes");
+
+                connection.setAutoCommit(false);
+                statement = connection.createStatement();
+
                 String createStreamCounterStatement = this.cdcDataset.createCounterTableIfNotExist();
                 statement = connection.createStatement();
                 log.info("Statement to execute: " + createStreamCounterStatement);
@@ -121,17 +136,16 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
                 log.info("Statement to execute: " + consumeRecordsStreamStatement);
                 int resultConsumeRecordsStream = statement.executeUpdate(consumeRecordsStreamStatement);
                 log.info("Update statement changed records: " + resultConsumeRecordsStream);
+
+                connection.commit();
+
+                connection.setAutoCommit(true);
+
             } else {
                 log.info("consumption=no");
             }
-        } catch (final SQLException e) {
-            throw toIllegalStateException(e);
-        }
-    }
 
-    @Producer
-    public Record next() {
-        try {
+            log.info("ResultSet.next() returns: " + resultSet.next());
             if (!resultSet.next()) {
                 return null;
             }
@@ -147,6 +161,10 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             IntStream.rangeClosed(1, metaData.getColumnCount()).forEach(index -> addColumn(recordBuilder, metaData, index));
             return recordBuilder.build();
         } catch (final SQLException e) {
+            log.error("Exception found in next() ", e);
+            throw toIllegalStateException(e);
+        } catch (final Exception e) {
+            log.error("Exception found in next() ", e);
             throw toIllegalStateException(e);
         }
     }

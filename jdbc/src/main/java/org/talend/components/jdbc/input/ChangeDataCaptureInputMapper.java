@@ -29,8 +29,8 @@ import static java.util.Collections.singletonList;
 @Version
 @Icon(value = Icon.IconType.DATASTORE)
 @Documentation("JDBC input using stream table name")
-// @PartitionMapper(name = "StreamTableNameInput", infinite = true)
-@PartitionMapper(name = "StreamTableNameInput")
+@PartitionMapper(name = "StreamTableNameInput", infinite = true)
+// @PartitionMapper(name = "StreamTableNameInput")
 public class ChangeDataCaptureInputMapper implements Serializable {
 
     private final InputCaptureDataChangeConfig inputConfig;
