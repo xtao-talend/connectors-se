@@ -12,22 +12,25 @@
  */
 package org.talend.components.couchbase;
 
-import com.couchbase.client.java.bucket.BucketType;
-import com.couchbase.client.java.cluster.DefaultBucketSettings;
-import com.couchbase.client.java.document.json.JsonObject;
-import org.junit.jupiter.api.extension.Extension;
-import org.talend.sdk.component.api.record.Record;
-import org.talend.sdk.component.api.record.Schema;
-import org.talend.sdk.component.api.service.Service;
-import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
-import org.talend.sdk.component.runtime.record.SchemaImpl;
-import org.testcontainers.couchbase.CouchbaseContainer;
-
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.junit.jupiter.api.extension.Extension;
+import org.talend.sdk.component.api.record.Record;
+import org.talend.sdk.component.api.record.Schema;
+import org.talend.sdk.component.api.service.Service;
+import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
+import org.talend.sdk.component.junit.BaseComponentsHandler;
+import org.talend.sdk.component.junit5.Injected;
+import org.talend.sdk.component.runtime.record.SchemaImpl;
+import org.testcontainers.couchbase.CouchbaseContainer;
+
+import com.couchbase.client.java.bucket.BucketType;
+import com.couchbase.client.java.cluster.DefaultBucketSettings;
+import com.couchbase.client.java.document.json.JsonObject;
 
 import lombok.Data;
 
@@ -51,7 +54,10 @@ public abstract class CouchbaseUtilTest implements Extension {
     public static final CouchbaseContainer COUCHBASE_CONTAINER;
 
     @Service
-    private RecordBuilderFactory recordBuilderFactory;
+    protected RecordBuilderFactory recordBuilderFactory;
+
+    @Injected
+    protected BaseComponentsHandler componentsHandler;
 
     static {
         COUCHBASE_CONTAINER = new CouchbaseContainer().withClusterAdmin(CLUSTER_USERNAME, CLUSTER_PASSWORD)
