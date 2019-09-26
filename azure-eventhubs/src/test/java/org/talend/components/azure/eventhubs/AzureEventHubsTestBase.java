@@ -40,11 +40,20 @@ public class AzureEventHubsTestBase implements Serializable {
     
     protected static final String EVENTHUB_NAME = "test-event-hub-1";
 
+    protected static final String ACCOUNT_NAME;
+
+    protected static final String ACCOUNT_KEY;
+
+
     static {
         final MavenDecrypter decrypter = new MavenDecrypter();
         final Server serverSaskey = decrypter.find("azure-eventhubs-saskey");
         SASKEY_NAME = serverSaskey.getUsername();
         SASKEY = serverSaskey.getPassword();
+
+        final Server storageAccount = decrypter.find("azure-storage-account");
+        ACCOUNT_NAME = storageAccount.getUsername();
+        ACCOUNT_KEY = storageAccount.getPassword();
     }
 
     @Injected

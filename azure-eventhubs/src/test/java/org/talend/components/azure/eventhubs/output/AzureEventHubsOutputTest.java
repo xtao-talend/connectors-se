@@ -31,7 +31,6 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
-import org.talend.components.azure.eventhubs.source.AzureEventHubsInputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.Service;
@@ -72,19 +71,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
 
-        // read record
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(partitionId);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setReceiveTimeout(10L);
-        List<Record> readRecords = readByFilter(inputConfiguration, "payload", uniqueId);
-        assertEquals(10, readRecords.size());
-        assertEquals("0;TestName_0_" + uniqueId, readRecords.get(0).getString("payload"));
-        assertEquals("5;TestName_5_" + uniqueId, readRecords.get(5).getString("payload"));
     }
 
     @Test
@@ -121,21 +107,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .component("azureeventhubs-output", "AzureEventHubs://AzureEventHubsOutput?" + config).connections()
                 .from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
-
-        // read record
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(partitionId);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setReceiveTimeout(10L);
-
-        List<Record> readRecords = readByFilter(inputConfiguration, "payload", uniqueId);
-        assertEquals(10, readRecords.size());
-        assertEquals(0, readRecords.get(0).getString("payload").indexOf(";"));
-        assertEquals(0, readRecords.get(5).getString("payload").indexOf(";"));
 
     }
 
@@ -186,21 +157,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
 
-        // read record
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(partitionId);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setReceiveTimeout(10L);
-
-        List<Record> readRecords = readByFilter(inputConfiguration, "payload", uniqueId);
-        assertEquals(2, readRecords.size());
-
-        assertEquals(0, readRecords.get(0).getString("payload").indexOf("test_string_" + uniqueId + ";false"));
-        assertEquals(0, readRecords.get(1).getString("payload").indexOf("test_string_" + uniqueId + ";;;;;;;"));
 
     }
 
@@ -263,17 +219,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
 
-        // read record
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        // consume messages from all partitions
-        inputConfiguration.setSpecifyPartitionId(false);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setReceiveTimeout(10L);
-        List<Record> readRecords = readByFilter(inputConfiguration, "payload", uniqueId);
-        assertEquals(100, readRecords.size());
     }
 
     @Test
@@ -302,32 +247,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .connections().from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
 
-        // read record
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        // consume messages from all partitions
-        inputConfiguration.setSpecifyPartitionId(false);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setReceiveTimeout(10L);
-        List<Record> readRecords = readByFilter(inputConfiguration, "payload", uniqueId);
-        assertEquals(100, readRecords.size());
-    }
-
-    List<Record> readByFilter(AzureEventHubsInputConfiguration inputConfiguration, String column, String filterValue) {
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(column) != null && e.getString(column).contains(filterValue)))
-                .collect(Collectors.toList());
-        getComponentsHandler().resetState();
-        return filteredRecords;
     }
 
 }

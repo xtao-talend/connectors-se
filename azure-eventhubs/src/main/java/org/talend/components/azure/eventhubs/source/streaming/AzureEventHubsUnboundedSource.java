@@ -35,6 +35,8 @@ import java.util.function.Consumer;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.talend.components.azure.eventhubs.service.Messages;
+import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.input.Producer;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -55,13 +57,15 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Documentation("Source to consume eventhubs messages")
-public class AzureEventHubsUnboundedSource implements Serializable {
+public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHubsSource {
 
     private static Queue<EventData> receivedEvents = new LinkedList<EventData>();
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
     private final RecordBuilderFactory builderFactory;
+
+    private final Messages messages;
 
     private ScheduledExecutorService executorService;
 
@@ -76,9 +80,11 @@ public class AzureEventHubsUnboundedSource implements Serializable {
     private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
 
     public AzureEventHubsUnboundedSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            final RecordBuilderFactory builderFactory) {
+            final RecordBuilderFactory builderFactory, final Messages messages) {
         this.configuration = configuration;
         this.builderFactory = builderFactory;
+        this.messages =  messages;
+        
     }
 
     @PostConstruct

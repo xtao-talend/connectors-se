@@ -30,14 +30,13 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.rules.ExpectedException;
+import org.talend.components.azure.common.Protocol;
+import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
-<<<<<<< HEAD:azure-eventhubs/src/test/java/org/talend/components/azure/eventhubs/source/AzureEventHubsSourceTest.java
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.service.Messages;
-=======
-import org.talend.components.azure.eventhubs.source.batch.AzureEventHubsInputConfiguration;
->>>>>>> ea0b72778... feat(TDI-42242):split dataset for streaming:azure-eventhubs/src/test/java/org/talend/components/azure/eventhubs/source/batch/AzureEventHubsSourceTest.java
+import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -105,20 +104,29 @@ class AzureEventHubsSourceTest extends AzureEventHubsTestBase {
     @Test
     @DisplayName("Read by offset from specified partition ")
     void testReadByOffset() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
+
+        final String containerName = "eventhub-test-readby-offset";
+
+        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
+
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.OFFSET);
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setOffset(AzureEventHubsInputConfiguration.EventOffsetPosition.START_OF_STREAM);
-        inputConfiguration.setReceiveTimeout(5L);
+
+        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
+        connectionAccount.setAccountName(ACCOUNT_NAME);
+        connectionAccount.setProtocol(Protocol.HTTPS);
+        connectionAccount.setAccountKey(ACCOUNT_KEY);
+
+        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setStorageConn(connectionAccount);
+        inputConfiguration.setContainerName(containerName);
+        inputConfiguration.setSampling(true);
 
         final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
+        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
                 .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
                 .run();
         final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
@@ -127,199 +135,6 @@ class AzureEventHubsSourceTest extends AzureEventHubsTestBase {
                 .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
                 .collect(Collectors.toList());
         Assert.assertEquals(100, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read by seq number from specified partition ")
-    void testReadBySeq() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        inputConfiguration.setSequenceNum(-1L);
-        inputConfiguration.setReceiveTimeout(20L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(100, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read by datatime from specified partition ")
-    void testReadByDateTime() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.DATETIME);
-        inputConfiguration.setEnqueuedDateTime("2019-04-04T00:00:00.000Z");
-        inputConfiguration.setReceiveTimeout(20L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(100, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read by empty datatime from specified partition")
-    void testReadByDateTimeNotSet() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.DATETIME);
-        inputConfiguration.setReceiveTimeout(10L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(0, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read timeout ")
-    void testReadTimeOut() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.OFFSET);
-        inputConfiguration.setOffset(AzureEventHubsInputConfiguration.EventOffsetPosition.START_OF_STREAM);
-        inputConfiguration.setReceiveTimeout(60L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(100, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read limited number of messages ")
-    void testReadMaxNumReceived() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setSpecifyPartitionId(true);
-        inputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.OFFSET);
-        inputConfiguration.setOffset(AzureEventHubsInputConfiguration.EventOffsetPosition.START_OF_STREAM);
-        inputConfiguration.setUseMaxNum(true);
-        inputConfiguration.setMaxNumReceived(10L);
-        inputConfiguration.setReceiveTimeout(20L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        Assert.assertEquals(10, records.size());
-    }
-
-    @Test
-    @DisplayName("Read message from all partitions")
-    void testReadFromAllPartition() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.OFFSET);
-        inputConfiguration.setOffset(AzureEventHubsInputConfiguration.EventOffsetPosition.START_OF_STREAM);
-        inputConfiguration.setReceiveTimeout(20L);
-        inputConfiguration.setDataset(dataSet);
-
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-        Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                .run();
-        final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-        Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(600, filteredRecords.size());
-    }
-
-    @Test
-    @DisplayName("Read message from all partitions")
-    void testPositionLargeThanLatest() {
-        AzureEventHubsInputConfiguration inputConfiguration = new AzureEventHubsInputConfiguration();
-        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
-        dataSet.setConnection(getDataStore());
-        dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setConsumerGroupName(DEFAULT_CONSUMER_GROUP);
-        inputConfiguration.setReceiverOptions(AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE);
-        // Set sequence number bigger than current latest eventhub data
-        inputConfiguration.setSequenceNum(10000000L);
-        inputConfiguration.setReceiveTimeout(20L);
-        inputConfiguration.setDataset(dataSet);
-
-        assertThrows(IllegalStateException.class, () -> {
-            final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
-            Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputMapper?" + config)
-                    .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
-                    .run();
-            final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
-            Assert.assertNotNull(records);
-            List<Record> filteredRecords = records.stream()
-                    .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                    .collect(Collectors.toList());
-            Assert.assertEquals(0, filteredRecords.size());
-        }, messages.errorNoAvailableReceiver());
     }
 
 }

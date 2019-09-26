@@ -19,6 +19,7 @@ import java.io.Serializable;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.sdk.component.api.configuration.Option;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.meta.Documentation;
 
@@ -49,5 +50,8 @@ public class AzureEventHubsStreamInputConfiguration implements Serializable {
     @Option
     @Documentation("How frequently checkpointing")
     private int commitOffsetEvery = 5;
+
+    @Documentation("whether this is use for sampling")
+    private boolean sampling;
 
 }

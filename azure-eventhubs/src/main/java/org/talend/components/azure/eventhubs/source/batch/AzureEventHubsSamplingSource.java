@@ -35,6 +35,8 @@ import javax.annotation.PreDestroy;
 
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.service.UiActionService;
+import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
+import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.input.Producer;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -54,11 +56,9 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Documentation("Source to consume eventhubs messages")
-public class AzureEventHubsSource implements Serializable {
+public class AzureEventHubsSamplingSource implements Serializable, AzureEventHubsSource {
 
-    private final AzureEventHubsInputConfiguration configuration;
-
-    private final UiActionService service;
+    private final AzureEventHubsStreamInputConfiguration configuration;
 
     private final RecordBuilderFactory builderFactory;
 
@@ -76,10 +76,9 @@ public class AzureEventHubsSource implements Serializable {
 
     String[] partitionIds;
 
-    public AzureEventHubsSource(@Option("configuration") final AzureEventHubsInputConfiguration configuration,
-            final UiActionService service, final RecordBuilderFactory builderFactory, final Messages messages) {
+    public AzureEventHubsSamplingSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
+             final RecordBuilderFactory builderFactory, final Messages messages) {
         this.configuration = configuration;
-        this.service = service;
         this.builderFactory = builderFactory;
         this.messages = messages;
     }
@@ -96,27 +95,12 @@ public class AzureEventHubsSource implements Serializable {
 
             ehClient = EventHubClient.createSync(connStr.toString(), executorService);
             receiverManager = new ReceiverManager();
-            if (configuration.isSpecifyPartitionId()) {
-                partitionIds = new String[] { configuration.getPartitionId() };
-            } else {
-                EventHubRuntimeInformation runtimeInfo = ehClient.getRuntimeInformation().get();
-                partitionIds = runtimeInfo.getPartitionIds();
-            }
+            EventHubRuntimeInformation runtimeInfo = ehClient.getRuntimeInformation().get();
+            partitionIds = runtimeInfo.getPartitionIds();
             receiverManager.addPartitions(partitionIds);
-            while (!receiverManager.isReceiverAvailable()) {
-                if (!configuration.isUseMaxNum()) {
-                    throw new IllegalStateException(messages.errorNoAvailableReceiver());
-                } else {
-                    try {
-                        Thread.sleep(configuration.getReceiveTimeout() * 1000);
-                        receiverManager.addPartitions(partitionIds);
-                        // add and validate position again
-                    } catch (InterruptedException e) {
-                        throw new IllegalStateException(e.getMessage(), e);
-                    }
-                }
+            if (!receiverManager.isReceiverAvailable()) {
+                throw new IllegalStateException(messages.errorNoAvailableReceiver());
             }
-
         } catch (IOException | EventHubException | URISyntaxException | ExecutionException | InterruptedException e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -125,9 +109,6 @@ public class AzureEventHubsSource implements Serializable {
 
     @Producer
     public Record next() {
-        if (configuration.isUseMaxNum() && count >= configuration.getMaxNumReceived()) {
-            return null;
-        }
         while (true) {
             try {
                 if (receivedEvents == null || !receivedEvents.hasNext()) {
@@ -135,13 +116,7 @@ public class AzureEventHubsSource implements Serializable {
                     // TODO let it configurable?
                     Iterable<EventData> iterable = receiverManager.getBatchEventData(100);
                     if (iterable == null) {
-                        if (!configuration.isUseMaxNum()) {
-                            return null;
-                        } else {
-                            // When not reach expected message number, add partitions into the queue to read again
-                            receiverManager.addPartitions(partitionIds);
-                            continue;
-                        }
+                        return null;
                     }
                     receivedEvents = iterable.iterator();
                 }
@@ -173,34 +148,6 @@ public class AzureEventHubsSource implements Serializable {
         }
     }
 
-    private EventPosition getPosition(PartitionRuntimeInformation partitionRuntimeInfo) {
-        if (AzureEventHubsInputConfiguration.ReceiverOptions.OFFSET.equals(configuration.getReceiverOptions())) {
-            if (AzureEventHubsInputConfiguration.EventOffsetPosition.START_OF_STREAM.equals(configuration.getOffset())) {
-                return EventPosition.fromStartOfStream();
-            } else {
-                return EventPosition.fromEndOfStream();
-            }
-        }
-        if (AzureEventHubsInputConfiguration.ReceiverOptions.SEQUENCE.equals(configuration.getReceiverOptions())) {
-            if (configuration.getSequenceNum() > partitionRuntimeInfo.getLastEnqueuedSequenceNumber()) {
-                throw new IllegalArgumentException(messages.errorWrongSequenceNumber(configuration.getSequenceNum(),
-                        partitionRuntimeInfo.getLastEnqueuedSequenceNumber()));
-            }
-            return EventPosition.fromSequenceNumber(configuration.getSequenceNum(), configuration.isInclusiveFlag());
-        }
-        if (AzureEventHubsInputConfiguration.ReceiverOptions.DATETIME.equals(configuration.getReceiverOptions())) {
-            Instant enqueuedDateTime = null;
-            if (configuration.getEnqueuedDateTime() == null) {
-                // default query from now
-                enqueuedDateTime = Instant.now();
-            } else {
-                enqueuedDateTime = Instant.parse(configuration.getEnqueuedDateTime());
-            }
-            return EventPosition.fromEnqueuedTime(enqueuedDateTime);
-        }
-        return EventPosition.fromStartOfStream();
-    }
-
     class ReceiverManager {
 
         private Map<String, EventPosition> eventPositionMap;
@@ -220,7 +167,7 @@ public class AzureEventHubsSource implements Serializable {
                 if (!eventPositionMap.containsKey(partitionId)) {
                     PartitionRuntimeInformation partitionRuntimeInfo = ehClient.getPartitionRuntimeInformation(partitionId).get();
                     try {
-                        EventPosition position = getPosition(partitionRuntimeInfo);
+                        EventPosition position = EventPosition.fromStartOfStream();
                         receiverManager.updatePartitionPositation(partitionId, position);
                     } catch (IllegalArgumentException e) {
                         log.warn(e.getMessage());
@@ -244,7 +191,7 @@ public class AzureEventHubsSource implements Serializable {
                     } else {
                         this.activedReceiver = ehClient.createEpochReceiverSync(configuration.getConsumerGroupName(), partitionId,
                                 eventPositionMap.get(partitionId), Integer.MAX_VALUE);
-                        this.activedReceiver.setReceiveTimeout(Duration.ofSeconds(configuration.getReceiveTimeout()));
+                        this.activedReceiver.setReceiveTimeout(Duration.ofSeconds(20L));//TODO changeme
                         break;
                     }
                 }

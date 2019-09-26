@@ -46,15 +46,8 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
 
     private static final String UNIQUE_ID;
 
-    private static final String ACCOUNT_NAME;
-
-    private static final String ACCOUNT_KEY;
-
     static {
         final MavenDecrypter decrypter = new MavenDecrypter();
-        final Server storageAccount = decrypter.find("azure-storage-account");
-        ACCOUNT_NAME = storageAccount.getUsername();
-        ACCOUNT_KEY = storageAccount.getPassword();
 
         UNIQUE_ID = Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
