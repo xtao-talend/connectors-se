@@ -66,6 +66,16 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
     private transient Schema schema;
 
+    static final int MAX_RECORDS = 10;
+
+    static final int MAX_ITERATIONS = 10;
+
+    static int nbRecords = 0;
+
+    static int nbIterations = 0;
+
+    static long lastFetchTime = 0;
+
     public ChangeDataCaptureInputEmitter(@Option("configuration") final InputCaptureDataChangeConfig config,
             final JdbcService jdbcDriversService, final RecordBuilderFactory recordBuilderFactory,
             final I18nMessage i18nMessage) {
@@ -74,11 +84,13 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
         this.jdbcDriversService = jdbcDriversService;
         this.i18n = i18nMessage;
         this.cdcDataset = ((ChangeDataCaptureDataset) config.getDataSet());
+
     }
 
     @PostConstruct
     public void init() {
         log.info("Init is called");
+
         if (inputConfig.getDataSet().getQuery() == null || inputConfig.getDataSet().getQuery().trim().isEmpty()) {
             throw new IllegalArgumentException(i18n.errorEmptyQuery());
         }
@@ -94,20 +106,30 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             // first statement to create stream table if needed
             statementUpdate = connection.createStatement();
             int result = statementUpdate.executeUpdate(createStreamStatement);
+
+            boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
+
+            if (!commit) {
+                fetchData();
+            }
+
         } catch (final SQLException e) {
             throw toIllegalStateException(e);
         }
+
     }
 
     @Producer
     public Record next() {
-        log.info("Next is called");
+        log.info("Next is called; nbRecords: " + nbRecords + ",nbIterations: " + nbIterations);
+
+        boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
 
         try {
             boolean resultSetIsNull = (resultSet == null);
             boolean noNext = resultSetIsNull || (resultSetSize == 0) || (resultSet.getRow() == resultSetSize);
             // log.info("resultSetSize: " + resultSetSize);
-            if (noNext) {
+            if (noNext && commit) {
                 log.info("Fetch data!");
                 if (resultSet != null)
                     resultSet.close();
@@ -117,7 +139,10 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
                 }
             }
 
-            resultSet.next();
+            if (!resultSet.next())
+                if (!commit)
+                    return null;
+
             final ResultSetMetaData metaData = resultSet.getMetaData();
             if (schema == null) {
                 final Schema.Builder schemaBuilder = recordBuilderFactory.newSchemaBuilder(RECORD);
@@ -128,6 +153,11 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             final Record.Builder recordBuilder = recordBuilderFactory.newRecordBuilder(schema);
             IntStream.rangeClosed(1, metaData.getColumnCount()).forEach(index -> addColumn(recordBuilder, metaData, index));
             log.info("Record emitted: " + getRowAsString());
+
+            checkExitCondition(commit);
+
+            nbRecords++;
+
             return recordBuilder.build();
 
         } catch (final SQLException e) {
@@ -137,6 +167,11 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             log.error("Exception found in next() ", e);
             throw toIllegalStateException(e);
         }
+    }
+
+    private void checkExitCondition(boolean commit) {
+        // if (!commit && (((MAX_RECORDS - nbRecords < 0) || (MAX_ITERATIONS - nbIterations < 0))))
+        // System.exit(0);
     }
 
     private int getSize(ResultSet rs) {
@@ -161,9 +196,22 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
         log.info("------------Fetch data------------------");
         boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
 
+        log.info("cmmmit: " + commit);
+
+        checkExitCondition(commit);
+
+        resultSetSize = 0;
+        nbIterations++;
+
         try {
 
-            Thread.currentThread().sleep(2000);
+            // Thread.currentThread().sleep(2000);
+            long time = System.currentTimeMillis();
+
+            if (time - lastFetchTime < 2000)
+                return;
+
+            lastFetchTime = time;
 
             connection.setAutoCommit(false);
 
