@@ -53,7 +53,7 @@ public class ChangeDataCaptureInputMapper implements Serializable {
 
     @Assessor
     public long estimateSize() {
-        return 1L;
+        return 10L;
     }
 
     @Split
