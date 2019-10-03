@@ -87,7 +87,7 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
     @PostConstruct
     public void init() {
-        log.debug("Init is called");
+        log.info("Init is called");
 
         if (inputConfig.getDataSet().getQuery() == null || inputConfig.getDataSet().getQuery().trim().isEmpty()) {
             throw new IllegalArgumentException(i18n.errorEmptyQuery());
@@ -105,9 +105,9 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             statementUpdate = connection.createStatement();
             int result = statementUpdate.executeUpdate(createStreamStatement);
             boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
-            if (!commit) {
-                fetchData();
-            }
+            // if (!commit) {
+            fetchData();
+            // }
         } catch (final SQLException e) {
             throw toIllegalStateException(e);
         }
@@ -116,14 +116,13 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
     @Producer
     public Record next() {
-        log.debug("Next is called; nbRecords: " + nbRecords + ",nbIterations: " + nbIterations);
+        log.info("Next is called; nbRecords: " + nbRecords + ",nbIterations: " + nbIterations);
         boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
         try {
             boolean resultSetIsNull = (resultSet == null);
             boolean noNext = resultSetIsNull || (resultSetSize == 0) || (resultSet.getRow() == resultSetSize);
 
             if (noNext && commit) {
-                log.info("Fetch data!");
                 if (resultSet != null)
                     resultSet.close();
                 fetchData();
@@ -146,7 +145,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             final Record.Builder recordBuilder = recordBuilderFactory.newRecordBuilder(schema);
             IntStream.rangeClosed(1, metaData.getColumnCount()).forEach(index -> addColumn(recordBuilder, metaData, index));
             log.info("Record emitted: " + getRowAsString());
-            checkExitCondition(commit);
             nbRecords++;
             return recordBuilder.build();
         } catch (final SQLException e) {
@@ -156,11 +154,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             log.error("Exception found in next() ", e);
             throw toIllegalStateException(e);
         }
-    }
-
-    private void checkExitCondition(boolean commit) {
-        // if (!commit && (((MAX_RECORDS - nbRecords < 0) || (MAX_ITERATIONS - nbIterations < 0))))
-        // System.exit(0);
     }
 
     private int getSize(ResultSet rs) {
@@ -181,12 +174,10 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
     }
 
     private void fetchData() {
-
         ResultSet resultSetCopy;
         boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
-        log.debug("commmit: " + commit);
-        checkExitCondition(commit);
-        resultSetSize = 0;
+        log.info("Fetch data attempt, commmit: " + commit);
+        // checkExitCondition(commit);
         nbIterations++;
         try {
             long time = System.currentTimeMillis();
@@ -194,7 +185,11 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             if ((time - lastFetchTime < 2000) && (resultSetSize == 0))
                 return;
 
+            resultSetSize = 0;
+
             log.info("------------Fetch data------------------");
+            log.info("Fetch data with query: " + inputConfig.getDataSet().getQuery());
+
             lastFetchTime = time;
             connection.setAutoCommit(false);
             // then read from stream table to compute size
@@ -212,7 +207,7 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
             // move the offset
             if (commit && (resultSetSize != 0)) {
-                // log.debug("move offset");
+                log.info("Result set size: " + resultSetSize);
                 connection.setAutoCommit(false);
                 statementUpdate = connection.createStatement();
                 String createStreamCounterStatement = this.cdcDataset.createCounterTableIfNotExist();
