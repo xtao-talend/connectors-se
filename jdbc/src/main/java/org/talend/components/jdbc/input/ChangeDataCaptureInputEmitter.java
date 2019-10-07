@@ -41,37 +41,19 @@ import static org.talend.sdk.component.api.record.Schema.Type.STRING;
 public class ChangeDataCaptureInputEmitter implements Serializable {
 
     private final InputCaptureDataChangeConfig inputConfig;
-
     private RecordBuilderFactory recordBuilderFactory;
-
     private final JdbcService jdbcDriversService;
-
     private final I18nMessage i18n;
-
     protected Connection connection;
-
     private static Statement statement;
-
     private Statement statementUpdate;
-
     private static ResultSet resultSet;
-
     private static int resultSetSize;
-
     private static JdbcService.JdbcDatasource dataSource;
-
     private ChangeDataCaptureDataset cdcDataset;
-
     private transient Schema schema;
-
-    static final int MAX_RECORDS = 10;
-
-    static final int MAX_ITERATIONS = 10;
-
     private static int nbRecords = 0;
-
     private static int nbIterations = 0;
-
     private static long lastFetchTime = 0;
 
     ChangeDataCaptureInputEmitter(@Option("configuration") final InputCaptureDataChangeConfig config,
@@ -82,13 +64,11 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
         this.jdbcDriversService = jdbcDriversService;
         this.i18n = i18nMessage;
         this.cdcDataset = ((ChangeDataCaptureDataset) config.getDataSet());
-
     }
 
     @PostConstruct
     public void init() {
-        log.info("Init is called");
-
+        log.debug("Init is called");
         if (inputConfig.getDataSet().getQuery() == null || inputConfig.getDataSet().getQuery().trim().isEmpty()) {
             throw new IllegalArgumentException(i18n.errorEmptyQuery());
         }
@@ -104,19 +84,15 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
             // first statement to create stream table if needed
             statementUpdate = connection.createStatement();
             int result = statementUpdate.executeUpdate(createStreamStatement);
-            boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
-            // if (!commit) {
             fetchData();
-            // }
         } catch (final SQLException e) {
             throw toIllegalStateException(e);
         }
-
     }
 
     @Producer
     public Record next() {
-        log.info("Next is called; nbRecords: " + nbRecords + ",nbIterations: " + nbIterations);
+        log.debug("Next is called; nbRecords: " + nbRecords + ",nbIterations: " + nbIterations);
         boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
         try {
             boolean resultSetIsNull = (resultSet == null);
@@ -144,7 +120,9 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
 
             final Record.Builder recordBuilder = recordBuilderFactory.newRecordBuilder(schema);
             IntStream.rangeClosed(1, metaData.getColumnCount()).forEach(index -> addColumn(recordBuilder, metaData, index));
-            log.info("Record emitted: " + getRowAsString());
+
+            if (nbRecords == resultSetSize) log.info("Last record of series emitted: " + getRowAsString());
+
             nbRecords++;
             return recordBuilder.build();
         } catch (final SQLException e) {
@@ -165,7 +143,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
                 log.debug("advance cursor");
             }
             rowscount = rs.getRow();
-
         } catch (final SQLException e) {
             log.error("Exception found in next() ", e);
             return 0;
@@ -177,7 +154,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
         ResultSet resultSetCopy;
         boolean commit = (inputConfig.getChangeOffsetOnRead() == InputCaptureDataChangeConfig.ChangeOffsetOnReadStrategy.YES);
         log.info("Fetch data attempt, commmit: " + commit);
-        // checkExitCondition(commit);
         nbIterations++;
         try {
             long time = System.currentTimeMillis();
@@ -216,9 +192,7 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
                 log.debug("Update statement changed records: " + resultCreateCounter);
                 String consumeRecordsStreamStatement = this.cdcDataset.createStatementConsumeStreamTable();
                 statementUpdate = connection.createStatement();
-                // log.info("Statement to execute: " + consumeRecordsStreamStatement);
                 int resultConsumeRecordsStream = statementUpdate.executeUpdate(consumeRecordsStreamStatement);
-                // log.info("Consumed records from stream: " + resultConsumeRecordsStream);
                 connection.commit();
                 connection.setAutoCommit(true);
             } else {
@@ -240,7 +214,6 @@ public class ChangeDataCaptureInputEmitter implements Serializable {
         }
         final ResultSetMetaData metaData = resultSet.getMetaData();
         final int current = resultSet.getRow();
-        log.debug("current row is: " + current);
         String res = "Row " + current + ": ";
 
         for (int index = 1; index <= metaData.getColumnCount(); index++) {
