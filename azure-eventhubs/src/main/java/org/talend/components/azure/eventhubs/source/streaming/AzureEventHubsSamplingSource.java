@@ -10,17 +10,15 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.eventhubs.source.batch;
+package org.talend.components.azure.eventhubs.source.streaming;
 
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
 
 import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -32,11 +30,23 @@ import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonReaderFactory;
+import javax.json.bind.Jsonb;
+import javax.json.spi.JsonProvider;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DecoderFactory;
+import org.talend.components.azure.eventhubs.runtime.converters.AvroConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.CSVConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.JsonConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.RecordConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.TextConverter;
 import org.talend.components.azure.eventhubs.service.Messages;
-import org.talend.components.azure.eventhubs.service.UiActionService;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
-import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.input.Producer;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -60,7 +70,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final RecordBuilderFactory builderFactory;
+    private final RecordBuilderFactory recordBuilderFactory;
 
     private ReceiverManager receiverManager;
 
@@ -76,19 +86,46 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     String[] partitionIds;
 
+    private RecordConverter recordConverter;
+
+    private JsonBuilderFactory jsonBuilderFactory;
+
+    private JsonProvider jsonProvider;
+
+    private JsonReaderFactory readerFactory;
+
+    private Jsonb jsonb;
+
+    private transient Schema schema;
+
+    private transient GenericDatumReader<GenericRecord> datumReader;
+
+    private transient BinaryDecoder decoder;
+
     public AzureEventHubsSamplingSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-             final RecordBuilderFactory builderFactory, final Messages messages) {
+            RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
+            JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
-        this.builderFactory = builderFactory;
+        this.recordBuilderFactory = recordBuilderFactory;
+        this.jsonBuilderFactory = jsonBuilderFactory;
+        this.jsonProvider = jsonProvider;
+        this.readerFactory = readerFactory;
+        this.jsonb = jsonb;
         this.messages = messages;
+
     }
 
     @PostConstruct
     public void init() {
         try {
             executorService = Executors.newScheduledThreadPool(8);
-            final ConnectionStringBuilder connStr = new ConnectionStringBuilder()//
-                    .setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));
+
+            final ConnectionStringBuilder connStr = new ConnectionStringBuilder();
+            if (configuration.getDataset().getConnection().isSpecifyEndpoint()) {
+                connStr.setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));//
+            } else {
+                connStr.setNamespaceName(configuration.getDataset().getConnection().getNamespace());
+            }
             connStr.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
             connStr.setSasKey(configuration.getDataset().getConnection().getSasKey());
             connStr.setEventHubName(configuration.getDataset().getEventHubName());
@@ -109,31 +146,69 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     @Producer
     public Record next() {
-        while (true) {
-            try {
-                if (receivedEvents == null || !receivedEvents.hasNext()) {
-                    log.debug("fetch messages...");
-                    // TODO let it configurable?
-                    Iterable<EventData> iterable = receiverManager.getBatchEventData(100);
-                    if (iterable == null) {
-                        return null;
-                    }
-                    receivedEvents = iterable.iterator();
+        try {
+            if (receivedEvents == null || !receivedEvents.hasNext()) {
+                log.debug("fetch messages...");
+                // TODO let it configurable?
+                Iterable<EventData> iterable = receiverManager.getBatchEventData(100);
+                if (iterable == null) {
+                    log.debug("no record available now!");
+                    return null;
                 }
-                if (receivedEvents.hasNext()) {
-                    EventData eventData = receivedEvents.next();
-                    if (eventData != null) {
-                        Record.Builder recordBuilder = builderFactory.newRecordBuilder();
-                        recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-                        count++;
-                        return recordBuilder.build();
-                    }
-                } else {
-                    continue;
-                }
-            } catch (Exception e) {
-                throw new IllegalStateException(e.getMessage(), e);
+                receivedEvents = iterable.iterator();
             }
+            if (receivedEvents.hasNext()) {
+                EventData eventData = receivedEvents.next();
+                Record record = null;
+                if (eventData != null) {
+                    count++;
+                    switch (configuration.getDataset().getValueFormat()) {
+                    case AVRO: {
+                        if (recordConverter == null) {
+                            recordConverter = AvroConverter.of(recordBuilderFactory);
+                        }
+                        if (schema == null) {
+                            schema = new org.apache.avro.Schema.Parser().parse(configuration.getDataset().getAvroSchema());
+                            datumReader = new GenericDatumReader<GenericRecord>(schema);
+                        }
+                        decoder = DecoderFactory.get().binaryDecoder(eventData.getBytes(), decoder);
+                        record = recordConverter.toRecord(datumReader.read(null, decoder));
+                        break;
+                    }
+                    case CSV: {
+                        if (recordConverter == null) {
+                            recordConverter = CSVConverter.of(recordBuilderFactory,
+                                    configuration.getDataset().getFieldDelimiter(), messages);
+                        }
+                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        break;
+                    }
+                    case TEXT: {
+                        if (recordConverter == null) {
+                            recordConverter = TextConverter.of(recordBuilderFactory, messages);
+                        }
+                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        break;
+                    }
+                    case JSON: {
+                        if (recordConverter == null) {
+                            recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider,
+                                    readerFactory, jsonb, messages);
+                        }
+                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        break;
+                    }
+                    default:
+                        throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
+                    }
+                    log.debug(record.toString());
+                }
+                return record;
+            } else {
+                return next();
+            }
+        } catch (Throwable e) {
+            throw new IllegalStateException(e.getMessage(), e);
         }
     }
 
@@ -191,7 +266,8 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                     } else {
                         this.activedReceiver = ehClient.createEpochReceiverSync(configuration.getConsumerGroupName(), partitionId,
                                 eventPositionMap.get(partitionId), Integer.MAX_VALUE);
-                        this.activedReceiver.setReceiveTimeout(Duration.ofSeconds(20L));//TODO changeme
+                        this.activedReceiver.setReceiveTimeout(Duration.ofMillis(1000));// TODO
+                                                                                        // changeme
                         break;
                     }
                 }

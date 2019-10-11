@@ -10,10 +10,12 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.eventhubs.source.batch;
+package org.talend.components.azure.eventhubs.source.sampling;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CONSUMER_GROUP;
+import static java.util.Arrays.asList;
+import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
@@ -30,17 +32,19 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.junit.rules.ExpectedException;
-import org.talend.components.azure.common.Protocol;
-import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
+import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputMapper;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
+import org.talend.sdk.component.junit.ComponentsHandler;
+import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
+import org.talend.sdk.component.runtime.input.Mapper;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,25 +56,20 @@ import lombok.extern.slf4j.Slf4j;
 @Disabled("Run manually follow the comment")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @WithComponents("org.talend.components.azure.eventhubs")
-class AzureEventHubsSourceTest extends AzureEventHubsTestBase {
+class AzureEventHubsSamplingAvroTest extends AzureEventHubsTestBase {
 
-    protected static final String EVENTHUB_NAME = "eh-source-test";
+    @Injected
+    private ComponentsHandler handler;
 
-    protected static final String DEFAULT_PARTITION_ID = "1";
+    protected static final String EVENTHUB_NAME = "eh-source-test-avro";
 
     private static final String UNIQUE_ID;
-
-    @Rule
-    public ExpectedException exception = ExpectedException.none();
-
-    @Service
-    private Messages messages;
 
     static {
         UNIQUE_ID = Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
 
-    @BeforeAll
+    // @BeforeAll
     void prepareData() {
         log.warn("a) Eventhub \"" + EVENTHUB_NAME + "\" was created ? ");
         log.warn("b) Partition count is 6 ? ");
@@ -79,9 +78,10 @@ class AzureEventHubsSourceTest extends AzureEventHubsTestBase {
             AzureEventHubsOutputConfiguration outputConfiguration = new AzureEventHubsOutputConfiguration();
             final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
             dataSet.setEventHubName(EVENTHUB_NAME);
-            outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-            outputConfiguration.setPartitionId(Integer.toString(index));
             dataSet.setConnection(getDataStore());
+            dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.AVRO);
+            dataSet.setAvroSchema(
+                    "{\"type\":\"record\",\"name\":\"LongList\",\"aliases\":[\"LinkedLongs\"],\"fields\":[{\"name\":\"pk\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"}]}");
 
             outputConfiguration.setDataset(dataSet);
 
@@ -102,39 +102,46 @@ class AzureEventHubsSourceTest extends AzureEventHubsTestBase {
     }
 
     @Test
-    @DisplayName("Read by offset from specified partition ")
-    void testReadByOffset() {
-
-        final String containerName = "eventhub-test-readby-offset";
+    @DisplayName("test sampling avro format")
+    void testSamplingAvroFormat() {
 
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setEventHubName(EVENTHUB_NAME);
-
-        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-
-        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
-        connectionAccount.setAccountName(ACCOUNT_NAME);
-        connectionAccount.setProtocol(Protocol.HTTPS);
-        connectionAccount.setAccountKey(ACCOUNT_KEY);
+        dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.AVRO);
+        dataSet.setAvroSchema(
+                "{\"type\":\"record\",\"name\":\"LongList\",\"aliases\":[\"LinkedLongs\"],\"fields\":[{\"name\":\"pk\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"}]}");
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setDataset(dataSet);
-        inputConfiguration.setStorageConn(connectionAccount);
-        inputConfiguration.setContainerName(containerName);
         inputConfiguration.setSampling(true);
 
-        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString();
+        final String config = configurationByExample().forInstance(inputConfiguration).configured().toQueryString()
+                + "&sampling=true";
         Job.components().component("azureeventhubs-input", "AzureEventHubs://AzureEventHubsInputStream?" + config)
                 .component("collector", "test://collector").connections().from("azureeventhubs-input").to("collector").build()
                 .run();
         final List<Record> records = getComponentsHandler().getCollectedData(Record.class);
         Assert.assertNotNull(records);
-        List<Record> filteredRecords = records.stream()
-                .filter(e -> (e.getString(PAYLOAD_COLUMN) != null && e.getString(PAYLOAD_COLUMN).contains(UNIQUE_ID)))
-                .collect(Collectors.toList());
-        Assert.assertEquals(100, filteredRecords.size());
+    }
+
+    @Test
+    public void manualMapper() {
+        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
+        final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
+        dataSet.setConnection(getDataStore());
+        dataSet.setEventHubName(EVENTHUB_NAME);
+        dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.AVRO);
+        dataSet.setAvroSchema(
+                "{\"type\":\"record\",\"name\":\"LongList\",\"aliases\":[\"LinkedLongs\"],\"fields\":[{\"name\":\"pk\",\"type\":\"string\"},{\"name\":\"name\",\"type\":\"string\"}]}");
+
+        inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
+        inputConfiguration.setDataset(dataSet);
+        inputConfiguration.setSampling(true);
+
+        final Mapper mapper = handler.createMapper(AzureEventHubsStreamInputMapper.class, inputConfiguration);
+        assertTrue(mapper.isStream());
     }
 
 }

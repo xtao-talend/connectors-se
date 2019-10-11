@@ -18,7 +18,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -31,7 +30,6 @@ import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.maven.MavenDecrypter;
-import org.talend.sdk.component.maven.Server;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,17 +50,15 @@ class AzureEventHubsUnboundedSourceTest extends AzureEventHubsTestBase {
         UNIQUE_ID = Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
 
-    @BeforeAll
+    // @BeforeAll
     void prepareData() {
         log.warn("a) Eventhub \"" + EVENTHUB_NAME + "\" was created ? ");
-        log.warn("b) Partition count is 4 ? ");
+        log.warn("b) Partition count is 6 ? ");
         log.warn("c) Consume group \"" + CONSUME_GROUP + "\" ?");
-        for (int index = 0; index < 4; index++) {
+        for (int index = 0; index < 6; index++) {
             AzureEventHubsOutputConfiguration outputConfiguration = new AzureEventHubsOutputConfiguration();
             final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
             dataSet.setEventHubName(EVENTHUB_NAME);
-            outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-            outputConfiguration.setPartitionId(Integer.toString(index));
             dataSet.setConnection(getDataStore());
 
             outputConfiguration.setDataset(dataSet);

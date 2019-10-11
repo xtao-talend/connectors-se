@@ -34,16 +34,13 @@ public class AzureEventHubsTestBase implements Serializable {
 
     public static String SASKEY;
 
-    protected static final String SHARED_EVENTHUB_NAME = "eh-test";
+    protected static final String SHARED_EVENTHUB_NAME = "eh-junit-shared";
 
-    protected static final String CONSUME_GROUP = "consumer-group-1";
-    
-    protected static final String EVENTHUB_NAME = "test-event-hub-1";
+    protected static final String CONSUME_GROUP = "consumer-1";
 
     protected static final String ACCOUNT_NAME;
 
     protected static final String ACCOUNT_KEY;
-
 
     static {
         final MavenDecrypter decrypter = new MavenDecrypter();
@@ -61,7 +58,9 @@ public class AzureEventHubsTestBase implements Serializable {
 
     public AzureEventHubsDataStore getDataStore() {
         AzureEventHubsDataStore dataStore = new AzureEventHubsDataStore();
+        dataStore.setSpecifyEndpoint(true);
         dataStore.setEndpoint(ENDPOINT);
+        dataStore.setAuthMethod(AzureEventHubsDataStore.AuthMethod.SAS);
         dataStore.setSasKeyName(SASKEY_NAME);
         dataStore.setSasKey(SASKEY);
         return dataStore;

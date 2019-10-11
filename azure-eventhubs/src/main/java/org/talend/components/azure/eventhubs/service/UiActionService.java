@@ -47,13 +47,21 @@ public class UiActionService {
         EventHubClient ehClient = null;
         final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
         try {
-            final ConnectionStringBuilder connStr = new ConnectionStringBuilder()//
-                    .setEndpoint(new URI(conn.getEndpoint()));//
+
+            final ConnectionStringBuilder connStr = new ConnectionStringBuilder();
+            if (conn.isSpecifyEndpoint()) {
+                connStr.setEndpoint(new URI(conn.getEndpoint()));//
+            } else {
+                connStr.setNamespaceName(conn.getNamespace());
+            }
             ehClient = EventHubClient.createSync(connStr.toString(), executorService);
             ehClient.closeSync();
         } catch (Throwable exception) {
-            return new HealthCheckStatus(HealthCheckStatus.Status.KO,
-                    i18n.healthCheckFailed("invalid endpoint or network issue!"));
+            String errorMessage = exception.getMessage();
+            if (errorMessage == null) {
+                errorMessage = "invalid endpoint or network issue!";
+            }
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.healthCheckFailed(errorMessage));
         } finally {
             executorService.shutdown();
         }
@@ -101,38 +109,6 @@ public class UiActionService {
         result.setStatus(ValidationResult.Status.OK);
         result.setComment("EventHub is available!");
         return result;
-    }
-
-    @Suggestions("listPartitionIds")
-    public SuggestionValues listPartitionIds(@Option final AzureEventHubsDataSet dataset) {
-        EventHubClient ehClient = null;
-        final ScheduledExecutorService executorService = Executors.newScheduledThreadPool(1);
-        try {
-            final ConnectionStringBuilder connStr = new ConnectionStringBuilder()//
-                    .setEndpoint(new URI(dataset.getConnection().getEndpoint()))//
-                    .setEventHubName(dataset.getEventHubName())//
-                    .setSasKeyName(dataset.getConnection().getSasKeyName())//
-                    .setSasKey(dataset.getConnection().getSasKey());//
-            ehClient = EventHubClient.createSync(connStr.toString(), executorService);
-            EventHubRuntimeInformation ehInfo = ehClient.getRuntimeInformation().get();
-            List<SuggestionValues.Item> items = new ArrayList<>();
-            String[] partitionIds = ehInfo.getPartitionIds();
-            for (String partitionId : partitionIds) {
-                items.add(new SuggestionValues.Item(partitionId, partitionId));
-            }
-            return new SuggestionValues(true, items);
-        } catch (Throwable exception) {
-            throw new IllegalStateException(exception);
-        } finally {
-            if (ehClient != null) {
-                try {
-                    ehClient.closeSync();
-                } catch (EventHubException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-            executorService.shutdown();
-        }
     }
 
     // This INCOMING_PATHS_DYNAMIC service is a flag for inject incoming paths dynamic, won't be called

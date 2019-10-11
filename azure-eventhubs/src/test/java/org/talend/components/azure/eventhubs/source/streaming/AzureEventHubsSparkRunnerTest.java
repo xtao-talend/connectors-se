@@ -32,10 +32,7 @@ import org.apache.beam.sdk.values.PCollection;
 import org.apache.spark.SparkConf;
 import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaSparkContext;
-<<<<<<< HEAD
-=======
 import org.junit.jupiter.api.BeforeAll;
->>>>>>> 4268ee03c... feat(TDI-42242):unit test for spark runner
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -43,10 +40,6 @@ import org.talend.components.azure.common.Protocol;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
-<<<<<<< HEAD
-=======
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsStreamDataSet;
->>>>>>> 4268ee03c... feat(TDI-42242):unit test for spark runner
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -92,8 +85,6 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
             AzureEventHubsOutputConfiguration outputConfiguration = new AzureEventHubsOutputConfiguration();
             final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
             dataSet.setEventHubName(EVENTHUB_NAME);
-            outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-            outputConfiguration.setPartitionId(Integer.toString(index));
             dataSet.setConnection(getDataStore());
 
             outputConfiguration.setDataset(dataSet);
@@ -116,10 +107,12 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
 
     @Test
     void testStreamingInput() {
-        final String containerName = "eventhub-test-streaming";
+        final String containerName = "eventhub-test-streaming-1";
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
+        dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.CSV);
+        dataSet.setFieldDelimiter(AzureEventHubsDataSet.FieldDelimiterType.COMMA);
         dataSet.setEventHubName(EVENTHUB_NAME);
 
         AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
@@ -146,7 +139,7 @@ class AzureEventHubsSparkRunnerTest extends AzureEventHubsTestBase {
             Record record = input1.iterator().next();
             assertNotNull(record);
             try {
-                log.info(record.toString());
+                log.debug(record.toString());
             } catch (Exception e) {
             }
             return null;

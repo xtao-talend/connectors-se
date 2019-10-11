@@ -18,19 +18,26 @@ import org.talend.components.azure.eventhubs.datastore.AzureEventHubsDataStore;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Validable;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
+import org.talend.sdk.component.api.configuration.condition.ActiveIfs;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
+import org.talend.sdk.component.api.configuration.ui.widget.Code;
+import org.talend.sdk.component.api.configuration.ui.widget.TextArea;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import lombok.Data;
 
 @Data
 @DataSet("AzureEventHubsDataSet")
-@GridLayout({ @GridLayout.Row({ "connection" }), @GridLayout.Row({ "eventHubName" }), @GridLayout.Row("valueFormat"),
-        @GridLayout.Row("fieldDelimiter") })
+@GridLayout({ @GridLayout.Row({ "connection" }), //
+        @GridLayout.Row({ "eventHubName" }), //
+        @GridLayout.Row("valueFormat"), //
+        @GridLayout.Row("fieldDelimiter"), //
+        @GridLayout.Row("specificFieldDelimiter"), //
+        @GridLayout.Row("avroSchema") })
 @Documentation("The dataset consume message in eventhubs")
-public class AzureEventHubsDataSet implements BaseDataSet {
+public class AzureEventHubsDataSet implements Serializable {
 
     @Option
     @Documentation("Connection information to eventhubs")
@@ -43,21 +50,50 @@ public class AzureEventHubsDataSet implements BaseDataSet {
     private String eventHubName;
 
     @Option
-    @ActiveIf(target = ".", value = "-2147483648")
-    @Documentation("The format of the records stored in eventhub.")
+    @Required
+    @Documentation("The format of the records stored in Kafka messages.")
     private ValueFormat valueFormat = ValueFormat.CSV;
 
     @Option
-    @ActiveIf(target = ".", value = "-2147483648")
-    @Documentation("The field delimiter of the eventhub message value.")
+    @ActiveIf(target = "valueFormat", value = "CSV")
+    @Documentation("The format of the eventhubs message value.")
     private FieldDelimiterType fieldDelimiter = FieldDelimiterType.SEMICOLON;
 
+    @Option
+    @ActiveIfs({ //
+            @ActiveIf(target = "valueFormat", value = "CSV"), //
+            @ActiveIf(target = "fieldDelimiter", value = "OTHER") })
+    @Documentation("A regex used to split the string message value.")
+    private String specificFieldDelimiter = ";";
+
+    @Option
+    @TextArea
+    @ActiveIf(target = "valueFormat", value = "AVRO")
+    @Code("json")
+    @Documentation("The Avro Schema that corresponds to the binary message value.")
+    private String avroSchema;
+
+    public String getFieldDelimiter() {
+        if (FieldDelimiterType.OTHER.equals(fieldDelimiter)) {
+            return specificFieldDelimiter;
+        } else {
+            return fieldDelimiter.getDelimiter();
+        }
+    }
+
     public enum ValueFormat {
-        CSV
+        TEXT,
+        JSON,
+        CSV,
+        AVRO
     }
 
     public enum FieldDelimiterType {
-        SEMICOLON(";");
+        SEMICOLON(";"),
+        COMMA(","),
+        TAB("\t"),
+        SPACE(" "),
+        OTHER("Other");
 
         private final String value;
 

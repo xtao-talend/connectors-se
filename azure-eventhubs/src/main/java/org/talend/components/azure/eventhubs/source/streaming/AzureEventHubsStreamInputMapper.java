@@ -17,9 +17,13 @@ import static java.util.Collections.singletonList;
 import java.io.Serializable;
 import java.util.List;
 
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonReaderFactory;
+import javax.json.bind.Jsonb;
+import javax.json.spi.JsonProvider;
+
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
-import org.talend.components.azure.eventhubs.source.batch.AzureEventHubsSamplingSource;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
@@ -41,12 +45,25 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
 
     private final RecordBuilderFactory recordBuilderFactory;
 
+    private final JsonBuilderFactory jsonBuilderFactory;
+
+    private final JsonProvider jsonProvider;
+
+    private final JsonReaderFactory readerFactory;
+
+    private final Jsonb jsonb;
+
     private final Messages messages;
 
     public AzureEventHubsStreamInputMapper(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            final RecordBuilderFactory recordBuilderFactory, final Messages messages) {
+            RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
+            JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
         this.recordBuilderFactory = recordBuilderFactory;
+        this.jsonBuilderFactory = jsonBuilderFactory;
+        this.jsonProvider = jsonProvider;
+        this.readerFactory = readerFactory;
+        this.jsonb = jsonb;
         this.messages = messages;
     }
 
@@ -62,10 +79,12 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
 
     @Emitter
     public AzureEventHubsSource createWorker() {
-        if(configuration.isSampling()){
-            return new AzureEventHubsSamplingSource(configuration, recordBuilderFactory,messages);
-        }else {
-            return new AzureEventHubsUnboundedSource(configuration, recordBuilderFactory,messages);
+        if (configuration.isSampling()) {
+            return new AzureEventHubsSamplingSource(configuration, recordBuilderFactory, jsonBuilderFactory, jsonProvider,
+                    readerFactory, jsonb, messages);
+        } else {
+            return new AzureEventHubsUnboundedSource(configuration, recordBuilderFactory, jsonBuilderFactory, jsonProvider,
+                    readerFactory, jsonb, messages);
         }
     }
 }

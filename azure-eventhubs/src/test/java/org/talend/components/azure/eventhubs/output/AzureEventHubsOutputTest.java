@@ -54,8 +54,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
         dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
         dataSet.setConnection(getDataStore());
 
-        outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-        outputConfiguration.setPartitionId(partitionId);
         outputConfiguration.setDataset(dataSet);
 
         List<Record> records = new ArrayList<>(10);
@@ -82,8 +80,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
         dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
         dataSet.setConnection(getDataStore());
 
-        outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-        outputConfiguration.setPartitionId(partitionId);
         outputConfiguration.setDataset(dataSet);
 
         List<Record> records = new ArrayList<>(10);
@@ -119,8 +115,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
         dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
         dataSet.setConnection(getDataStore());
 
-        outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-        outputConfiguration.setPartitionId(partitionId);
         outputConfiguration.setDataset(dataSet);
 
         List<Record> records = new ArrayList<>(10);
@@ -157,7 +151,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 .from("emitter").to("azureeventhubs-output").build().run();
         getComponentsHandler().resetState();
 
-
     }
 
     @Test
@@ -170,8 +163,6 @@ class AzureEventHubsOutputTest extends AzureEventHubsTestBase {
                 dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
                 dataSet.setConnection(getDataStore());
 
-                outputConfiguration.setPartitionType(AzureEventHubsOutputConfiguration.PartitionType.SPECIFY_PARTITION_ID);
-                outputConfiguration.setPartitionId(DEFAULT_PARTITION_ID);
                 outputConfiguration.setDataset(dataSet);
 
                 List<Record> records = Collections

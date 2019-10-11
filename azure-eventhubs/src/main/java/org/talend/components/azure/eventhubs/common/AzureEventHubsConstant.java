@@ -47,4 +47,10 @@ public class AzureEventHubsConstant {
 
     public static final String PARTITION_ID = "PARTITION_ID";
 
+    public static final String DEFAULT_PARTITION_ID = "0";
+
+    public static final Charset DEFAULT_CHARSET = Charset.forName("UTF-8");
+
+    public static final String PAYLOAD_COLUMN = "Event";
+
 }

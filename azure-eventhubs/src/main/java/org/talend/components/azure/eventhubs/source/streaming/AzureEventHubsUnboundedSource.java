@@ -19,10 +19,11 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_ENDPOINTS_PROTOCOL_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.ENDPOINT_SUFFIX_NAME;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PARTITION_ID;
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.net.URI;
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map;
@@ -31,21 +32,38 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.json.JsonBuilderFactory;
+import javax.json.JsonReaderFactory;
+import javax.json.bind.Jsonb;
+import javax.json.spi.JsonProvider;
 
+import org.apache.avro.Schema;
+import org.apache.avro.generic.GenericDatumReader;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.io.BinaryDecoder;
+import org.apache.avro.io.DecoderFactory;
+import org.talend.components.azure.eventhubs.runtime.converters.AvroConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.CSVConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.JsonConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.RecordConverter;
+import org.talend.components.azure.eventhubs.runtime.converters.TextConverter;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.input.Producer;
 import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.record.Record;
+import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 import com.google.common.collect.EvictingQueue;
 import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
 import com.microsoft.azure.eventhubs.EventData;
+import com.microsoft.azure.eventhubs.EventPosition;
 import com.microsoft.azure.eventprocessorhost.CloseReason;
 import com.microsoft.azure.eventprocessorhost.EventProcessorHost;
 import com.microsoft.azure.eventprocessorhost.EventProcessorOptions;
@@ -63,8 +81,6 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final RecordBuilderFactory builderFactory;
-
     private final Messages messages;
 
     private ScheduledExecutorService executorService;
@@ -73,6 +89,24 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     private EventProcessorHost host;
 
+    private RecordConverter recordConverter;
+
+    private transient Schema schema;
+
+    private transient GenericDatumReader<GenericRecord> datumReader;
+
+    private transient BinaryDecoder decoder;
+
+    private RecordBuilderFactory recordBuilderFactory;
+
+    private JsonBuilderFactory jsonBuilderFactory;
+
+    private JsonProvider jsonProvider;
+
+    private JsonReaderFactory readerFactory;
+
+    private Jsonb jsonb;
+
     private static int commitEvery;
 
     private static volatile boolean processOpened;
@@ -80,11 +114,16 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
     private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
 
     public AzureEventHubsUnboundedSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            final RecordBuilderFactory builderFactory, final Messages messages) {
+            RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
+            JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
-        this.builderFactory = builderFactory;
-        this.messages =  messages;
-        
+        this.recordBuilderFactory = recordBuilderFactory;
+        this.jsonBuilderFactory = jsonBuilderFactory;
+        this.jsonProvider = jsonProvider;
+        this.readerFactory = readerFactory;
+        this.jsonb = jsonb;
+        this.messages = messages;
+
     }
 
     @PostConstruct
@@ -104,6 +143,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
             EventProcessorOptions options = new EventProcessorOptions();
             options.setExceptionNotification(new ErrorNotificationHandler());
+            options.setInitialPositionProvider(getPosition());
             host = new EventProcessorHost(EventProcessorHost.createHostName(hostNamePrefix),
                     configuration.getDataset().getEventHubName(), configuration.getConsumerGroupName(),
                     eventHubConnectionString.toString(), storageConnectionString, configuration.getContainerName(),
@@ -124,18 +164,62 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
     @Producer
     public Record next() {
         EventData eventData = receivedEvents.poll();
+        Record record = null;
         if (eventData != null) {
-            String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
-            if (!lastEventDataMap.containsKey(partitionKey)) {
-                Queue<EventData> lastEvent = EvictingQueue.create(1);
-                lastEvent.add(eventData);
-                lastEventDataMap.put(partitionKey, lastEvent);
-            } else {
-                lastEventDataMap.get(partitionKey).add(eventData);
+            try {
+                String partitionKey = String.valueOf(eventData.getProperties().get(PARTITION_ID));
+                if (!lastEventDataMap.containsKey(partitionKey)) {
+                    Queue<EventData> lastEvent = EvictingQueue.create(1);
+                    lastEvent.add(eventData);
+                    lastEventDataMap.put(partitionKey, lastEvent);
+                } else {
+                    lastEventDataMap.get(partitionKey).add(eventData);
+                }
+                switch (configuration.getDataset().getValueFormat()) {
+                case AVRO: {
+                    if (recordConverter == null) {
+                        recordConverter = AvroConverter.of(recordBuilderFactory);
+                    }
+                    if (schema == null) {
+                        schema = new org.apache.avro.Schema.Parser().parse(configuration.getDataset().getAvroSchema());
+                        datumReader = new GenericDatumReader<GenericRecord>(schema);
+                    }
+                    decoder = DecoderFactory.get().binaryDecoder(eventData.getBytes(), decoder);
+                    GenericRecord genericRecord = datumReader.read(null, decoder);
+                    record = recordConverter.toRecord(genericRecord);
+                    break;
+                }
+                case CSV: {
+                    if (recordConverter == null) {
+                        recordConverter = CSVConverter.of(recordBuilderFactory, configuration.getDataset().getFieldDelimiter(),
+                                messages);
+                    }
+                    record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                    break;
+                }
+                case TEXT: {
+                    if (recordConverter == null) {
+                        recordConverter = TextConverter.of(recordBuilderFactory, messages);
+                    }
+                    record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                    break;
+                }
+                case JSON: {
+                    if (recordConverter == null) {
+                        recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider, readerFactory,
+                                jsonb, messages);
+                    }
+                    record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                    break;
+                }
+                default:
+                    throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
+                }
+                log.debug(record.toString());
+                return record;
+            } catch (Throwable e) {
+                throw new IllegalStateException(e.getMessage(), e);
             }
-            Record.Builder recordBuilder = builderFactory.newRecordBuilder();
-            recordBuilder.withString(PAYLOAD_COLUMN, new String(eventData.getBytes(), DEFAULT_CHARSET));
-            return recordBuilder.build();
         }
         return null;
     }
@@ -279,5 +363,36 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                         + context.getOwner());
             }
         }
+    }
+
+    private Function<String, EventPosition> getPosition() {
+        final EventPosition position;
+        if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.EARLIEST.equals(configuration.getAutoOffsetReset())) {
+            position = EventPosition.fromStartOfStream();
+        } else if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.LATEST.equals(configuration.getAutoOffsetReset())) {
+            position = EventPosition.fromEndOfStream();
+        } else if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.SEQUENCE
+                .equals(configuration.getAutoOffsetReset())) {
+            // every partition seq maybe not same
+            throw new IllegalArgumentException("seems useless for this!");
+        } else if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.DATETIME
+                .equals(configuration.getAutoOffsetReset())) {
+            Instant enqueuedDateTime = null;
+            if (configuration.getEnqueuedDateTime() == null) {
+                // default query from now
+                enqueuedDateTime = Instant.now();
+            } else {
+                enqueuedDateTime = Instant.parse(configuration.getEnqueuedDateTime());
+            }
+            position = EventPosition.fromEnqueuedTime(enqueuedDateTime);
+        } else {
+            throw new IllegalArgumentException("unsupported strategy!!" + configuration.getAutoOffsetReset());
+        }
+        return new Function<String, EventPosition>() {
+
+            public EventPosition apply(String t) {
+                return position;
+            }
+        };
     }
 }
