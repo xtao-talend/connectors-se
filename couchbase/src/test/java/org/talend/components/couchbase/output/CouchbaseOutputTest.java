@@ -17,6 +17,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -301,6 +307,23 @@ public class CouchbaseOutputTest extends CouchbaseUtilTest {
         configuration.setIdFieldName("t_string");
         configuration.setDataSet(couchbaseDataSet);
         return configuration;
+    }
+
+    @Test
+    void toJsonDocumentWithBytesType() {
+        byte[] bytes = "aloha".getBytes(Charset.defaultCharset());
+        String idValue = "fixBytes";
+        Record test = recordBuilderFactory.newRecordBuilder().withString("ID", idValue).withInt("id", 101)
+                .withString("name", "kamikaze").withBytes("byties", bytes).build();
+        CouchbaseOutput couch = new CouchbaseOutput(getOutputConfiguration(), null, null);
+        JsonDocument jsonDoc = couch.toJsonDocument("ID", test);
+        assertEquals(idValue, jsonDoc.id());
+        JsonObject jsonObject = jsonDoc.content();
+        assertEquals(101, jsonObject.getInt("id"));
+        assertEquals("kamikaze", jsonObject.getString("name"));
+        byte[] rbytes = com.couchbase.client.core.utils.Base64.decode(jsonObject.getString("byties"));
+        assertEquals(bytes.length, rbytes.length);
+        assertEquals("aloha", new String(rbytes, Charset.defaultCharset()));
     }
 
 }
