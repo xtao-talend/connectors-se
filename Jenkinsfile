@@ -40,7 +40,7 @@ spec:
     containers:
         -
             name: main
-            image: 'khabali/jenkins-java-build-container:latest'
+            image: 'artifactory.datapwn.com/tlnd-docker-dev/talend/common/tsbi/jdk8-builder-base:1.12.0-20191022071355'
             command: [cat]
             tty: true
             volumeMounts: [{name: docker, mountPath: /var/run/docker.sock}, {name: m2main, mountPath: /root/.m2/repository}]
@@ -222,22 +222,10 @@ spec:
             steps {
             	withCredentials([gitCredentials, nexusCredentials]) {
 					container('main') {
-                		
-						sh """
-						    mvn -B -s .jenkins/settings.xml release:clean release:prepare
-						    if [[ \$? -eq 0 ]] ; then
-						        PROJECT_VERSION=\$(mvn org.apache.maven.plugins:maven-help-plugin:3.2.0:evaluate -Dexpression=project.version -q -DforceStdout)
-						    	mvn -B -s .jenkins/settings.xml -Darguments='-Dmaven.javadoc.skip=true' release:perform
-						    	git push origin release/\${PROJECT_VERSION}
-						    	git push
-						    fi
-						"""
-						
+                        sh "sh .jenkins/release.sh"
               		}
             	}
             }
-            
-        
         }
     }
     post {
