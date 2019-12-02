@@ -91,7 +91,7 @@
         </talend_oss_snapshots>
 
         <frontend.version>1.7.5</frontend.version>
-        <node.version>v10.15.3</node.version>
+        <node.version>v12.13.1</node.version>
         <yarn.version>v1.15.2</yarn.version>
         <spotbugs.version>3.1.12</spotbugs.version>
 
