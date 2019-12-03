@@ -12,6 +12,7 @@
  */
 package org.talend.components.pubsub.input;
 
+import com.google.gson.internal.Streams;
 import lombok.extern.slf4j.Slf4j;
 import org.talend.components.pubsub.service.I18nMessage;
 import org.talend.components.pubsub.service.PubSubService;
@@ -26,6 +27,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.Serializable;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
 
 @Version(1)
 @Icon(Icon.IconType.PUBSUB)
@@ -61,8 +66,10 @@ public class PubSubPartitionMapper implements Serializable {
     }
 
     @Split
-    public List<PubSubPartitionMapper> split(@PartitionSize final long bundleSize) {
-        return null;
+    public List<PubSubPartitionMapper> split(@PartitionSize final int desiredNbSplits) {
+        return IntStream.range(0, desiredNbSplits)
+                .mapToObj(i -> new PubSubPartitionMapper(configuration, service, i18n, builderFactory))
+                .collect(Collectors.toList());
     }
 
     @Emitter

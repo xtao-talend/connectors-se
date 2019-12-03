@@ -68,9 +68,6 @@ public class PubSubService {
             return new HealthCheckStatus(HealthCheckStatus.Status.KO, e.getMessage());
         }
 
-
-
-
         return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.successConnection());
     }
 
