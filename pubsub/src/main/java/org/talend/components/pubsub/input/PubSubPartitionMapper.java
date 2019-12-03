@@ -29,7 +29,7 @@ import java.util.List;
 
 @Version(1)
 @Icon(Icon.IconType.PUBSUB)
-@PartitionMapper(name = "PubSubInput")
+@PartitionMapper(name = "PubSubInput", infinite = true)
 @Documentation("This component listens to a PubSub topic.")
 @Slf4j
 public class PubSubPartitionMapper implements Serializable {
