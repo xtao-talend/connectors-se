@@ -37,11 +37,14 @@
         <module>salesforce</module>
         <module>couchbase</module>
         <module>azure</module>
+        <module>rest</module>
         <!-- disable eventhubs build before all ready
         <module>azure-eventhubs</module> 
         -->
         <module>azure-dls-gen2</module>
         <module>marketo</module>
+        <module>common</module>
+        <module>connectors-test-bom</module>
     </modules>
 
     <scm>
@@ -66,6 +69,9 @@
     </distributionManagement>
 
     <properties>
+        <connectors-test-bom.version>1.4.0-SNAPSHOT</connectors-test-bom.version>
+        <common.version>1.4.0-SNAPSHOT</common.version>
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
         <component-runtime.version>1.1.15</component-runtime.version>
@@ -79,7 +85,6 @@
         <daikon.version>0.31.0</daikon.version>
 
         <junit5.version>5.5.1</junit5.version>
-
         <surefire.version>3.0.0-M3</surefire.version>
         <jacoco.version>0.8.2</jacoco.version>
 
@@ -183,24 +188,6 @@
                 <scope>provided</scope>
             </dependency>
             <dependency>
-                <groupId>org.apache.beam</groupId>
-                <artifactId>beam-runners-direct-java</artifactId>
-                <version>${beam.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.talend.sdk.component</groupId>
-                <artifactId>component-runtime-beam</artifactId>
-                <version>${component-runtime.version}</version>
-                <scope>provided</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.talend.sdk.component</groupId>
-                <artifactId>component-runtime-beam-junit</artifactId>
-                <version>${component-runtime.version}</version>
-                <scope>test</scope>
-            </dependency>
-            <dependency>
                 <groupId>org.talend.daikon</groupId>
                 <artifactId>daikon</artifactId>
                 <version>${daikon.version}</version>
@@ -208,10 +195,16 @@
                 <scope>test</scope>
             </dependency>
             <dependency>
-                <groupId>org.junit.jupiter</groupId>
-                <artifactId>junit-jupiter-params</artifactId>
-                <version>${junit5.version}</version>
+                <groupId>org.talend.components</groupId>
+                <artifactId>connectors-test-bom</artifactId>
+                <version>${connectors-test-bom.version}</version>
+                <type>pom</type>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.talend.components</groupId>
+                <artifactId>common</artifactId>
+                <version>${common.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -219,7 +212,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
-            <version>1.18.8</version>
+            <version>1.18.10</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -234,7 +227,12 @@
             <version>${slf4j.version}</version>
             <scope>provided</scope>
         </dependency>
-
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>1.7.25</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.talend.sdk.component</groupId>
             <artifactId>component-runtime-junit</artifactId>
@@ -243,20 +241,8 @@
         </dependency>
         <dependency>
             <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-api</artifactId>
+            <artifactId>junit-jupiter</artifactId>
             <version>${junit5.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter-engine</artifactId>
-            <version>${junit5.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <version>1.7.25</version>
             <scope>test</scope>
         </dependency>
     </dependencies>
@@ -432,6 +418,7 @@
                         </goals>
                         <configuration>
                             <validateModel>${validation.model}</validateModel>
+                            <validatePlaceholder>false</validatePlaceholder>
                         </configuration>
                     </execution>
                     <execution>
@@ -496,11 +483,11 @@
                 <version>${spotless.version}</version>
                 <executions>
                     <execution>
-                    <id>apply</id>
-                    <phase>process-classes</phase>
-                    <goals>
-                    <goal>apply</goal>
-                    </goals>
+                        <id>apply</id>
+                        <phase>process-classes</phase>
+                        <goals>
+                            <goal>apply</goal>
+                        </goals>
                     </execution>
                 </executions>
                 <configuration>
@@ -521,7 +508,7 @@
 */]]></content>
                         </licenseHeader>
                         <eclipse>
-			    <file>talend_java_eclipse_formatter.xml</file>
+                            <file>talend_java_eclipse_formatter.xml</file>
                         </eclipse>
                     </java>
                 </configuration>
@@ -538,7 +525,6 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire.version}</version>
                 <configuration>
-                    <forkCount>1</forkCount>
                     <reuseForks>true</reuseForks>
                     <trimStackTrace>false</trimStackTrace>
                     <runOrder>alphabetical</runOrder>
@@ -631,7 +617,9 @@
                 <executions>
                     <execution>
                         <phase>compile</phase>
-                        <goals><goal>check</goal></goals>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
                         <configuration>
                             <effort>Max</effort>
                             <failOnError>false</failOnError>
@@ -891,8 +879,8 @@
                                             ${maven.multiModuleProjectDirectory}/target/documentation_resources/resources/html
                                         </stylesdir>
                                         <stylesheet>talend.css</stylesheet>
-                                        <data-uri />
-                                        <toc />
+                                        <data-uri/>
+                                        <toc/>
                                     </attributes>
                                 </configuration>
                             </execution>
