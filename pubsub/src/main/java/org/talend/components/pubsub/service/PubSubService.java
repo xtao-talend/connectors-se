@@ -1,11 +1,41 @@
+/*
+ * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.talend.components.pubsub.service;
 
+import com.google.api.gax.core.CredentialsProvider;
+import com.google.api.gax.core.GoogleCredentialsProvider;
+import com.google.auth.Credentials;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
+import com.google.cloud.pubsub.v1.SubscriptionAdminSettings;
+import com.google.cloud.pubsub.v1.TopicAdminClient;
+import com.google.cloud.pubsub.v1.TopicAdminSettings;
+import com.google.pubsub.v1.*;
 import lombok.extern.slf4j.Slf4j;
 import org.talend.components.pubsub.datastore.PubSubDataStore;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.service.Service;
+import org.talend.sdk.component.api.service.completion.SuggestionValues;
+import org.talend.sdk.component.api.service.completion.Suggestions;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheck;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
+
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.util.stream.StreamSupport;
+
+import static java.util.Collections.emptyList;
+import static java.util.stream.Collectors.toList;
 
 @Slf4j
 @Service
@@ -13,19 +43,93 @@ public class PubSubService {
 
     public static final String ACTION_HEALTH_CHECK = "HEALTH_CHECK";
 
+    public static final String ACTION_SUGGESTION_TOPICS = "SUGGESTION_TOPICS";
+
+    public static final String ACTION_SUGGESTION_SUBSCRIPTIONS = "SUGGESTION_SUBSCRIPTIONS";
+
     @Service
     private I18nMessage i18n;
 
     @HealthCheck(ACTION_HEALTH_CHECK)
     public HealthCheckStatus validateDataStore(@Option final PubSubDataStore dataStore) {
-//        try {
-//            PubSubClient client = PubSubClient.createClient(dataStore);
-//            client.listTopics();
-//        } catch (final Exception e) {
-//            log.error("[HealthCheckStatus] {}", e.getMessage());
-//            return new HealthCheckStatus(HealthCheckStatus.Status.KO, e.getMessage());
-//        }
+
+        if (dataStore.getProjectName() == null || "".equals(dataStore.getProjectName().trim())) {
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.projectNameRequired());
+        }
+        if (dataStore.getJsonCredentials() == null || "".equals(dataStore.getJsonCredentials().trim())) {
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.credentialsRequired());
+        }
+
+        try (TopicAdminClient topicAdminClient = TopicAdminClient
+                .create(TopicAdminSettings.newBuilder().setCredentialsProvider(() -> createCredentials(dataStore)).build())) {
+
+        } catch (final Exception e) {
+            log.error("[HealthCheckStatus] {}", e.getMessage());
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, e.getMessage());
+        }
+
+
+
+
         return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.successConnection());
+    }
+
+    @Suggestions(ACTION_SUGGESTION_TOPICS)
+    public SuggestionValues listTopics(@Option final PubSubDataStore dataStore) {
+        try (TopicAdminClient topicAdminClient = TopicAdminClient
+                .create(TopicAdminSettings.newBuilder().setCredentialsProvider(() -> createCredentials(dataStore)).build())) {
+
+            TopicAdminClient.ListTopicsPagedResponse response = topicAdminClient.listTopics(
+                    ListTopicsRequest.newBuilder().setProject(ProjectName.format(dataStore.getProjectName())).build());
+            Iterable<Topic> topics = response.iterateAll();
+
+            return new SuggestionValues(true,
+                    StreamSupport.stream(topics.spliterator(), false)
+                            .map(topic -> ProjectTopicName.parse(topic.getName()).getTopic())
+                            .map(topicName -> new SuggestionValues.Item(topicName, topicName)).collect(toList()));
+        } catch (final Exception unexpected) {
+            log.error(i18n.errorListTopics(unexpected.getMessage()));
+        }
+
+        return new SuggestionValues(false, emptyList());
+    }
+
+    @Suggestions(ACTION_SUGGESTION_SUBSCRIPTIONS)
+    public SuggestionValues listSubscriptions(@Option final PubSubDataStore dataStore, final String topic) {
+        try (TopicAdminClient topicAdminClient = TopicAdminClient
+                .create(TopicAdminSettings.newBuilder().setCredentialsProvider(() -> createCredentials(dataStore)).build())) {
+            ProjectTopicName topicName = ProjectTopicName.of(dataStore.getProjectName(), topic);
+            TopicAdminClient.ListTopicSubscriptionsPagedResponse response = topicAdminClient
+                    .listTopicSubscriptions(ListTopicSubscriptionsRequest.newBuilder().setTopic(topicName.toString()).build());
+            Iterable<String> subscriptions = response.iterateAll();
+
+            return new SuggestionValues(true,
+                    StreamSupport.stream(subscriptions.spliterator(), false)
+                            .map(sub -> ProjectSubscriptionName.parse(sub).getSubscription())
+                            .map(sub -> new SuggestionValues.Item(sub, sub)).collect(toList()));
+
+        } catch (final Exception unexpected) {
+            log.error(i18n.errorListSubscriptions(unexpected.getMessage()));
+        }
+        return new SuggestionValues(false, emptyList());
+    }
+
+    private GoogleCredentials createCredentials(PubSubDataStore dataStore) {
+        GoogleCredentials credentials = null;
+        if (dataStore.getJsonCredentials() != null && !"".equals(dataStore.getJsonCredentials().trim())) {
+            credentials = getCredentials(dataStore.getJsonCredentials());
+        }
+
+        return credentials;
+    }
+
+    public static GoogleCredentials getCredentials(String credentials) {
+        try {
+            return GoogleCredentials.fromStream(new ByteArrayInputStream(credentials.getBytes()));
+        } catch (IOException e) {
+            throw new RuntimeException(
+                    "Exception when read service account file: " + credentials + "\nMessage is:" + e.getMessage());
+        }
     }
 
 }
