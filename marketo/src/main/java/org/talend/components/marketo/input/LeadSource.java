@@ -106,7 +106,7 @@ public class LeadSource extends MarketoSource {
     private String computeDateTimeFromConfiguration() {
         String result;
         if (DateTimeMode.absolute.equals(configuration.getDataSet().getDateTimeMode())) {
-            result = configuration.getDataSet().getSinceDateTimeAbsolute();
+            result = configuration.getDataSet().getSinceDateTimeAbsolute().format(DateTimeFormatter.ofPattern(DATETIME_FORMAT));
         } else {
             result = ZonedDateTime.now().minus(Period.parse(configuration.getDataSet().getSinceDateTimeRelative()))
                     .format(DateTimeFormatter.ofPattern(DATETIME_FORMAT));
