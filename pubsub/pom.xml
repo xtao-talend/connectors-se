@@ -17,6 +17,10 @@
             <version>1.90.0</version>
         </dependency>
         <!-- Testing -->
-
+        <dependency>
+            <groupId>org.talend.components</groupId>
+            <artifactId>connectors-se</artifactId>
+            <type>pom</type>
+        </dependency>
     </dependencies>
 </project>
