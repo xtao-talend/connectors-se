@@ -48,6 +48,7 @@
         <module>connectors-test-bom</module>
         <module>bigquery</module>
         <module>workday</module>
+        <module>pubsub</module>
     </modules>
 
     <scm>
