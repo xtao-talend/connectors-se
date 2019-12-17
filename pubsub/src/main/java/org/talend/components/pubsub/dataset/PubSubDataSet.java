@@ -15,6 +15,7 @@ package org.talend.components.pubsub.dataset;
 import lombok.Data;
 import org.talend.components.pubsub.datastore.PubSubDataStore;
 import org.talend.components.pubsub.service.PubSubService;
+import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Suggestable;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
@@ -27,6 +28,7 @@ import org.talend.sdk.component.api.meta.Documentation;
 import java.io.Serializable;
 
 @Data
+@Icon(value = Icon.IconType.CUSTOM, custom = "pubsub")
 @DataSet("PubSubDataSet")
 @GridLayout({ //
         @GridLayout.Row("dataStore"), @GridLayout.Row("topic"), @GridLayout.Row("subscription"), @GridLayout.Row("valueFormat"),
@@ -41,13 +43,12 @@ public class PubSubDataSet implements Serializable {
     @Option
     @Required
     @Suggestable(value = PubSubService.ACTION_SUGGESTION_TOPICS, parameters = "dataStore")
-    @Documentation("Topic")
+    @Documentation("Topic name")
     private String topic;
 
     @Option
-    @Required
     @Suggestable(value = PubSubService.ACTION_SUGGESTION_SUBSCRIPTIONS, parameters = { "dataStore", "topic" })
-    @Documentation("Subscription")
+    @Documentation("Subscription id. If left blank, a unique subscription id will be generated.")
     private String subscription;
 
     @Option
