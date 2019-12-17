@@ -27,13 +27,14 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.Serializable;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
 
 @Version(1)
-@Icon(Icon.IconType.PUBSUB)
+@Icon(value = Icon.IconType.CUSTOM, custom = "pubsub")
 @PartitionMapper(name = "PubSubInput", infinite = true)
 @Documentation("This component listens to a PubSub topic.")
 @Slf4j
@@ -47,12 +48,26 @@ public class PubSubPartitionMapper implements Serializable {
 
     protected final RecordBuilderFactory builderFactory;
 
+    /** indicates if subscription was generated at start, and thus must be deleted when process is finished */
+    protected boolean uuidSubscription;
+
     public PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
             final PubSubService service, final I18nMessage i18n, final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
         this.service = service;
         this.i18n = i18n;
         this.builderFactory = builderFactory;
+        uuidSubscription = false;
+    }
+
+    protected PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
+            final PubSubService service, final I18nMessage i18n, final RecordBuilderFactory builderFactory,
+            boolean uuidSubscription) {
+        this.configuration = configuration;
+        this.service = service;
+        this.i18n = i18n;
+        this.builderFactory = builderFactory;
+        this.uuidSubscription = uuidSubscription;
     }
 
     @PostConstruct
@@ -67,19 +82,28 @@ public class PubSubPartitionMapper implements Serializable {
 
     @Split
     public List<PubSubPartitionMapper> split(@PartitionSize final int desiredNbSplits) {
+        String subscription = configuration.getDataSet().getSubscription();
+        if (subscription == null || "".equals(subscription.trim())) {
+            subscription = UUID.randomUUID().toString();
+            configuration.getDataSet().setSubscription(subscription);
+            uuidSubscription = true;
+        }
+
         return IntStream.range(0, desiredNbSplits)
                 .mapToObj(i -> new PubSubPartitionMapper(configuration, service, i18n, builderFactory))
                 .collect(Collectors.toList());
     }
 
     @Emitter
-    public Object createSource() {
-        return null;
+    public PubSubInput createSource() {
+        return new PubSubInput(configuration, service, i18n, builderFactory);
     }
 
     @PreDestroy
     public void release() {
-
+        if (uuidSubscription) {
+            service.removeSubscription(configuration.getDataSet().getDataStore(), configuration.getDataSet().getSubscription());
+        }
     }
 
 }

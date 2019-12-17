@@ -27,7 +27,7 @@ import java.io.Serializable;
 
 @DataStore("PubSubDataStore")
 @Data
-@Icon(Icon.IconType.PUBSUB)
+@Icon(value = Icon.IconType.CUSTOM, custom = "pubsub")
 @Checkable(PubSubService.ACTION_HEALTH_CHECK)
 @GridLayout({ //
         @GridLayout.Row({ "projectName" }), //

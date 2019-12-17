@@ -27,4 +27,15 @@ public interface I18nMessage {
 
     String errorListSubscriptions(String message);
 
+    String errorCreateAdminSettings(String message);
+
+    String subscriptionFound(String toString);
+
+    String subscriptionNotFound();
+
+    String subscriptionCreated(String toString);
+
+    String cannotDeleteSubscription(String message);
+
+    String subscriptionDeleted(String subscriptionId);
 }

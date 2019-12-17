@@ -23,7 +23,7 @@ import java.io.Serializable;
 
 @Data
 @GridLayout({ //
-        @GridLayout.Row("dataSet"), @GridLayout.Row("noAck") })
+        @GridLayout.Row("dataSet"), @GridLayout.Row("consumeMsg") })
 @Documentation("Configuration for Subscriber")
 public class PubSubInputConfiguration implements Serializable {
 
@@ -32,6 +32,6 @@ public class PubSubInputConfiguration implements Serializable {
     private PubSubDataSet dataSet;
 
     @Option
-    @Documentation("Don't ACK received messages")
-    private boolean noAck = false;
+    @Documentation("Deliver message to the subscriber only once")
+    private boolean consumeMsg = false;
 }

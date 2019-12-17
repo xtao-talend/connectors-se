@@ -14,12 +14,10 @@ package org.talend.components.pubsub.service;
 
 import com.google.api.gax.core.CredentialsProvider;
 import com.google.api.gax.core.GoogleCredentialsProvider;
+import com.google.api.gax.rpc.ApiException;
 import com.google.auth.Credentials;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.pubsub.v1.SubscriptionAdminClient;
-import com.google.cloud.pubsub.v1.SubscriptionAdminSettings;
-import com.google.cloud.pubsub.v1.TopicAdminClient;
-import com.google.cloud.pubsub.v1.TopicAdminSettings;
+import com.google.cloud.pubsub.v1.*;
 import com.google.pubsub.v1.*;
 import lombok.extern.slf4j.Slf4j;
 import org.talend.components.pubsub.datastore.PubSubDataStore;
@@ -118,6 +116,57 @@ public class PubSubService {
         }
 
         return credentials;
+    }
+
+    public Subscriber createSubscriber(PubSubDataStore dataStore, String topic, String subscriptionId, MessageReceiver receiver) {
+        ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(dataStore.getProjectName(), subscriptionId);
+        createSubscriptionIfNeeded(dataStore, topic, subscriptionName);
+        Subscriber subscriber = Subscriber.newBuilder(subscriptionName, receiver)
+                .setCredentialsProvider(() -> createCredentials(dataStore)).build();
+        return subscriber;
+    }
+
+    /**
+     * Checks if the subscription exists and create it if not
+     * 
+     * @param dataStore
+     * @param subscriptionName
+     */
+    private void createSubscriptionIfNeeded(PubSubDataStore dataStore, String topic, ProjectSubscriptionName subscriptionName) {
+        try {
+            SubscriptionAdminSettings adminSettings = SubscriptionAdminSettings.newBuilder()
+                    .setCredentialsProvider(() -> createCredentials(dataStore)).build();
+            try (SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create(adminSettings)) {
+                try {
+                    Subscription subscription = subscriptionAdminClient.getSubscription(subscriptionName);
+                    log.info(i18n.subscriptionFound(subscription.toString()));
+                } catch (ApiException apiEx) {
+                    log.info(i18n.subscriptionNotFound());
+                    ProjectTopicName topicName = ProjectTopicName.of(dataStore.getProjectName(), topic);
+                    Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionName, topicName,
+                            PushConfig.getDefaultInstance(), 0);
+                    log.info(i18n.subscriptionCreated(subscription.toString()));
+                }
+            }
+        } catch (IOException ioe) {
+            log.warn(i18n.errorCreateAdminSettings(ioe.getMessage()));
+        }
+    }
+
+    public void removeSubscription(PubSubDataStore dataStore, String subscriptionId) {
+        ProjectSubscriptionName subscriptionName = ProjectSubscriptionName.of(dataStore.getProjectName(), subscriptionId);
+        try {
+            SubscriptionAdminSettings adminSettings = SubscriptionAdminSettings.newBuilder()
+                    .setCredentialsProvider(() -> createCredentials(dataStore)).build();
+            try (SubscriptionAdminClient subscriptionAdminClient = SubscriptionAdminClient.create(adminSettings)) {
+                subscriptionAdminClient.deleteSubscription(subscriptionName);
+                log.info(i18n.subscriptionDeleted(subscriptionId));
+            } catch (ApiException apiEx) {
+                log.error(i18n.cannotDeleteSubscription(apiEx.getMessage()), apiEx);
+            }
+        } catch (IOException ioe) {
+            log.warn(i18n.errorCreateAdminSettings(ioe.getMessage()));
+        }
     }
 
     public static GoogleCredentials getCredentials(String credentials) {
