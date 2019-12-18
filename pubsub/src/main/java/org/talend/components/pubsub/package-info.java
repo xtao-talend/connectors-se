@@ -11,7 +11,7 @@
 //
 // ============================================================================
 @Components(family = "PubSub", categories = "Cloud")
-@Icon(value = IconType.PUBSUB)
+@Icon(value = Icon.IconType.CUSTOM, custom = "pubsub")
 package org.talend.components.pubsub;
 
 import org.talend.sdk.component.api.component.Components;

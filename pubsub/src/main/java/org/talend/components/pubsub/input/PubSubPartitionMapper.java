@@ -77,7 +77,7 @@ public class PubSubPartitionMapper implements Serializable {
 
     @Assessor
     public long estimateSize() {
-        return -1l;
+        return 1l;
     }
 
     @Split
