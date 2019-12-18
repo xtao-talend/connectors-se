@@ -16,6 +16,7 @@ import com.google.cloud.pubsub.v1.AckReplyConsumer;
 import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsub.v1.Subscriber;
 import com.google.pubsub.v1.PubsubMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.talend.components.pubsub.service.I18nMessage;
 import org.talend.components.pubsub.service.PubSubService;
 import org.talend.sdk.component.api.input.Producer;
@@ -30,6 +31,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Queue;
 
+@Slf4j
 public class PubSubInput implements MessageReceiver, Serializable {
 
     protected final PubSubInputConfiguration configuration;
@@ -68,7 +70,13 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     @Producer
     public Record next() {
-        return inbox.poll();
+        Record record = inbox.poll();
+
+        if (record != null) {
+            log.info("Message sent to pipeline : " + record);
+        }
+
+        return record;
     }
 
     @Override
@@ -77,6 +85,8 @@ public class PubSubInput implements MessageReceiver, Serializable {
         Record record = builderFactory.newRecordBuilder().withString("ID", message.getMessageId())
                 .withString("content", message.getData().toStringUtf8()).build();
         inbox.offer(record);
+
+        log.info("Message received : " + record);
 
         if (configuration.isConsumeMsg()) {
             consumer.ack();
