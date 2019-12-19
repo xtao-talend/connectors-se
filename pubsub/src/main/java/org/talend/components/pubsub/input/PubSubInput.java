@@ -60,7 +60,7 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     @PostConstruct
     public void init() {
-        messageConverter = new MessageConverterFactory().getConverter(configuration.getDataSet(), builderFactory);
+        messageConverter = new MessageConverterFactory().getConverter(configuration.getDataSet(), builderFactory, i18n);
         subscriber = service.createSubscriber(configuration.getDataSet().getDataStore(), configuration.getDataSet().getTopic(),
                 configuration.getDataSet().getSubscription(), this);
         subscriber.startAsync();

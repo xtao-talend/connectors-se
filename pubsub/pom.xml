@@ -22,6 +22,11 @@
             <artifactId>google-cloud-pubsub</artifactId>
             <version>1.90.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.codehaus.jackson</groupId>
+            <artifactId>jackson-core-asl</artifactId>
+            <version>${jackson-codehaus.version}</version>
+        </dependency>
         <!-- Testing -->
         <dependency>
             <groupId>org.talend.components</groupId>

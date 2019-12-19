@@ -40,4 +40,8 @@ public interface I18nMessage {
     String subscriptionDeleted(String subscriptionId);
 
     String errorCreatePublisher(String message);
+
+    String avroSchemaRequired();
+
+    String avroSchemaInvalid(String message);
 }
