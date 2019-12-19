@@ -12,11 +12,26 @@
  */
 package org.talend.components.pubsub;
 
+import com.google.api.core.ApiFuture;
+import com.google.cloud.pubsub.v1.Publisher;
+import com.google.protobuf.ByteString;
+import com.google.pubsub.v1.PubsubMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericDatumWriter;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.generic.GenericRecordBuilder;
+import org.apache.avro.io.Encoder;
+import org.apache.avro.io.EncoderFactory;
+import org.apache.avro.specific.SpecificDatumWriter;
 import org.junit.jupiter.api.Assertions;
 import org.talend.components.pubsub.datastore.PubSubDataStore;
+import org.talend.components.pubsub.service.PubSubService;
 
 import java.io.BufferedInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -57,6 +72,53 @@ public final class PubSubTestUtil {
         dataStore.setJsonCredentials(jsonCredentials);
 
         return dataStore;
+    }
+
+    public static Schema getAvroSchema() {
+        return SchemaBuilder.builder().record("testRecord")
+                .namespace("org.talend.test")
+                .fields()
+                .requiredInt("ID")
+                .requiredString("content")
+                .endRecord();
+    }
+
+    public static String getAvroSchemaString() {
+        return getAvroSchema().toString(true);
+    }
+
+    public static void sendAvroRecord(PubSubService service, String topic) {
+        Publisher publisher = service.createPublisher(getDataStore(), topic);
+
+        try {
+            GenericRecord record = new GenericData.Record(getAvroSchema());
+            record.put("ID", 42);
+            record.put("content", "This is a test");
+            log.debug(record.toString());
+
+            SpecificDatumWriter<GenericRecord> writer = new SpecificDatumWriter<>(record.getSchema());
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            Encoder encoder = EncoderFactory.get().binaryEncoder(out, null);
+            writer.write(record, encoder);
+            encoder.flush();
+            out.close();
+
+            log.debug(new String(out.toByteArray(), "ISO-8859-15"));
+
+            PubsubMessage message = PubsubMessage.newBuilder()
+                    .setData(ByteString.copyFrom(out.toByteArray()))
+                    .build();
+            ApiFuture<String> future = publisher.publish(message);
+            while(!future.isDone()) {
+                Thread.sleep(500);
+            }
+            log.debug("Message sent : " + future.get());
+        } catch (Exception e) {
+            log.error("Error sending record", e);
+        } finally {
+            publisher.shutdown();
+        }
+
 
     }
 }
