@@ -17,6 +17,8 @@ import com.google.cloud.pubsub.v1.MessageReceiver;
 import com.google.cloud.pubsub.v1.Subscriber;
 import com.google.pubsub.v1.PubsubMessage;
 import lombok.extern.slf4j.Slf4j;
+import org.talend.components.pubsub.input.converter.MessageConverter;
+import org.talend.components.pubsub.input.converter.MessageConverterFactory;
 import org.talend.components.pubsub.service.I18nMessage;
 import org.talend.components.pubsub.service.PubSubService;
 import org.talend.sdk.component.api.input.Producer;
@@ -46,6 +48,8 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     private Subscriber subscriber;
 
+    private MessageConverter messageConverter;
+
     public PubSubInput(final PubSubInputConfiguration configuration, final PubSubService service, final I18nMessage i18n,
             final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
@@ -56,6 +60,7 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     @PostConstruct
     public void init() {
+        messageConverter = new MessageConverterFactory().getConverter(configuration.getDataSet(), builderFactory);
         subscriber = service.createSubscriber(configuration.getDataSet().getDataStore(), configuration.getDataSet().getTopic(),
                 configuration.getDataSet().getSubscription(), this);
         subscriber.startAsync();
@@ -81,17 +86,18 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     @Override
     public void receiveMessage(PubsubMessage message, AckReplyConsumer consumer) {
+        Record record = messageConverter == null ? null : messageConverter.convertMessage(message);
 
-        Record record = builderFactory.newRecordBuilder().withString("ID", message.getMessageId())
-                .withString("content", message.getData().toStringUtf8()).build();
-        inbox.offer(record);
+        if (record != null) {
+            inbox.offer(record);
 
-        if (log.isDebugEnabled()) {
-            log.debug("Message received : " + record);
-        }
+            if (log.isDebugEnabled()) {
+                log.debug("Message received : " + record);
+            }
 
-        if (configuration.isConsumeMsg()) {
-            consumer.ack();
+            if (configuration.isConsumeMsg()) {
+                consumer.ack();
+            }
         }
     }
 }
