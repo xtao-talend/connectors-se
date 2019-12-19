@@ -52,11 +52,12 @@ public class PubSubInputTest {
         dataset.setDataStore(dataStore);
         dataset.setTopic("rlecomteTopic");
         dataset.setSubscription("ITSub");
-        dataset.setValueFormat(PubSubDataSet.ValueFormat.JSON);
+        dataset.setValueFormat(PubSubDataSet.ValueFormat.CSV);
+        dataset.setFieldDelimiter(";");
 
         configuration = new PubSubInputConfiguration();
         configuration.setDataSet(dataset);
-        configuration.setConsumeMsg(false);
+        configuration.setConsumeMsg(true);
 
 
     }
