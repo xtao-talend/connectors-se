@@ -181,8 +181,7 @@ public class PubSubService {
     public Publisher createPublisher(PubSubDataStore dataStore, String topic) {
         try {
             return Publisher.newBuilder(ProjectTopicName.of(dataStore.getProjectName(), topic))
-                    .setCredentialsProvider(() -> createCredentials(dataStore))
-                    .build();
+                    .setCredentialsProvider(() -> createCredentials(dataStore)).build();
         } catch (IOException e) {
             throw new RuntimeException(i18n.errorCreatePublisher(e.getMessage()));
         }

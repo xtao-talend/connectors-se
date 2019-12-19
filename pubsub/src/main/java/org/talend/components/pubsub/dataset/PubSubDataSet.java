@@ -23,6 +23,7 @@ import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.DefaultValue;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
+import org.talend.sdk.component.api.configuration.ui.widget.Code;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import java.io.Serializable;
@@ -61,8 +62,14 @@ public class PubSubDataSet implements Serializable {
     @DefaultValue(value = ";")
     @ActiveIf(target = "valueFormat", value = { "CSV" })
     @Required
-    @Documentation("Field delimiter")
+    @Documentation("Field delimiter for CSV")
     private String fieldDelimiter;
+
+    @Option
+    @Code(value = "json")
+    @ActiveIf(target = "valueFormat", value = { "AVRO" })
+    @Documentation("Avro schema")
+    private String avroSchema;
 
     public enum ValueFormat {
         CSV,
