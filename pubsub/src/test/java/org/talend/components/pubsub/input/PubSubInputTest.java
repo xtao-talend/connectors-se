@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.slf4j.impl.StaticLoggerBinder;
 import org.talend.components.pubsub.PubSubTestUtil;
 import org.talend.components.pubsub.dataset.PubSubDataSet;
 import org.talend.components.pubsub.datastore.PubSubDataStore;
@@ -40,6 +41,9 @@ public class PubSubInputTest {
 
     @BeforeEach
     void buildConfig()  {
+
+        final StaticLoggerBinder binder = StaticLoggerBinder.getSingleton();
+
         componentsHandler.injectServices(this);
 
         PubSubDataStore dataStore = PubSubTestUtil.getDataStore();
@@ -52,7 +56,7 @@ public class PubSubInputTest {
 
         configuration = new PubSubInputConfiguration();
         configuration.setDataSet(dataset);
-        configuration.setConsumeMsg(true);
+        configuration.setConsumeMsg(false);
 
 
     }
@@ -61,26 +65,18 @@ public class PubSubInputTest {
     public void readMessage() {
         final String configStr = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
 
-        PubSubInputJobThread jobThread = new PubSubInputJobThread("job", configStr);
-        jobThread.start();
+        Job.components()
+                .component("source", "PubSub://PubSubInput?" + configStr)
+                .component("target", "test://collector")
+                .connections()
+                .from("source").to("target")
+                .build()
+                .property("streaming.maxRecords", 5)
+                .property("streaming.maxDurationMs", 10_000)
+                .run();
 
-        int nbRecordsReceived = 0;
-        do {
-            try {
-                List<Record> records = componentsHandler.getCollectedData(Record.class);
-                nbRecordsReceived = records.size();
-            } catch (Exception e) {
-                // nothing
-            }
-        } while(nbRecordsReceived < 5);
-
-        try {
-            jobThread.stop();
-        } catch (Exception e) {
-            // nothing
-        }
-
-        log.info(componentsHandler.getCollectedData(Record.class).toString());
+       List<Record> records = componentsHandler.getCollectedData(Record.class);
+       log.info(records.toString());
 
 
 
