@@ -38,4 +38,6 @@ public interface I18nMessage {
     String cannotDeleteSubscription(String message);
 
     String subscriptionDeleted(String subscriptionId);
+
+    String errorCreatePublisher(String message);
 }

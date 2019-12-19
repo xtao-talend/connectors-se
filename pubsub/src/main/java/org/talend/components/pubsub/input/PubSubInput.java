@@ -72,8 +72,8 @@ public class PubSubInput implements MessageReceiver, Serializable {
     public Record next() {
         Record record = inbox.poll();
 
-        if (record != null) {
-            log.info("Message sent to pipeline : " + record);
+        if (record != null && log.isDebugEnabled()) {
+            log.debug("Message sent to pipeline : " + record);
         }
 
         return record;
@@ -86,7 +86,9 @@ public class PubSubInput implements MessageReceiver, Serializable {
                 .withString("content", message.getData().toStringUtf8()).build();
         inbox.offer(record);
 
-        log.info("Message received : " + record);
+        if (log.isDebugEnabled()) {
+            log.debug("Message received : " + record);
+        }
 
         if (configuration.isConsumeMsg()) {
             consumer.ack();
