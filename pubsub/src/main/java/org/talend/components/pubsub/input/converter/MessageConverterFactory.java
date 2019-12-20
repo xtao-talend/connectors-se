@@ -21,8 +21,11 @@ import java.util.Optional;
 
 public class MessageConverterFactory {
 
-    private static final Class<? extends MessageConverter>[] IMPLEMENTATIONS = new Class[] { CSVMessageConverter.class,
-            AvroMessageConverter.class, DefaultMessageConverter.class};
+    private static final Class<? extends MessageConverter>[] IMPLEMENTATIONS = new Class[] {
+            CSVMessageConverter.class,
+            AvroMessageConverter.class,
+            JSonMessageConverter.class,
+            TextMessageConverter.class};
 
     public MessageConverter getConverter(PubSubDataSet dataSet, RecordBuilderFactory recordBuilderFactory, I18nMessage i18n) {
         PubSubDataSet.ValueFormat format = dataSet.getValueFormat();
@@ -35,7 +38,7 @@ public class MessageConverterFactory {
             }
         }).filter(mc -> mc != null && ((MessageConverter) mc).acceptFormat(format)).findFirst();
 
-        MessageConverter messageConverter = opt.isPresent() ? opt.get() : new DefaultMessageConverter();
+        MessageConverter messageConverter = opt.isPresent() ? opt.get() : new TextMessageConverter();
         messageConverter.setRecordBuilderFactory(recordBuilderFactory);
         messageConverter.setI18nMessage(i18n);
         messageConverter.init(dataSet);

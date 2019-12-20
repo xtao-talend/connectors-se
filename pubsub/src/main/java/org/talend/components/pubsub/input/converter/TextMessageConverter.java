@@ -20,7 +20,7 @@ import org.talend.sdk.component.api.record.Schema;
 /**
  * {@link MessageConverter} that accepts any message.
  */
-public class DefaultMessageConverter extends MessageConverter {
+public class TextMessageConverter extends MessageConverter {
 
     private Schema schema;
 

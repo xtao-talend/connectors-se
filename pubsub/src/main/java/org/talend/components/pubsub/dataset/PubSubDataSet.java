@@ -74,7 +74,8 @@ public class PubSubDataSet implements Serializable {
     public enum ValueFormat {
         CSV,
         JSON,
-        AVRO
+        AVRO,
+        TEXT
     }
 
 }

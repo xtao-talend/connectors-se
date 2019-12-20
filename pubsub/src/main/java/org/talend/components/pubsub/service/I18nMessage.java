@@ -44,4 +44,6 @@ public interface I18nMessage {
     String avroSchemaRequired();
 
     String avroSchemaInvalid(String message);
+
+    String errorJsonType(String toString);
 }
