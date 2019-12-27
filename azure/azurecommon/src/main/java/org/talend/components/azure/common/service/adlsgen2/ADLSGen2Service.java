@@ -60,7 +60,7 @@ public class ADLSGen2Service implements Serializable {
     public static final String ACTION_SUGGESTION_PATHS = "ACTION_SUGGESTION_PATHS";
 
     @Service
-    private AdlsGen2APIClient client;
+    private transient AdlsGen2APIClient client;
 
     @Setter // for test only
     private String createTime;
@@ -202,7 +202,6 @@ public class ADLSGen2Service implements Serializable {
 
     public void createPath(@Configuration("connection") final AdlsGen2Connection connection, String filesystem, String filePath)
             throws InvalidKeyException, URISyntaxException {
-        final String now = getGMT();
         client.base(connection.apiUrl());
 
         URI uri = new URI(connection.apiUrl() + "/" + filesystem + "/" + filePath + "?resource=file");
@@ -211,7 +210,7 @@ public class ADLSGen2Service implements Serializable {
         Response<JsonObject> jsonObjectResponse = client.pathCreate(connection, put.getFirstHeader(AUTHORIZATION).getValue(),
                 put.getFirstHeader(DATE).getValue(), filesystem, filePath, "");
         Response<JsonObject> result = handleResponse(jsonObjectResponse);
-        log.info("Create path " + filePath + "success.");
+        log.info("Create path " + filePath + "success: " + result.status());
 
     }
 

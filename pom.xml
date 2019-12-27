@@ -69,7 +69,7 @@
     </distributionManagement>
 
     <properties>
-        <connectors-test-bom.version>1.6.0-SNAPSHOT</connectors-test-bom.version>
+        <connectors-test-bom.version>1.5.0-SNAPSHOT</connectors-test-bom.version>
         <common.version>1.5.0-SNAPSHOT</common.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
