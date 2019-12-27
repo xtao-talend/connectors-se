@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.talend.components.common.SchemaUtils;
 import org.talend.components.common.converters.CSVConverter;
 import org.talend.components.common.converters.RecordConverter;
+import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -140,9 +141,30 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
                 builder.withEntry(entryBuilder.withName(finalName).withType(Schema.Type.STRING).withNullable(true).build());
             }
         }
-        Schema inferedSchema = builder.build();
-        log.debug("[inferSchema] {}", inferedSchema);
-        return inferedSchema;
+        return builder.build();
     }
 
+    @Override
+    public Record toRecord(CSVRecord csvRecord) {
+        if (schema == null) {
+            schema = inferSchema(csvRecord);
+        }
+        Record.Builder recordBuilder = recordBuilderFactory.newRecordBuilder(schema);
+        for (int i = 0; i < schema.getEntries().size(); i++) {
+            String value;
+            try {
+                value = csvRecord.get(i).isEmpty() ? null : csvRecord.get(i);
+            } catch (ArrayIndexOutOfBoundsException e) {
+                value = null;
+            }
+            recordBuilder.withString(schema.getEntries().get(i), value);
+        }
+
+        return recordBuilder.build();
+    }
+
+    @Override
+    public CSVRecord fromRecord(Record record) {
+        throw new UnsupportedOperationException("#fromRecord()");
+    }
 }

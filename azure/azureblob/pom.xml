@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.talend.components</groupId>
         <artifactId>azure</artifactId>
-        <version>1.3.0-SNAPSHOT</version>
+        <version>1.5.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>azureblob</artifactId>
@@ -25,16 +25,94 @@
     </properties>
 
     <dependencies>
+        <!-- traductions -->
+        <dependency>
+            <groupId>org.talend.components</groupId>
+            <artifactId>azureblob-locales</artifactId>
+            <version>${locales.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>org.talend.components</groupId>
             <artifactId>azurecommon</artifactId>
             <version>${project.version}</version>
+        </dependency>
+
+        <!-- CSV format -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-csv</artifactId>
+            <version>${commons-csv.version}</version>
+        </dependency>
+
+        <!-- Excel format -->
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>${apache.poi.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.monitorjbl</groupId>
+            <artifactId>xlsx-streamer</artifactId>
+            <version>${excel.streamer.version}</version>
+        </dependency>
+
+        <!-- Excel HTML format -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>${jsoup.version}</version>
+        </dependency>
+        <!-- Avro format -->
+        <dependency>
+            <groupId>org.apache.avro</groupId>
+            <artifactId>avro</artifactId>
+            <version>${avro.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- PARQUET format -->
+        <dependency>
+            <groupId>org.apache.parquet</groupId>
+            <artifactId>parquet-avro</artifactId>
+            <version>${parquet.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-client</artifactId>
+            <version>${hadoop.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-azure</artifactId>
+            <version>${hadoop.version}</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-junit-jupiter</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
+            <exclusions>
+                <exclusion><!-- mockito retrieve jupiter-api 5.1.1 or we need 5.5.1 -->
+                    <groupId>org.junit.jupiter</groupId>
+                    <artifactId>junit-jupiter-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

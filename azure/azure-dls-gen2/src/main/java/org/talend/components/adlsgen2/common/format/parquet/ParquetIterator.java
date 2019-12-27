@@ -56,7 +56,7 @@ public class ParquetIterator implements Iterator<Record>, Serializable {
             HadoopInputFile hdpIn = HadoopInputFile.fromPath(new Path(tmp.getPath()), new org.apache.hadoop.conf.Configuration());
             reader = AvroParquetReader.<GenericRecord> builder(hdpIn).build();
         } catch (IOException e) {
-            log.error("[ParquetIterator] {}", e);
+            log.error("[ParquetIterator] {}", e.getMessage());
             throw new FileFormatRuntimeException(e.getMessage());
         }
     }
@@ -71,7 +71,7 @@ public class ParquetIterator implements Iterator<Record>, Serializable {
             }
             return true;
         } catch (IOException e) {
-            log.error("[hasNext] {}", e);
+            log.error("[hasNext] {}", e.getMessage());
             throw new FileFormatRuntimeException(e.getMessage());
         }
     }

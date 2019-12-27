@@ -13,7 +13,6 @@
 package org.talend.components.adlsgen2.service;
 
 import java.io.InputStream;
-import java.io.Serializable;
 import java.net.URL;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -57,7 +56,7 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
-public class AdlsGen2Service implements Serializable {
+public class AdlsGen2Service {
 
     private static final Set<Integer> successfulOperations = new HashSet<>(Arrays.asList(Constants.HTTP_RESPONSE_CODE_200_OK,
             Constants.HTTP_RESPONSE_CODE_201_CREATED, Constants.HTTP_RESPONSE_CODE_202_ACCEPTED));
@@ -94,7 +93,7 @@ public class AdlsGen2Service implements Serializable {
     }
 
     public void preprareRequest(final AdlsGen2Connection connection, String url, String method, String payloadLength) {
-        log.debug("[preprareRequest] prepare request url:{} [{}].", url, method);
+        log.debug("[preprareRequest] {} [{}].", url, method);
         headers = new HashMap<>();
         SAS = new HashMap<>();
         headers.put(HeaderConstants.USER_AGENT, HeaderConstants.USER_AGENT_AZURE_DLS_GEN2);
@@ -112,7 +111,7 @@ public class AdlsGen2Service implements Serializable {
                         .buildAuthenticationSignature(dest, method, headers);
                 headers.put(HeaderConstants.AUTHORIZATION, auth);
             } catch (Exception e) {
-                log.error("[preprareRequest] {}", e);
+                log.error("[preprareRequest] {}", e.getMessage());
                 throw new AdlsGen2RuntimeException(e.getMessage());
             }
             break;
@@ -190,7 +189,7 @@ public class AdlsGen2Service implements Serializable {
                 configuration.getDataSet().getBlobPath(), //
                 timeout //
         );
-        log.info("[pathList] {}", url);
+        log.debug("[pathList] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.GET, "");
         Response<JsonObject> result = handleResponse(client.pathList( //
                 headers, //
@@ -231,7 +230,7 @@ public class AdlsGen2Service implements Serializable {
                 dataSet.getBlobPath(), //
                 timeout //
         );
-        log.info("[pathGetProperties] {}", url);
+        log.debug("[pathGetProperties] {}", url);
         preprareRequest(dataSet.getConnection(), url, MethodConstants.HEAD, "");
         Map<String, String> properties = new HashMap<>();
         Response<JsonObject> result = handleResponse(client.pathGetProperties( //
@@ -260,7 +259,7 @@ public class AdlsGen2Service implements Serializable {
                 dataSet.getBlobPath(), //
                 timeout //
         );
-        log.info("[getBlobs] {}", url);
+        log.debug("[getBlobs] {}", url);
         preprareRequest(dataSet.getConnection(), url, MethodConstants.GET, "");
         Response<JsonObject> result = handleResponse(client.pathList( //
                 headers, //
@@ -277,7 +276,6 @@ public class AdlsGen2Service implements Serializable {
             log.error("[getBlobs] Invalid request [{}] {}", result.status(), result.headers());
             return new ArrayList<>();
         }
-
         List<BlobInformations> blobs = new ArrayList<>();
         for (JsonValue f : result.body().getJsonArray(Constants.ATTR_PATHS)) {
             if (f.asJsonObject().getOrDefault(Constants.ATTR_IS_DIRECTORY, JsonValue.NULL) == JsonValue.NULL) {
@@ -300,6 +298,7 @@ public class AdlsGen2Service implements Serializable {
                 blobs.add(infos);
             }
         }
+        log.debug("[getBlobs] blobs count {}.", blobs.size());
 
         return blobs;
     }
@@ -313,7 +312,7 @@ public class AdlsGen2Service implements Serializable {
                 extractFolderPath(dataSet.getBlobPath()), //
                 timeout //
         );
-        log.info("[getBlobInformations] {}", url);
+        log.debug("[getBlobInformations] {}", url);
         preprareRequest(dataSet.getConnection(), url, MethodConstants.GET, "");
         BlobInformations infos = new BlobInformations();
         Response<JsonObject> result = client.pathList( //
@@ -328,7 +327,7 @@ public class AdlsGen2Service implements Serializable {
                 timeout //
         );
         if (result.status() != Constants.HTTP_RESPONSE_CODE_200_OK) {
-            log.info("[getBlobInformations] blob info: {}", infos);
+            log.debug("[getBlobInformations] blob info: {}", infos);
             return infos;
         }
         String fileName = extractFileName(dataSet.getBlobPath());
@@ -349,7 +348,7 @@ public class AdlsGen2Service implements Serializable {
                 }
             }
         }
-        log.info("[getBlobInformations] blob meta: {}", infos);
+        log.debug("[getBlobInformations] blob meta: {}", infos);
         return infos;
     }
 
@@ -361,7 +360,7 @@ public class AdlsGen2Service implements Serializable {
                 dataSet.getFilesystem(), //
                 extractFolderPath(blobName), timeout //
         );
-        log.info("[blobExists] {}", url);
+        log.debug("[blobExists] {}", url);
         preprareRequest(dataSet.getConnection(), url, MethodConstants.GET, "");
         BlobInformations infos = new BlobInformations();
         Response<JsonObject> result = client.pathList( //
@@ -375,16 +374,16 @@ public class AdlsGen2Service implements Serializable {
                 timeout //
         );
         if (result.status() != Constants.HTTP_RESPONSE_CODE_200_OK) {
-            log.info("[blobExists] blob info: {}", infos);
+            log.debug("[blobExists] blob info: {}", infos);
             return false;
         }
         for (JsonValue f : result.body().getJsonArray(Constants.ATTR_PATHS)) {
             if (f.asJsonObject().getString(Constants.ATTR_NAME).equals(blobName)) {
-                log.info("[blobExists] Blob found");
+                log.debug("[blobExists] Blob found");
                 return true;
             }
         }
-        log.info("[blobExists] Blob NOT found");
+        log.debug("[blobExists] Blob NOT found");
         return false;
     }
 
@@ -402,7 +401,7 @@ public class AdlsGen2Service implements Serializable {
                 configuration.getDataSet().getBlobPath(), //
                 timeout //
         );
-        log.info("[pathRead] {}", url);
+        log.debug("[pathRead] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.GET, "");
         Response<InputStream> result = handleResponse(client.pathRead( //
                 headers, //
@@ -425,7 +424,7 @@ public class AdlsGen2Service implements Serializable {
                 blob.getBlobPath(), //
                 timeout //
         );
-        log.info("[getBlobInputstream] {}", url);
+        log.debug("[getBlobInputstream] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.GET, "");
         Response<InputStream> result = handleResponse(client.pathRead( //
                 headers, //
@@ -447,7 +446,7 @@ public class AdlsGen2Service implements Serializable {
                 configuration.getDataSet().getBlobPath(), //
                 timeout //
         );
-        log.info("[pathCreate] {}", url);
+        log.debug("[pathCreate] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.PUT, "");
         return handleResponse(client.pathCreate( //
                 headers, //
@@ -471,7 +470,7 @@ public class AdlsGen2Service implements Serializable {
                 position, //
                 timeout //
         );
-        log.info("[pathUpdate] {}", url);
+        log.debug("[pathUpdate] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.PATCH, String.valueOf(content.length));
         return handleResponse(client.pathUpdate( //
                 headers, //
@@ -505,7 +504,7 @@ public class AdlsGen2Service implements Serializable {
                 position, //
                 timeout //
         );
-        log.info("[flushBlob#pathUpdate] {}", url);
+        log.debug("[flushBlob#pathUpdate] {}", url);
         preprareRequest(configuration.getDataSet().getConnection(), url, MethodConstants.PATCH, "");
         return handleResponse(client.pathUpdate( //
                 headers, //

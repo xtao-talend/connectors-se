@@ -16,10 +16,12 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 
+import org.talend.components.couchbase.dataset.DocumentType;
 import org.talend.components.couchbase.service.CouchbaseService;
 import org.talend.components.couchbase.service.I18nMessage;
 import org.talend.sdk.component.api.component.Icon;
@@ -32,11 +34,17 @@ import org.talend.sdk.component.api.processor.Processor;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 
+import com.couchbase.client.deps.io.netty.buffer.ByteBuf;
+import com.couchbase.client.deps.io.netty.buffer.Unpooled;
 import com.couchbase.client.java.Bucket;
 import com.couchbase.client.java.Cluster;
+import com.couchbase.client.java.document.BinaryDocument;
 import com.couchbase.client.java.document.JsonDocument;
+import com.couchbase.client.java.document.StringDocument;
 import com.couchbase.client.java.document.json.JsonArray;
 import com.couchbase.client.java.document.json.JsonObject;
+import com.couchbase.client.java.query.N1qlQuery;
+import com.couchbase.client.java.query.N1qlQueryResult;
 import com.couchbase.client.java.subdoc.MutateInBuilder;
 
 import lombok.extern.slf4j.Slf4j;
@@ -58,6 +66,8 @@ public class CouchbaseOutput implements Serializable {
 
     private final CouchbaseService service;
 
+    private static final String CONTENT_FIELD_NAME = "content";
+
     public CouchbaseOutput(@Option("configuration") final CouchbaseOutputConfiguration configuration,
             final CouchbaseService service, final I18nMessage i18n) {
         this.configuration = configuration;
@@ -74,10 +84,30 @@ public class CouchbaseOutput implements Serializable {
 
     @ElementListener
     public void onNext(@Input final Record record) {
-        if (configuration.isPartialUpdate()) {
-            updatePartiallyDocument(record);
+        if (configuration.isUseN1QLQuery()) {
+            Map<String, String> mappings = configuration.getQueryParams().stream()
+                    .collect(Collectors.toMap(N1QLQueryParameter::getColumn, N1QLQueryParameter::getQueryParameterName));
+            JsonObject namedParams = buildJsonObject(record, mappings);
+            final N1qlQueryResult queryResult = bucket.query(N1qlQuery.parameterized(configuration.getQuery(), namedParams));
+            if (!queryResult.finalSuccess()) {
+                final String errors = queryResult.errors().stream()
+                        .map(error -> String.format("[%d] %s", error.getInt("code"), error.getString("msg")))
+                        .collect(Collectors.joining("\n"));
+                log.error("N1QL failed: {}.", errors);
+                throw new RuntimeException(errors);
+            }
         } else {
-            bucket.upsert(toJsonDocument(idFieldName, record));
+            if (configuration.isPartialUpdate()) {
+                updatePartiallyDocument(record);
+            } else {
+                if (configuration.getDataSet().getDocumentType() == DocumentType.BINARY) {
+                    bucket.upsert(toBinaryDocument(idFieldName, record));
+                } else if (configuration.getDataSet().getDocumentType() == DocumentType.STRING) {
+                    bucket.upsert(toStringDocument(idFieldName, record));
+                } else {
+                    bucket.upsert(toJsonDocument(idFieldName, record));
+                }
+            }
         }
     }
 
@@ -85,6 +115,16 @@ public class CouchbaseOutput implements Serializable {
     public void release() {
         service.closeBucket(bucket);
         service.closeConnection(configuration.getDataSet().getDatastore());
+    }
+
+    private BinaryDocument toBinaryDocument(String idFieldName, Record record) {
+        ByteBuf toWrite = Unpooled.copiedBuffer(record.getBytes(CONTENT_FIELD_NAME));
+        return BinaryDocument.create(record.getString(idFieldName), toWrite);
+    }
+
+    private StringDocument toStringDocument(String idFieldName, Record record) {
+        String content = record.getString(CONTENT_FIELD_NAME);
+        return StringDocument.create(record.getString(idFieldName), content);
     }
 
     private void updatePartiallyDocument(Record record) {
@@ -96,13 +136,17 @@ public class CouchbaseOutput implements Serializable {
 
     private Object jsonValueFromRecordValue(Schema.Entry entry, Record record) {
         String entryName = entry.getName();
+        Object value = record.get(Object.class, entryName);
+        if (null == value) {
+            return JsonObject.NULL;
+        }
         switch (entry.getType()) {
         case INT:
             return record.getInt(entryName);
         case LONG:
             return record.getLong(entryName);
         case BYTES:
-            throw new IllegalArgumentException("BYTES is unsupported");
+            return com.couchbase.client.core.utils.Base64.encode(record.getBytes(entryName));
         case FLOAT:
             return Double.parseDouble(String.valueOf(record.getFloat(entryName)));
         case DOUBLE:
@@ -142,7 +186,7 @@ public class CouchbaseOutput implements Serializable {
         return buildJsonObject(record, Collections.emptyMap()).removeKey(idFieldName);
     }
 
-    private JsonDocument toJsonDocument(String idFieldName, Record record) {
+    public JsonDocument toJsonDocument(String idFieldName, Record record) {
         return JsonDocument.create(record.getString(idFieldName), buildJsonObjectWithoutId(record));
     }
 
@@ -164,4 +208,5 @@ public class CouchbaseOutput implements Serializable {
         }
         return value;
     }
+
 }

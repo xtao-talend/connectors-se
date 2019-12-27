@@ -11,6 +11,7 @@
  * specific language governing permissions and limitations under the License.
  */
 package org.talend.components.common.fake;
+
 import java.io.Serializable;
 
 import javax.annotation.PostConstruct;
