@@ -15,7 +15,6 @@ package org.talend.components.adlsgen2.common.format.parquet;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.Iterator;
@@ -36,7 +35,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class ParquetIterator implements Iterator<Record>, Serializable {
+public class ParquetIterator implements Iterator<Record> {
 
     private RecordBuilderFactory recordBuilderFactory;
 

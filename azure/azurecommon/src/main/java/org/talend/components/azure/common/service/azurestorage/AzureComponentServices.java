@@ -53,6 +53,13 @@ public class AzureComponentServices {
 
     private static OperationContext talendOperationContext;
 
+    static {
+        talendOperationContext = new OperationContext();
+        HashMap<String, String> talendUserHeaders = new HashMap<>();
+        talendUserHeaders.put(USER_AGENT_KEY, getUserAgentString());
+        talendOperationContext.setUserHeaders(talendUserHeaders);
+    }
+
     public static final String SAS_PATTERN = "(http.?)?://(.*)\\.(blob|file|queue|table)\\.core\\.windows\\.net\\/(.*)";
 
     @Service
@@ -95,13 +102,6 @@ public class AzureComponentServices {
     }
 
     public static OperationContext getTalendOperationContext() {
-        if (talendOperationContext == null) {
-            talendOperationContext = new OperationContext();
-            HashMap<String, String> talendUserHeaders = new HashMap<>();
-            talendUserHeaders.put(USER_AGENT_KEY, getUserAgentString());
-            talendOperationContext.setUserHeaders(talendUserHeaders);
-        }
-
         return talendOperationContext;
     }
 

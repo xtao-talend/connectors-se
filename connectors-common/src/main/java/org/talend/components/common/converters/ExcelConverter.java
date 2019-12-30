@@ -105,6 +105,8 @@ public class ExcelConverter implements RecordConverter<Row> {
                     break;
                 case BOOLEAN:
                     entryBuilder.withType(Schema.Type.BOOLEAN);
+                default:
+                    throw new IllegalStateException(String.format("Unexpected cell type:%s", cellType.name()));
                 }
                 schemaBuilder.withEntry(entryBuilder.build());
             }

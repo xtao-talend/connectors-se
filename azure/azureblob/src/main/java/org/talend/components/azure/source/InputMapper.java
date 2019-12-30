@@ -40,13 +40,15 @@ import org.talend.components.azure.service.AzureBlobComponentServices;
 @Documentation("Mapper for AzureBlobStorage Readers")
 public class InputMapper implements Serializable {
 
+    private static final long serialVersionUID = -4834799688579286228L;
+
     private final BlobInputProperties configuration;
 
-    private final AzureBlobComponentServices service;
+    private transient final AzureBlobComponentServices service;
 
-    private final RecordBuilderFactory recordBuilderFactory;
+    private transient final RecordBuilderFactory recordBuilderFactory;
 
-    private final MessageService messageService;
+    private transient final MessageService messageService;
 
     public InputMapper(@Option("configuration") final BlobInputProperties configuration, final AzureBlobComponentServices service,
             final RecordBuilderFactory recordBuilderFactory, final MessageService messageService) {

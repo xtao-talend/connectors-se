@@ -34,7 +34,9 @@ import org.talend.sdk.component.api.record.Record;
 import com.microsoft.azure.storage.StorageException;
 import com.microsoft.azure.storage.blob.CloudBlob;
 import com.microsoft.azure.storage.blob.CloudBlockBlob;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 public class ParquetBlobFileWriter extends BlobFileWriter {
 
     private BlobOutputConfiguration config;
@@ -100,7 +102,10 @@ public class ParquetBlobFileWriter extends BlobFileWriter {
         } finally {
             getBatch().clear();
             if (tempFilePath != null) {
-                tempFilePath.delete();
+                boolean deleted = tempFilePath.delete();
+                if (!deleted) {
+                    log.debug("Temp file wasn't deleted successfully during runtime: " + tempFilePath.getAbsolutePath());
+                }
             }
         }
     }

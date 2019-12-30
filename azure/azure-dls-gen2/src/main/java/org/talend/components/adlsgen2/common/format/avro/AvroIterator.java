@@ -31,9 +31,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class AvroIterator implements Iterator<Record>, Serializable {
-
-    private RecordBuilderFactory recordBuilderFactory;
+public class AvroIterator implements Iterator<Record> {
 
     private final AvroConverter converter;
 

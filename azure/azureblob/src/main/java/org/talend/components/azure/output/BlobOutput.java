@@ -39,13 +39,15 @@ import org.talend.sdk.component.api.record.Record;
 @Documentation("Azure Blob Storage Writer")
 public class BlobOutput implements Serializable {
 
+    private static final long serialVersionUID = 7991404884481371776L;
+
     private final BlobOutputConfiguration configuration;
 
-    private final AzureBlobComponentServices service;
+    private transient final AzureBlobComponentServices service;
 
-    private final MessageService messageService;
+    private transient final MessageService messageService;
 
-    private BlobFileWriter fileWriter;
+    private transient BlobFileWriter fileWriter;
 
     public BlobOutput(@Option("configuration") final BlobOutputConfiguration configuration,
             final AzureBlobComponentServices service, final MessageService i18n) {

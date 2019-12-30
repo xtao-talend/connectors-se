@@ -31,7 +31,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CsvIterator implements Iterator<Record>, Serializable {
+public class CsvIterator implements Iterator<Record> {
 
     private final Reader reader;
 

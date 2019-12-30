@@ -16,7 +16,7 @@ import java.io.Serializable;
 
 import javax.json.JsonObject;
 
-public interface JsonConverter<T> extends Serializable {
+public interface JsonConverter<T> {
 
     JsonObject toJson(T value);
 

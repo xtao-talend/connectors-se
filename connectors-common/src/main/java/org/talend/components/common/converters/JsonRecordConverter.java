@@ -12,8 +12,8 @@
  */
 package org.talend.components.common.converters;
 
-import java.io.Serializable;
 import java.time.ZonedDateTime;
+import java.util.Arrays;
 import java.util.Optional;
 
 import javax.json.JsonBuilderFactory;
@@ -33,7 +33,7 @@ import lombok.extern.slf4j.Slf4j;
 import static java.util.stream.Collectors.toList;
 
 @Slf4j
-public class JsonRecordConverter implements RecordConverter<JsonObject>, Serializable {
+public class JsonRecordConverter implements RecordConverter<JsonObject> {
 
     private RecordBuilderFactory recordBuilderFactory;
 
@@ -93,7 +93,7 @@ public class JsonRecordConverter implements RecordConverter<JsonObject>, Seriali
                 json.add(fieldName, record.getString(fieldName));
                 break;
             case BYTES:
-                json.add(fieldName, record.getBytes(fieldName).toString());
+                json.add(fieldName, Arrays.toString(record.getBytes(fieldName)));
                 break;
             case INT:
                 json.add(fieldName, record.getInt(fieldName));

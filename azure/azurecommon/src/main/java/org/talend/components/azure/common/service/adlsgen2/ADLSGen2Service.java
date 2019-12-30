@@ -48,7 +48,7 @@ import static org.talend.components.azure.common.Constants.HeaderConstants.*;
 
 @Slf4j
 @Service
-public class ADLSGen2Service implements Serializable {
+public class ADLSGen2Service {
 
     public static final String AZURE_BLOB_CONNECTION_LIST = "AZURE_BLOB_CONNECTION_LIST";
 

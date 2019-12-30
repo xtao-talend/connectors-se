@@ -30,6 +30,8 @@ public class AdlsGen2APIConfigurer implements Configurer {
         log.debug("[configure] connection {}", conn);
         log.warn("[configure] [{}] {}", connection.getMethod(), connection.getUrl());
         log.debug("[configure] auth       {}", auth);
+        log.debug("[configure] date {}", date);
+        log.debug("[configure] filePath {}", filePath);
 
         connection.withHeader(CONTENT_TYPE, DFS_CONTENT_TYPE) //
                 .withHeader(VERSION, TARGET_STORAGE_VERSION)

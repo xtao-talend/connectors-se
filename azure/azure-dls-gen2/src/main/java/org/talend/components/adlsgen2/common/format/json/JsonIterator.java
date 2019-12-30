@@ -37,7 +37,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JsonIterator implements Iterator<Record>, Serializable {
+public class JsonIterator implements Iterator<Record> {
 
     private RecordBuilderFactory recordBuilderFactory;
 

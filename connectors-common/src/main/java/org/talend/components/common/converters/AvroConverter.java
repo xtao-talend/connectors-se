@@ -182,6 +182,8 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
             case BOOLEAN:
                 toRecord.put(name, fromRecord.getOptionalBoolean(name).orElse(null));
                 break;
+            default:
+                throw new IllegalStateException(String.format(ERROR_UNDEFINED_TYPE, fieldType.name()));
             }
         }
         return toRecord;
@@ -379,6 +381,8 @@ public class AvroConverter implements RecordConverter<GenericRecord> {
         case NULL:
             builder.withType(translateToRecordType(type));
             break;
+        default:
+            throw new IllegalStateException(String.format(ERROR_UNDEFINED_TYPE, type));
         }
         return builder.build();
     }

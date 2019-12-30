@@ -35,7 +35,7 @@ import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class CsvConverterForADLS extends CSVConverter implements RecordConverter<CSVRecord>, Serializable {
+public class CsvConverterForADLS extends CSVConverter implements RecordConverter<CSVRecord> {
 
     @Getter
     private CSVFormat csvFormat;
