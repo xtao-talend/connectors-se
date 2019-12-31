@@ -34,12 +34,13 @@
 
     <modules>
         <module>connectors-common</module>
-        <module>common</module>
         <module>jdbc</module>
         <module>salesforce</module>
         <module>couchbase</module>
         <module>azure</module>
         <module>rest</module>
+
+        <!--disabled until build fixed -->
         <!-- disable eventhubs build before all ready
         <module>azure-eventhubs</module> 
         -->
@@ -70,7 +71,6 @@
 
     <properties>
         <connectors-test-bom.version>1.5.0-SNAPSHOT</connectors-test-bom.version>
-        <common.version>1.5.0-SNAPSHOT</common.version>
 
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -202,11 +202,6 @@
                 <version>${connectors-test-bom.version}</version>
                 <type>pom</type>
                 <scope>test</scope>
-            </dependency>
-            <dependency>
-                <groupId>org.talend.components</groupId>
-                <artifactId>common</artifactId>
-                <version>${common.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

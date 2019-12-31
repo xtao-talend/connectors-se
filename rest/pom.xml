@@ -29,7 +29,8 @@
         </dependency>
         <dependency>
             <groupId>org.talend.components</groupId>
-            <artifactId>common</artifactId>
+            <artifactId>connectors-common</artifactId>
+            <version>${projectgit s.version}</version>
         </dependency>
         <!-- Testing -->
         <dependency>
