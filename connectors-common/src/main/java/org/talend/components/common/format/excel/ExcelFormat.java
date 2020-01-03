@@ -10,16 +10,12 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.runtime.output.excel;
+package org.talend.components.common.format.excel;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.talend.components.common.format.excel.ExcelFormat;
+import java.io.Serializable;
 
-public class ExcelUtils {
-
-    static Workbook createWorkBook(ExcelFormat format) {
-        return format == ExcelFormat.EXCEL97 ? new HSSFWorkbook() : new XSSFWorkbook();
-    }
+public enum ExcelFormat implements Serializable {
+    EXCEL2007,
+    EXCEL97,
+    HTML
 }

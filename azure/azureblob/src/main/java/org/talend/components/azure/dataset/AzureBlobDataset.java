@@ -15,8 +15,8 @@ package org.talend.components.azure.dataset;
 import java.io.Serializable;
 
 import org.talend.components.azure.common.FileFormat;
-import org.talend.components.azure.common.csv.CSVFormatOptions;
-import org.talend.components.azure.common.excel.ExcelFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.excel.ExcelFormatOptions;
 import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.service.AzureBlobComponentServices;
 import org.talend.sdk.component.api.configuration.Option;
@@ -34,6 +34,8 @@ import lombok.Data;
 @Data
 @DataSet("AzureDataSet")
 public class AzureBlobDataset implements Serializable {
+
+    private static final long serialVersionUID = -9027925339489201034L;
 
     @Option
     @Required

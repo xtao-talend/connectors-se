@@ -19,10 +19,16 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
-import org.talend.components.adlsgen2.common.format.FileEncoding;
+import org.talend.components.adlsgen2.common.format.FileFormat;
 import org.talend.components.adlsgen2.common.format.csv.CsvIterator.Builder;
 import org.talend.components.adlsgen2.runtime.AdlsGen2RuntimeException;
 import org.talend.components.adlsgen2.runtime.formatter.CsvContentFormatter;
+import org.talend.components.common.format.Encoding;
+import org.talend.components.common.format.FormatUtils;
+import org.talend.components.common.format.csv.CSVFieldDelimiter;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.junit5.WithComponents;
 
@@ -35,21 +41,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 @WithComponents("org.talend.components.adlsgen2")
 public class CsvConverterForADLSTest extends AdlsGen2TestBase {
 
-    private CsvConfiguration csvConfiguration;
+    private CSVFormatOptionsWithSchema csvConfiguration;
 
     private CsvConverterForADLS converter;
 
     @BeforeEach
     protected void setUp() throws Exception {
         super.setUp();
+        csvConfiguration = new CSVFormatOptionsWithSchema();
+        csvConfiguration.setCsvFormatOptions(new CSVFormatOptions());
     }
 
     @Test
     public void csvWithPipeAsDelimiterCase() throws Exception {
         InputStream sample = getClass().getResource("/common/format/csv/pipe-separated.csv").openStream();
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setFieldDelimiter(CsvFieldDelimiter.OTHER);
-        csvConfiguration.setCustomFieldDelimiter("|");
+        csvConfiguration.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomFieldDelimiter("|");
         CsvIterator it = Builder.of(recordBuilderFactory).withConfiguration(csvConfiguration).parse(sample);
         int counted = 0;
         while (it.hasNext()) {
@@ -65,10 +72,9 @@ public class CsvConverterForADLSTest extends AdlsGen2TestBase {
         InputStream sample = getClass().getResource("/common/format/csv/wicked-separated.csv").openStream();
         String result = "\"1\";\"1000.2\";\"ant\\\"ique\"\n" + "\"2\";\"2000.3\";\"stroll\"\n"
                 + "\"3\";\"3000.3\";\"ant\\\\ique\"\n";
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setRecordSeparator(CsvRecordSeparator.LF);
-        csvConfiguration.setEscapeCharacter("\\");
-        csvConfiguration.setTextEnclosureCharacter("\"");
+        csvConfiguration.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
+        csvConfiguration.getCsvFormatOptions().setEscapeCharacter("\\");
+        csvConfiguration.getCsvFormatOptions().setTextEnclosureCharacter("\"");
         CsvIterator it = Builder.of(recordBuilderFactory).withConfiguration(csvConfiguration).parse(sample);
         outputConfiguration.getDataSet().setCsvConfiguration(csvConfiguration);
         CsvContentFormatter fmt = new CsvContentFormatter(outputConfiguration, recordBuilderFactory);
@@ -89,9 +95,8 @@ public class CsvConverterForADLSTest extends AdlsGen2TestBase {
     void csvEscaping() throws Exception {
         InputStream sample = getClass().getResource("/common/format/csv/escaping.csv").openStream();
         String result = "\"1\";\"transmit\"\r\n" + "\"2\";\"tran\\\"sfer\"\r\n" + "\"3\";\r\n" + ";\"password\"\r\n";
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setEscapeCharacter("\\");
-        csvConfiguration.setTextEnclosureCharacter("\"");
+        csvConfiguration.getCsvFormatOptions().setEscapeCharacter("\\");
+        csvConfiguration.getCsvFormatOptions().setTextEnclosureCharacter("\"");
         CsvIterator it = Builder.of(recordBuilderFactory).withConfiguration(csvConfiguration).parse(sample);
         outputConfiguration.getDataSet().setCsvConfiguration(csvConfiguration);
         CsvContentFormatter fmt = new CsvContentFormatter(outputConfiguration, recordBuilderFactory);
@@ -111,10 +116,9 @@ public class CsvConverterForADLSTest extends AdlsGen2TestBase {
     @Test
     void withSjisEncoding() throws Exception {
         InputStream sample = getClass().getResource("/common/format/csv/SJIS-encoded.csv").openStream();
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setRecordSeparator(CsvRecordSeparator.LF);
-        csvConfiguration.setFileEncoding(FileEncoding.OTHER);
-        csvConfiguration.setCustomFileEncoding("SJIS");
+        csvConfiguration.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
+        csvConfiguration.getCsvFormatOptions().setEncoding(Encoding.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomEncoding("SJIS");
         CsvIterator it = Builder.of(recordBuilderFactory).withConfiguration(csvConfiguration).parse(sample);
         Record encoded = it.next();
         assertNotNull(encoded);
@@ -126,12 +130,11 @@ public class CsvConverterForADLSTest extends AdlsGen2TestBase {
     @Test
     void withGb2312Encoding() throws Exception {
         InputStream sample = getClass().getResource("/common/format/csv/GB2312-encoded.csv").openStream();
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setRecordSeparator(CsvRecordSeparator.LF);
-        csvConfiguration.setFieldDelimiter(CsvFieldDelimiter.OTHER);
-        csvConfiguration.setCustomFieldDelimiter("，");
-        csvConfiguration.setFileEncoding(FileEncoding.OTHER);
-        csvConfiguration.setCustomFileEncoding("GB2312");
+        csvConfiguration.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
+        csvConfiguration.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomFieldDelimiter("，");
+        csvConfiguration.getCsvFormatOptions().setEncoding(Encoding.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomEncoding("GB2312");
         CsvIterator it = Builder.of(recordBuilderFactory).withConfiguration(csvConfiguration).parse(sample);
         Record encoded = it.next();
         assertNotNull(encoded);
@@ -144,9 +147,9 @@ public class CsvConverterForADLSTest extends AdlsGen2TestBase {
 
     @Test
     void invalidEncoding() {
-        csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setFileEncoding(FileEncoding.OTHER);
-        csvConfiguration.setCustomFileEncoding("BZH");
-        assertThrows(AdlsGen2RuntimeException.class, () -> csvConfiguration.effectiveFileEncoding());
+        csvConfiguration.getCsvFormatOptions().setEncoding(Encoding.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomEncoding("BZH");
+        assertThrows(IllegalArgumentException.class,
+                () -> FormatUtils.getUsedEncodingValue(csvConfiguration.getCsvFormatOptions()));
     }
 }

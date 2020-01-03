@@ -16,11 +16,12 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
 import org.talend.components.adlsgen2.common.format.FileFormat;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvFieldDelimiter;
-import org.talend.components.adlsgen2.common.format.csv.CsvRecordSeparator;
 import org.talend.components.adlsgen2.dataset.AdlsGen2DataSet;
 import org.talend.components.adlsgen2.datastore.AdlsGen2Connection.AuthMethod;
+import org.talend.components.common.format.csv.CSVFieldDelimiter;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.configuration.LocalConfiguration;
 import org.talend.sdk.component.junit5.WithComponents;
@@ -56,11 +57,12 @@ class AdlsGen2OutputTestIT extends AdlsGen2TestBase {
     @ValueSource(strings = { "SharedKey", "SAS" })
     public void fromCsvToJson(String authmethod) {
         connection.setAuthMethod(AuthMethod.valueOf(authmethod));
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath("demo_gen2/in/customers.csv");
         inputConfiguration.setDataSet(dataSet);
@@ -90,11 +92,12 @@ class AdlsGen2OutputTestIT extends AdlsGen2TestBase {
     @ValueSource(strings = { "SharedKey", "SAS" })
     public void fromCsvToAvro(String authmethod) {
         connection.setAuthMethod(AuthMethod.valueOf(authmethod));
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath("demo_gen2/in/customers.csv");
         inputConfiguration.setDataSet(dataSet);
@@ -123,11 +126,12 @@ class AdlsGen2OutputTestIT extends AdlsGen2TestBase {
     @ValueSource(strings = { "SharedKey", "SAS" })
     public void fromCsvToParquet(String authmethod) {
         connection.setAuthMethod(AuthMethod.valueOf(authmethod));
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath("demo_gen2/in/customers.csv");
         inputConfiguration.setDataSet(dataSet);
@@ -165,11 +169,12 @@ class AdlsGen2OutputTestIT extends AdlsGen2TestBase {
         outDs.setConnection(connection);
         outDs.setFilesystem(storageFs);
         outDs.setFormat(FileFormat.CSV);
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
         outDs.setCsvConfiguration(csvConfig);
         outDs.setBlobPath("demo_gen2/out/customers-from-avro-wo-header.csv");
         outputConfiguration.setDataSet(outDs);
@@ -199,11 +204,12 @@ class AdlsGen2OutputTestIT extends AdlsGen2TestBase {
         outDs.setConnection(connection);
         outDs.setFilesystem(storageFs);
         outDs.setFormat(FileFormat.CSV);
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("Zid;ZFirstname;ZLastname;ZAddress;ZRegistrationDate;ZRevenue;ZStates");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
         outDs.setCsvConfiguration(csvConfig);
         outDs.setBlobPath("demo_gen2/out/customers-from-avro-w-header.csv");
         outputConfiguration.setDataSet(outDs);

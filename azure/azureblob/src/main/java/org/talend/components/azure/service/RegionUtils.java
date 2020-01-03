@@ -12,14 +12,12 @@
  */
 package org.talend.components.azure.service;
 
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.talend.components.azure.common.connection.azurestorage.AzureStorageConnectionSignature;
 
 import static org.talend.components.azure.common.service.azurestorage.AzureComponentServices.SAS_PATTERN;
-
 
 public class RegionUtils {
 

@@ -14,7 +14,6 @@ package org.talend.components.adlsgen2.common.format.json;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.Serializable;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -30,6 +29,7 @@ import javax.json.JsonValue;
 import javax.json.JsonValue.ValueType;
 
 import org.talend.components.common.converters.JsonRecordConverter;
+import org.talend.components.common.format.json.JsonConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;

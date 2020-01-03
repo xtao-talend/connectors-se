@@ -16,9 +16,9 @@ import java.net.URISyntaxException;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.Test;
-import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
-import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
-import org.talend.components.azure.common.service.AzureComponentServices;
+import org.talend.components.azure.common.connection.azurestorage.AzureStorageConnectionAccount;
+import org.talend.components.azure.common.connection.azurestorage.AzureStorageConnectionSignature;
+import org.talend.components.azure.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.service.RegionUtils;
 
 import com.microsoft.azure.storage.CloudStorageAccount;

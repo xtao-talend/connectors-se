@@ -17,20 +17,20 @@ import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
-import org.talend.components.adlsgen2.common.format.FileEncoding;
 import org.talend.components.adlsgen2.common.format.FileFormat;
-import org.talend.components.adlsgen2.common.format.avro.AvroConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvFieldDelimiter;
-import org.talend.components.adlsgen2.common.format.csv.CsvRecordSeparator;
-import org.talend.components.adlsgen2.common.format.json.JsonConfiguration;
-import org.talend.components.adlsgen2.common.format.parquet.ParquetConfiguration;
+import org.talend.components.common.format.Encoding;
+import org.talend.components.common.format.avro.AvroConfiguration;
+import org.talend.components.common.format.csv.CSVFieldDelimiter;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
+import org.talend.components.common.format.json.JsonConfiguration;
+import org.talend.components.common.format.parquet.ParquetConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.junit5.WithComponents;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
 import lombok.extern.slf4j.Slf4j;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
@@ -41,11 +41,14 @@ public class InputTestIT extends AdlsGen2TestBase {
 
     @Test
     void readCsvWithHeader() {
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptions csvFormatOptions = new CSVFormatOptions();
+        csvFormatOptions.setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvFormatOptions.setRecordDelimiter(CSVRecordDelimiter.LF);
+        csvFormatOptions.setUseHeader(true);
+        csvFormatOptions.setHeader(1);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(csvFormatOptions);
         csvConfig.setCsvSchema("IdCustomer;FirstName;lastname;address;enrolled;zip;state");
-        csvConfig.setHeader(true);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath(basePathIn + "csv-w-header");
         inputConfiguration.setDataSet(dataSet);
@@ -64,11 +67,12 @@ public class InputTestIT extends AdlsGen2TestBase {
 
     @Test
     void readCsvWithoutHeader() {
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("IdCustomer;FirstName;lastname;address;enrolled;zip;state");
-        csvConfig.setHeader(false);
+        csvConfig.getCsvFormatOptions().setUseHeader(false);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath(basePathIn + "csv-wo-header");
         inputConfiguration.setDataSet(dataSet);
@@ -305,10 +309,12 @@ public class InputTestIT extends AdlsGen2TestBase {
 
     @Test
     void csvEncodedInSJis() {
-        CsvConfiguration csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setRecordSeparator(CsvRecordSeparator.LF);
-        csvConfiguration.setFileEncoding(FileEncoding.OTHER);
-        csvConfiguration.setCustomFileEncoding("SJIS");
+        CSVFormatOptionsWithSchema csvConfiguration = new CSVFormatOptionsWithSchema();
+        CSVFormatOptions formatOptions = new CSVFormatOptions();
+        formatOptions.setRecordDelimiter(CSVRecordDelimiter.LF);
+        formatOptions.setEncoding(Encoding.OTHER);
+        formatOptions.setCustomEncoding("SJIS");
+        csvConfiguration.setCsvFormatOptions(formatOptions);
         dataSet.setFormat(FileFormat.CSV);
         dataSet.setCsvConfiguration(csvConfiguration);
         dataSet.setBlobPath(basePathIn + "encoding/SJIS-encoded.csv");

@@ -25,6 +25,7 @@ import org.talend.components.adlsgen2.input.InputConfiguration;
 import org.talend.components.adlsgen2.runtime.AdlsGen2RuntimeException;
 import org.talend.components.adlsgen2.service.AdlsGen2Service;
 import org.talend.components.adlsgen2.service.BlobInformations;
+import org.talend.components.common.format.FormatUtils;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
@@ -66,7 +67,8 @@ public class CsvBlobReader extends BlobReader {
         private CSVFileRecordIterator(Iterable<BlobInformations> blobList, RecordBuilderFactory recordBuilderFactory,
                 AdlsGen2Service service) {
             super(blobList, recordBuilderFactory);
-            this.encodingValue = configuration.getDataSet().getCsvConfiguration().effectiveFileEncoding();
+            this.encodingValue = FormatUtils
+                    .getUsedEncodingValue(configuration.getDataSet().getCsvConfiguration().getCsvFormatOptions());
             this.service = service;
             peekFirstBlob();
         }

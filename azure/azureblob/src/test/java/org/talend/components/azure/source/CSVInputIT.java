@@ -14,7 +14,6 @@ package org.talend.components.azure.source;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.Supplier;
 
 import org.junit.Assert;
 import org.junit.jupiter.api.Assertions;
@@ -23,9 +22,8 @@ import org.junit.jupiter.api.Test;
 import org.talend.components.azure.BaseIT;
 import org.talend.components.azure.BlobTestUtils;
 import org.talend.components.azure.common.FileFormat;
-import org.talend.components.azure.common.csv.CSVFormatOptions;
-import org.talend.components.azure.common.csv.RecordDelimiter;
-import org.talend.components.azure.common.exception.BlobRuntimeException;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
 import org.talend.components.azure.dataset.AzureBlobDataset;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.junit5.WithComponents;
@@ -46,7 +44,7 @@ public class CSVInputIT extends BaseIT {
         dataset.setFileFormat(FileFormat.CSV);
 
         CSVFormatOptions formatOptions = new CSVFormatOptions();
-        formatOptions.setRecordDelimiter(RecordDelimiter.LF);
+        formatOptions.setRecordDelimiter(CSVRecordDelimiter.LF);
         dataset.setCsvOptions(formatOptions);
         dataset.setContainerName(containerName);
         blobInputProperties = new BlobInputProperties();

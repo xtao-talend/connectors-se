@@ -36,6 +36,8 @@ import lombok.Data;
 @Checkable(TEST_CONNECTION)
 public class AzureCloudConnection implements Serializable {
 
+    private static final long serialVersionUID = 1122224101662390311L;
+
     @Option
     @Documentation("Name of the storage account you need to access. "
             + "A storage account name can be found in the Storage accounts dashboard of the Microsoft Azure Storage system to be used. "

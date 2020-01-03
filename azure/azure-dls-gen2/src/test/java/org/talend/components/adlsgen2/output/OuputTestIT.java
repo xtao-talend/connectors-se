@@ -22,13 +22,14 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
-import org.talend.components.adlsgen2.common.format.FileEncoding;
 import org.talend.components.adlsgen2.common.format.FileFormat;
-import org.talend.components.adlsgen2.common.format.avro.AvroConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvFieldDelimiter;
-import org.talend.components.adlsgen2.common.format.csv.CsvRecordSeparator;
 import org.talend.components.adlsgen2.dataset.AdlsGen2DataSet;
+import org.talend.components.common.format.Encoding;
+import org.talend.components.common.format.avro.AvroConfiguration;
+import org.talend.components.common.format.csv.CSVFieldDelimiter;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.record.Schema.Type;
@@ -38,7 +39,6 @@ import org.talend.sdk.component.runtime.manager.chain.Job;
 import org.talend.sdk.component.runtime.record.SchemaImpl;
 
 import lombok.extern.slf4j.Slf4j;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -49,7 +49,7 @@ import static org.talend.sdk.component.junit.SimpleFactory.configurationByExampl
 @WithComponents("org.talend.components.adlsgen2")
 public class OuputTestIT extends AdlsGen2TestBase {
 
-    CsvConfiguration csvConfig;
+    CSVFormatOptionsWithSchema csvConfig;
 
     AdlsGen2DataSet outDs;
 
@@ -59,11 +59,14 @@ public class OuputTestIT extends AdlsGen2TestBase {
         outDs.setConnection(connection);
         outDs.setFilesystem(storageFs);
         //
-        csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        csvConfig = new CSVFormatOptionsWithSchema();
+        CSVFormatOptions formatOptions = new CSVFormatOptions();
+        formatOptions.setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        formatOptions.setRecordDelimiter(CSVRecordDelimiter.LF);
+        formatOptions.setUseHeader(true);
+        formatOptions.setHeader(1);
+        csvConfig.setCsvFormatOptions(formatOptions);
         csvConfig.setCsvSchema("IdCustomer;FirstName;lastname;address;enrolled;zip;state");
-        csvConfig.setHeader(true);
     }
 
     @Test
@@ -169,7 +172,7 @@ public class OuputTestIT extends AdlsGen2TestBase {
     @Test
     public void fromCsvToCsvQuoted() {
         csvConfig.setCsvSchema("");
-        csvConfig.setHeader(false);
+        csvConfig.getCsvFormatOptions().setUseHeader(false);
         dataSet.setCsvConfiguration(csvConfig);
         dataSet.setBlobPath(basePathIn + "csv-w-header");
         inputConfiguration.setDataSet(dataSet);
@@ -177,11 +180,12 @@ public class OuputTestIT extends AdlsGen2TestBase {
         //
         outDs.setFormat(FileFormat.CSV);
         outDs.setBlobPath(basePathOut + "csv");
-        csvConfig.setHeader(true);
+        csvConfig.getCsvFormatOptions().setUseHeader(true);
+        csvConfig.getCsvFormatOptions().setHeader(1);
         csvConfig.setCsvSchema("");
-        csvConfig.setTextEnclosureCharacter("\"");
-        csvConfig.setEscapeCharacter("\\");
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.COMMA);
+        csvConfig.getCsvFormatOptions().setTextEnclosureCharacter("\"");
+        csvConfig.getCsvFormatOptions().setEscapeCharacter("\\");
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.COMMA);
         outDs.setCsvConfiguration(csvConfig);
         outputConfiguration.setDataSet(outDs);
         outputConfiguration.setBlobNameTemplate("IT-csv-2-csv-whdr-QUOTED__-");
@@ -306,10 +310,11 @@ public class OuputTestIT extends AdlsGen2TestBase {
     @ParameterizedTest
     @ValueSource(strings = { "SJIS", "GB2312", "ISO-8859-1" })
     void outputToCsvEncoded(String encoding) {
-        CsvConfiguration csvConfiguration = new CsvConfiguration();
-        csvConfiguration.setRecordSeparator(CsvRecordSeparator.LF);
-        csvConfiguration.setFileEncoding(FileEncoding.OTHER);
-        csvConfiguration.setCustomFileEncoding(encoding);
+        CSVFormatOptionsWithSchema csvConfiguration = new CSVFormatOptionsWithSchema();
+        csvConfiguration.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfiguration.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
+        csvConfiguration.getCsvFormatOptions().setEncoding(Encoding.OTHER);
+        csvConfiguration.getCsvFormatOptions().setCustomEncoding(encoding);
         csvConfiguration.setCsvSchema("id;value");
         //
         String sample = "bb";

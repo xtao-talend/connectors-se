@@ -21,12 +21,12 @@ import java.util.UUID;
 
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
-import org.talend.components.azure.common.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptions;
 import org.talend.components.azure.common.exception.BlobRuntimeException;
 import org.talend.components.azure.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.output.BlobOutputConfiguration;
 import org.talend.components.azure.service.AzureBlobComponentServices;
-import org.talend.components.azure.service.FormatUtils;
+import org.talend.components.common.format.FormatUtils;
 import org.talend.components.common.converters.CSVConverter;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
@@ -94,7 +94,7 @@ public class CSVBlobFileWriter extends BlobFileWriter {
             appendHeader();
         }
 
-        byte[] contentBytes = content.getBytes(FormatUtils.getUsedEncodingValue(config.getDataset()));
+        byte[] contentBytes = content.getBytes(FormatUtils.getUsedEncodingValue(config.getDataset().getCsvOptions()));
         ((CloudAppendBlob) getCurrentItem()).appendFromByteArray(contentBytes, 0, contentBytes.length, null, null,
                 AzureComponentServices.getTalendOperationContext());
 

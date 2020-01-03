@@ -10,16 +10,21 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.azure.runtime.output.excel;
+package org.talend.components.common.format.csv;
 
-import org.apache.poi.hssf.usermodel.HSSFWorkbook;
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.talend.components.common.format.excel.ExcelFormat;
+import lombok.Getter;
 
-public class ExcelUtils {
+public enum CSVFieldDelimiter {
+    SEMICOLON(';'),
+    COMMA(','),
+    TAB('\t'),
+    SPACE(' '),
+    OTHER((char) 0);
 
-    static Workbook createWorkBook(ExcelFormat format) {
-        return format == ExcelFormat.EXCEL97 ? new HSSFWorkbook() : new XSSFWorkbook();
+    @Getter
+    private char delimiterValue;
+
+    CSVFieldDelimiter(char delimiter) {
+        this.delimiterValue = delimiter;
     }
 }

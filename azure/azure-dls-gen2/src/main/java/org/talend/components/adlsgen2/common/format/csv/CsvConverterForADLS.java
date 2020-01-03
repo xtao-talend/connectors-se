@@ -12,7 +12,6 @@
  */
 package org.talend.components.adlsgen2.common.format.csv;
 
-import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -25,6 +24,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.talend.components.common.SchemaUtils;
 import org.talend.components.common.converters.CSVConverter;
 import org.talend.components.common.converters.RecordConverter;
+import org.talend.components.common.format.FormatUtils;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.configuration.Configuration;
@@ -49,10 +50,12 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
     private Map<String, Integer> runtimeHeaders;
 
     private CsvConverterForADLS(final RecordBuilderFactory factory,
-            final @Configuration("csvConfiguration") CsvConfiguration configuration) {
-        super(factory, configuration.isHeader(),
-                CSVConverter.createCSVFormat(configuration.effectiveFieldDelimiter(), configuration.effectiveRecordSeparator(),
-                        configuration.getTextEnclosureCharacter(), configuration.getEscapeCharacter()));
+            final @Configuration("csvConfiguration") CSVFormatOptionsWithSchema configuration) {
+        super(factory, configuration.getCsvFormatOptions().isUseHeader(),
+                CSVConverter.createCSVFormat(FormatUtils.getFieldDelimiterValue(configuration.getCsvFormatOptions()),
+                        FormatUtils.getRecordDelimiterValue(configuration.getCsvFormatOptions()),
+                        configuration.getCsvFormatOptions().getTextEnclosureCharacter(),
+                        configuration.getCsvFormatOptions().getEscapeCharacter()));
         recordBuilderFactory = factory;
         csvFormat = formatWithConfiguration(configuration);
         schema = schemaWithConfiguration(configuration);
@@ -60,11 +63,11 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
     }
 
     public static CsvConverterForADLS of(final RecordBuilderFactory factory,
-            final @Configuration("csvConfiguration") CsvConfiguration configuration) {
+            final @Configuration("csvConfiguration") CSVFormatOptionsWithSchema configuration) {
         return new CsvConverterForADLS(factory, configuration);
     }
 
-    private Schema schemaWithConfiguration(CsvConfiguration configuration) {
+    private Schema schemaWithConfiguration(CSVFormatOptionsWithSchema configuration) {
         if (StringUtils.isEmpty(configuration.getCsvSchema())) {
             // will infer schema on runtime
             return null;
@@ -72,7 +75,8 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
         Schema.Builder builder = recordBuilderFactory.newSchemaBuilder(Schema.Type.RECORD);
         Set<String> existNames = new HashSet<>();
         int index = 0;
-        for (String s : configuration.getCsvSchema().split(String.valueOf(configuration.effectiveFieldDelimiter()))) {
+        for (String s : configuration.getCsvSchema()
+                .split(String.valueOf(FormatUtils.getFieldDelimiterValue(configuration.getCsvFormatOptions())))) {
             Schema.Entry.Builder entryBuilder = recordBuilderFactory.newEntryBuilder();
             String finalName = SchemaUtils.getCorrectSchemaFieldName(s, index++, existNames);
             existNames.add(finalName);
@@ -82,12 +86,12 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
         return builder.build();
     }
 
-    private CSVFormat formatWithConfiguration(@Configuration("csvConfiguration") final CsvConfiguration configuration) {
+    private CSVFormat formatWithConfiguration(@Configuration("csvConfiguration") final CSVFormatOptionsWithSchema configuration) {
         log.debug("[CsvConverter::formatWithConfiguration] {}", configuration);
-        char delimiter = configuration.effectiveFieldDelimiter();
-        String separator = configuration.effectiveRecordSeparator();
-        String escape = configuration.getEscapeCharacter();
-        String enclosure = configuration.getTextEnclosureCharacter();
+        char delimiter = FormatUtils.getFieldDelimiterValue(configuration.getCsvFormatOptions());
+        String separator = FormatUtils.getRecordDelimiterValue(configuration.getCsvFormatOptions());
+        String escape = configuration.getCsvFormatOptions().getEscapeCharacter();
+        String enclosure = configuration.getCsvFormatOptions().getTextEnclosureCharacter();
         String confSchema = configuration.getCsvSchema();
         CSVFormat format = CSVFormat.DEFAULT;
         // delimiter
@@ -108,11 +112,11 @@ public class CsvConverterForADLS extends CSVConverter implements RecordConverter
             format = format.withQuote(null);
         }
         // first line is header
-        if (configuration.isHeader()) {
+        if (configuration.getCsvFormatOptions().isUseHeader()) {
             format = format.withFirstRecordAsHeader();
         }
         // header columns
-        if (configuration.isHeader() && StringUtils.isNotEmpty(confSchema)) {
+        if (configuration.getCsvFormatOptions().isUseHeader() && StringUtils.isNotEmpty(confSchema)) {
             format = format.withHeader(confSchema.split(String.valueOf(delimiter)));
         }
 

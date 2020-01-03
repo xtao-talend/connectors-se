@@ -28,6 +28,7 @@ import org.apache.parquet.hadoop.util.HadoopInputFile;
 import org.talend.components.adlsgen2.common.format.FileFormatRuntimeException;
 import org.talend.components.azure.common.Constants;
 import org.talend.components.common.converters.ParquetConverter;
+import org.talend.components.common.format.parquet.ParquetConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;

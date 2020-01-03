@@ -21,10 +21,11 @@ import java.util.List;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.lang3.StringUtils;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
 import org.talend.components.adlsgen2.common.format.csv.CsvConverterForADLS;
 import org.talend.components.adlsgen2.output.OutputConfiguration;
 import org.talend.components.adlsgen2.runtime.AdlsGen2RuntimeException;
+import org.talend.components.common.format.FormatUtils;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
@@ -35,9 +36,11 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CsvContentFormatter extends AbstractContentFormatter {
 
+    private static final long serialVersionUID = -3300766722006238519L;
+
     private final OutputConfiguration configuration;
 
-    private final CsvConfiguration csvConfiguration;
+    private final CSVFormatOptionsWithSchema csvConfiguration;
 
     private final CSVFormat format;
 
@@ -63,7 +66,7 @@ public class CsvContentFormatter extends AbstractContentFormatter {
         StringWriter stringWriter = new StringWriter();
         try {
             CSVPrinter printer = new CSVPrinter(stringWriter, format);
-            if (csvConfiguration.isHeader()) {
+            if (csvConfiguration.getCsvFormatOptions().isUseHeader()) {
                 printer.printRecord(getHeader());
             }
             for (Record record : records) {
@@ -71,7 +74,7 @@ public class CsvContentFormatter extends AbstractContentFormatter {
             }
             printer.flush();
             printer.close();
-            return stringWriter.toString().getBytes(csvConfiguration.effectiveFileEncoding());
+            return stringWriter.toString().getBytes(FormatUtils.getUsedEncodingValue(csvConfiguration.getCsvFormatOptions()));
         } catch (IOException e) {
             log.error("[feedContent] {}", e.getMessage());
             throw new AdlsGen2RuntimeException(e.getMessage());
@@ -83,7 +86,7 @@ public class CsvContentFormatter extends AbstractContentFormatter {
         // first return user schema if exists
         if (StringUtils.isNotEmpty(csvConfiguration.getCsvSchema())) {
             log.info("[getHeader] user schema");
-            List<String> result = csvConfiguration.getCsvSchemaHeaders();
+            List<String> result = FormatUtils.getCsvSchemaHeaders(csvConfiguration);
             if (result != null && !result.isEmpty()) {
                 return result.toArray();
             }

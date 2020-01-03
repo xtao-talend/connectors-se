@@ -15,11 +15,11 @@ package org.talend.components.adlsgen2.dataset;
 import java.io.Serializable;
 
 import org.talend.components.adlsgen2.common.format.FileFormat;
-import org.talend.components.adlsgen2.common.format.avro.AvroConfiguration;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
-import org.talend.components.adlsgen2.common.format.json.JsonConfiguration;
-import org.talend.components.adlsgen2.common.format.parquet.ParquetConfiguration;
 import org.talend.components.adlsgen2.datastore.AdlsGen2Connection;
+import org.talend.components.common.format.avro.AvroConfiguration;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.json.JsonConfiguration;
+import org.talend.components.common.format.parquet.ParquetConfiguration;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Suggestable;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
@@ -30,7 +30,6 @@ import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import lombok.Data;
-
 import static org.talend.components.adlsgen2.service.UIActionService.ACTION_FILESYSTEMS;
 
 @Data
@@ -72,7 +71,7 @@ public class AdlsGen2DataSet implements Serializable {
 
     @Option
     @ActiveIf(target = "format", value = "CSV")
-    private CsvConfiguration csvConfiguration;
+    private CSVFormatOptionsWithSchema csvConfiguration;
 
     // next options are temporarily hidden because they generate unwanted fields in studio
     // (empty file format configurations)

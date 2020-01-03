@@ -30,7 +30,7 @@ import org.apache.parquet.hadoop.util.HadoopOutputFile;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.talend.components.adlsgen2.AdlsGen2TestBase;
-import org.talend.components.adlsgen2.common.format.avro.AvroConfiguration;
+import org.talend.components.common.format.avro.AvroConfiguration;
 import org.talend.components.azure.common.Constants;
 import org.talend.components.common.converters.ParquetConverter;
 import org.talend.sdk.component.api.record.Record;

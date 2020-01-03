@@ -23,7 +23,7 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
-import org.talend.components.azure.common.excel.ExcelFormat;
+import org.talend.components.common.format.excel.ExcelFormat;
 import org.talend.components.azure.common.exception.BlobRuntimeException;
 import org.talend.components.azure.common.service.azurestorage.AzureComponentServices;
 import org.talend.components.azure.output.BlobOutputConfiguration;

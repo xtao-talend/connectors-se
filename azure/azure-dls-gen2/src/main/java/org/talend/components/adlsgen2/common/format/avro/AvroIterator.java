@@ -14,7 +14,6 @@ package org.talend.components.adlsgen2.common.format.avro;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.Serializable;
 import java.util.Iterator;
 
 import org.apache.avro.file.DataFileStream;
@@ -24,6 +23,7 @@ import org.apache.avro.io.DatumReader;
 import org.talend.components.adlsgen2.common.format.FileFormatRuntimeException;
 import org.talend.components.azure.common.Constants;
 import org.talend.components.common.converters.AvroConverter;
+import org.talend.components.common.format.avro.AvroConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.configuration.Configuration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;

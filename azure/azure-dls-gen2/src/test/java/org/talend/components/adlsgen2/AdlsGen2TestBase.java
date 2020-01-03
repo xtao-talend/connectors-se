@@ -12,7 +12,6 @@
  */
 package org.talend.components.adlsgen2;
 
-import java.io.Serializable;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
@@ -22,10 +21,7 @@ import javax.json.JsonBuilderFactory;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.talend.components.adlsgen2.common.format.FileFormat;
-import org.talend.components.adlsgen2.common.format.csv.CsvConfiguration;
 import org.talend.components.adlsgen2.common.format.csv.CsvConverterForADLS;
-import org.talend.components.adlsgen2.common.format.csv.CsvFieldDelimiter;
-import org.talend.components.adlsgen2.common.format.csv.CsvRecordSeparator;
 import org.talend.components.adlsgen2.dataset.AdlsGen2DataSet;
 import org.talend.components.adlsgen2.datastore.AdlsGen2Connection;
 import org.talend.components.adlsgen2.datastore.AdlsGen2Connection.AuthMethod;
@@ -34,6 +30,10 @@ import org.talend.components.adlsgen2.input.InputConfiguration;
 import org.talend.components.adlsgen2.output.OutputConfiguration;
 import org.talend.components.adlsgen2.service.AdlsGen2Service;
 import org.talend.components.adlsgen2.service.I18n;
+import org.talend.components.common.format.csv.CSVFieldDelimiter;
+import org.talend.components.common.format.csv.CSVFormatOptions;
+import org.talend.components.common.format.csv.CSVFormatOptionsWithSchema;
+import org.talend.components.common.format.csv.CSVRecordDelimiter;
 import org.talend.sdk.component.api.DecryptedServer;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema.Entry;
@@ -48,7 +48,7 @@ import org.talend.sdk.component.maven.Server;
 
 @WithComponents("org.talend.components.adlsgen2")
 @WithMavenServers
-public class AdlsGen2TestBase implements Serializable {
+public class AdlsGen2TestBase {
 
     @Injected
     protected BaseComponentsHandler components;
@@ -124,9 +124,10 @@ public class AdlsGen2TestBase implements Serializable {
         dataSet.setFilesystem(storageFs);
         dataSet.setBlobPath("myNewFolder/customer_20190325.csv");
         dataSet.setFormat(FileFormat.CSV);
-        CsvConfiguration csvConfig = new CsvConfiguration();
-        csvConfig.setFieldDelimiter(CsvFieldDelimiter.SEMICOLON);
-        csvConfig.setRecordSeparator(CsvRecordSeparator.LF);
+        CSVFormatOptionsWithSchema csvConfig = new CSVFormatOptionsWithSchema();
+        csvConfig.setCsvFormatOptions(new CSVFormatOptions());
+        csvConfig.getCsvFormatOptions().setFieldDelimiter(CSVFieldDelimiter.SEMICOLON);
+        csvConfig.getCsvFormatOptions().setRecordDelimiter(CSVRecordDelimiter.LF);
         csvConfig.setCsvSchema("id;firstname;lastname;address;enrolled;zip;state");
         dataSet.setCsvConfiguration(csvConfig);
 
