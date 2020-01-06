@@ -12,6 +12,7 @@ import javax.json.JsonValue;
 import javax.json.stream.JsonParser;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.util.Collection;
 
 public class JSonMessageConverter extends MessageConverter {
 
@@ -32,12 +33,19 @@ public class JSonMessageConverter extends MessageConverter {
         JsonParser parser = Json.createParser(in);
         JsonObject jsonObject = parser.getObject();
 
+        return toRecord(jsonObject);
+    }
+
+    private Record toRecord(JsonObject jsonObject) {
         Schema schema = guessSchema(jsonObject);
-
-        Record.Builder recordBuilder = getRecordBuilderFactory().newRecordBuilder();
+        Record.Builder recordBuilder = getRecordBuilderFactory().newRecordBuilder(schema);
         jsonObject.entrySet().stream().forEach(e -> fillEntry(e.getKey(), e.getValue(), recordBuilder));
+        return recordBuilder.build();
+    }
 
+    private Collection toCollection(JsonArray array) {
         return null;
+        // TODO
     }
 
     private void fillEntry(String fieldName, JsonValue value, Record.Builder recordBuilder) {
@@ -50,7 +58,7 @@ public class JSonMessageConverter extends MessageConverter {
                                 .withName(fieldName)
                                 .withType(getTypeFor(array.get(0).getValueType()))
                                 .build(),
-                        array.stream().map());
+                        toCollection(array));
                 break;
             case STRING:
                 recordBuilder.withString(fieldName, value.toString());
@@ -62,8 +70,10 @@ public class JSonMessageConverter extends MessageConverter {
                 break;
             case NUMBER:
                 recordBuilder.withDouble(fieldName, Double.parseDouble(value.toString()));
-            case OBJECT: return Schema.Type.RECORD;
-            case NULL: return Schema.Type.STRING;
+                break;
+            case OBJECT:
+                recordBuilder.withRecord(fieldName, toRecord((JsonObject) value));
+                break;
         }
     }
 
