@@ -39,6 +39,7 @@ public class MessageConverterFactory {
         }).filter(mc -> mc != null && ((MessageConverter) mc).acceptFormat(format)).findFirst();
 
         MessageConverter messageConverter = opt.isPresent() ? opt.get() : new TextMessageConverter();
+
         messageConverter.setRecordBuilderFactory(recordBuilderFactory);
         messageConverter.setI18nMessage(i18n);
         messageConverter.init(dataSet);

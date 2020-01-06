@@ -32,7 +32,9 @@ public class AvroMessageConverter extends MessageConverter {
     @Override
     public void init(PubSubDataSet dataset) {
         String avroSchemaString = dataset.getAvroSchema();
+
         log.debug(avroSchemaString);
+
         if (avroSchemaString == null || "".equals(avroSchemaString.trim())) {
             throw new RuntimeException(getI18nMessage().avroSchemaRequired());
         }

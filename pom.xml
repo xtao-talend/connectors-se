@@ -885,8 +885,8 @@
                                             ${maven.multiModuleProjectDirectory}/target/documentation_resources/resources/html
                                         </stylesdir>
                                         <stylesheet>talend.css</stylesheet>
-                                        <data-uri />
-                                        <toc />
+                                        <data-uri/>
+                                        <toc/>
                                     </attributes>
                                 </configuration>
                             </execution>

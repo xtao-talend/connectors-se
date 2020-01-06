@@ -463,8 +463,6 @@ public class AvroRecordConverter implements Serializable {
         String logicalType = getAvroLogicalTypeName(field);
         org.apache.avro.Schema.Type fieldType = getFieldType(field);
 
-        log.debug(fieldType.toString());
-
         switch (fieldType) {
         case RECORD:
             recordBuilder.withRecord(entry, avroToRecord((GenericRecord) value, ((GenericRecord) value).getSchema().getFields(),
@@ -529,7 +527,7 @@ public class AvroRecordConverter implements Serializable {
             long lvalue = value != null ? (Long) value : 0;
             switch (entry.getType().name()) {
             case "TIMESTAMP":
-                recordBuilder.withTimestamp(entry, lvalue );
+                recordBuilder.withTimestamp(entry, lvalue);
                 break;
             case "DATE":
             case "DATETIME":
