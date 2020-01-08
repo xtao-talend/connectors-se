@@ -52,11 +52,11 @@ public class AvroMessageConverterTest {
                 .name("aDouble").type().doubleType().noDefault()
                 .name("aFloat").type().floatType().noDefault()
                 .name("aLong").type().longType().noDefault()
+                .name("innerArray")
+                .type(SchemaBuilder.array().items(SchemaBuilder.builder().stringType()))
+                .withDefault(null)
                 .name("innerRecord")
                     .type(getInnerTypeAvroSchema())
-                    .withDefault(null)
-                .name("innerArray")
-                    .type(SchemaBuilder.array().items(SchemaBuilder.builder().stringType()))
                     .withDefault(null)
                 .endRecord();
     }
@@ -79,11 +79,11 @@ public class AvroMessageConverterTest {
                 .set("aDouble", Math.PI)
                 .set("aFloat", 3.1415926535f)
                 .set("aLong", 123456789l)
+                .set("innerArray", Arrays.asList(new String[] {"a", "b", "c"}))
                 .set("innerRecord", new GenericRecordBuilder(getInnerTypeAvroSchema())
                         .set("field0", "innerField0")
                         .set("field1", "innerField1")
                         .build())
-                .set("innerArray", Arrays.asList(new String[] {"a", "b", "c"}))
                 .build();
     }
 
