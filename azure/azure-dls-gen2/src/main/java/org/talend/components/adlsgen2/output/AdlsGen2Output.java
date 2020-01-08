@@ -18,6 +18,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.json.JsonBuilderFactory;
 
+import org.talend.components.adlsgen2.migration.ADLSMigrationHandler;
 import org.talend.components.adlsgen2.runtime.AdlsGen2RuntimeException;
 import org.talend.components.adlsgen2.runtime.output.BlobWriter;
 import org.talend.components.adlsgen2.runtime.output.BlobWriterFactory;
@@ -38,7 +39,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Version(1)
+@Version(value = 2, migrationHandler = ADLSMigrationHandler.class)
 @Icon(value = Icon.IconType.CUSTOM, custom = "AdlsGen2Output")
 @Processor(name = "AdlsGen2Output")
 @Documentation("Azure Data Lake Storage Gen2 Output")

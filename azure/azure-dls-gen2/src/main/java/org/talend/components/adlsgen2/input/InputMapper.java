@@ -17,6 +17,7 @@ import java.util.List;
 
 import javax.json.JsonBuilderFactory;
 
+import org.talend.components.adlsgen2.migration.ADLSMigrationHandler;
 import org.talend.components.adlsgen2.service.AdlsGen2Service;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
@@ -32,7 +33,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 import static java.util.Collections.singletonList;
 
-@Version(1)
+@Version(value = 2, migrationHandler = ADLSMigrationHandler.class)
 @Icon(value = Icon.IconType.CUSTOM, custom = "AdlsGen2Input")
 @PartitionMapper(name = "AdlsGen2Input")
 @Documentation("Mapper for Azure Data Lake Storage Gen2")

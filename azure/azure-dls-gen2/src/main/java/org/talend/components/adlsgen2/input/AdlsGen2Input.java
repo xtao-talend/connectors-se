@@ -18,6 +18,7 @@ import java.util.Iterator;
 import javax.annotation.PostConstruct;
 import javax.json.JsonBuilderFactory;
 
+import org.talend.components.adlsgen2.migration.ADLSMigrationHandler;
 import org.talend.components.adlsgen2.runtime.AdlsGen2RuntimeException;
 import org.talend.components.adlsgen2.runtime.input.BlobReader;
 import org.talend.components.adlsgen2.runtime.input.BlobReader.BlobFileReaderFactory;
@@ -33,7 +34,7 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@Version(1)
+@Version(value = 2, migrationHandler = ADLSMigrationHandler.class)
 @Documentation("Azure Data Lake Storage Gen2 Input")
 public class AdlsGen2Input implements Serializable {
 
