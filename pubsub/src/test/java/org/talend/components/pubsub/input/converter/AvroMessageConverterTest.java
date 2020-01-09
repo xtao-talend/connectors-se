@@ -110,8 +110,6 @@ public class AvroMessageConverterTest {
 
         GenericRecord genericRecord = getAvroRecord();
 
-        log.debug(genericRecord.toString());
-
         GenericDatumWriter<GenericRecord> writer = new GenericDatumWriter<>(getAvroSchema());
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         BinaryEncoder out = EncoderFactory.get().binaryEncoder(bout, null);
@@ -126,8 +124,7 @@ public class AvroMessageConverterTest {
 
         Assertions.assertNotNull(record, "Record should not be null");
         Assertions.assertNotNull(record.getSchema(), "Record schema should not be null");
+        Assertions.assertNotNull(record.getArray(String.class, "innerArray"));
 
-        log.debug(record.toString());
-        log.debug(record.getSchema().toString());
     }
 }

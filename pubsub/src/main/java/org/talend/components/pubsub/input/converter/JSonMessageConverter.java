@@ -1,6 +1,7 @@
 package org.talend.components.pubsub.input.converter;
 
 import com.google.pubsub.v1.PubsubMessage;
+import lombok.extern.slf4j.Slf4j;
 import org.talend.components.pubsub.dataset.PubSubDataSet;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
@@ -13,7 +14,10 @@ import javax.json.stream.JsonParser;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.stream.Collectors;
 
+@Slf4j
 public class JSonMessageConverter extends MessageConverter {
 
 
@@ -43,11 +47,6 @@ public class JSonMessageConverter extends MessageConverter {
         return recordBuilder.build();
     }
 
-    private Collection toCollection(JsonArray array) {
-        return null;
-        // TODO
-    }
-
     private void fillEntry(String fieldName, JsonValue value, Record.Builder recordBuilder) {
         JsonValue.ValueType valueType = value.getValueType();
         switch (valueType) {
@@ -56,12 +55,15 @@ public class JSonMessageConverter extends MessageConverter {
                 recordBuilder.withArray(
                         getRecordBuilderFactory().newEntryBuilder()
                                 .withName(fieldName)
-                                .withType(getTypeFor(array.get(0).getValueType()))
+                                .withType(Schema.Type.ARRAY)
+                                .withElementSchema(getElementSchema(array))
+                                .withNullable(true)
                                 .build(),
-                        toCollection(array));
+                        array.stream().collect(Collectors.toList()));
                 break;
             case STRING:
                 recordBuilder.withString(fieldName, value.toString());
+                break;
             case TRUE:
                 recordBuilder.withBoolean(fieldName, true);
                 break;
