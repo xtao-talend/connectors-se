@@ -25,7 +25,7 @@ if [[ ! $? -eq 0 ]]; then
 fi
 
 # perform release
-mvn -B -s .jenkins/settings.xml release:perform -Darguments='-Dmaven.javadoc.skip=true'
+mvn -B -T1C -s .jenkins/settings.xml release:perform -Darguments='-Dmaven.javadoc.skip=true'
 if [[ ! $? -eq 0 ]]; then
   echo mvn error during build
   exit 123

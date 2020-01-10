@@ -90,7 +90,7 @@ spec:
                     sh 'for i in ci_documentation ci_nexus ci_site; do rm -Rf $i; rsync -av . $i; done'
                     // real task
                     withCredentials([nexusCredentials]) {
-                        sh "mvn -U -B -s .jenkins/settings.xml clean install -PITs -e ${talendOssRepositoryArg}"
+                        sh "mvn -U -T1C -B -s .jenkins/settings.xml clean install -PITs -e ${talendOssRepositoryArg}"
                     }
                 }
             }
@@ -153,7 +153,7 @@ spec:
                     steps {
                         container('main') {
                             withCredentials([nexusCredentials]) {
-                                sh "cd ci_nexus && mvn -U -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
+                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
                             }
                         }
                     }
