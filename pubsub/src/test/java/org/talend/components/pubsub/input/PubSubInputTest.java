@@ -72,6 +72,7 @@ public class PubSubInputTest {
         configuration.setConsumeMsg(true);
 
     }
+
     @EnvironmentalTest
     public void readMessageCSV() {
         configuration.getDataSet().setValueFormat(PubSubDataSet.ValueFormat.CSV);
@@ -79,21 +80,13 @@ public class PubSubInputTest {
 
         final String configStr = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
 
-        Job.components()
-                .component("source", "PubSub://PubSubInput?" + configStr)
-                .component("target", "test://collector")
-                .connections()
-                .from("source")
-                .to("target")
-                .build()
-                .property("streaming.maxRecords", 5)
-                .property("streaming.maxDurationMs", 60_000)
-                .run();
+        Job.components().component("source", "PubSub://PubSubInput?" + configStr).component("target", "test://collector")
+                .connections().from("source").to("target").build().property("streaming.maxRecords", 5)
+                .property("streaming.maxDurationMs", 60_000).run();
 
         List<Record> records = componentsHandler.getCollectedData(Record.class);
         log.info(records.toString());
     }
-
 
     @EnvironmentalTest
     public void readMessageAvro() throws InterruptedException {
@@ -105,18 +98,12 @@ public class PubSubInputTest {
         final AtomicBoolean flag = new AtomicBoolean(false);
 
         new Thread() {
+
             @Override
             public void run() {
-                Job.components()
-                        .component("source", "PubSub://PubSubInput?" + configStr)
-                        .component("target", "test://collector")
-                        .connections()
-                        .from("source")
-                        .to("target")
-                        .build()
-                        .property("streaming.maxRecords", 5)
-                        .property("streaming.maxDurationMs", 60_000)
-                        .run();
+                Job.components().component("source", "PubSub://PubSubInput?" + configStr).component("target", "test://collector")
+                        .connections().from("source").to("target").build().property("streaming.maxRecords", 5)
+                        .property("streaming.maxDurationMs", 60_000).run();
 
                 flag.set(true);
             }
@@ -124,8 +111,7 @@ public class PubSubInputTest {
 
         IntStream.range(0, 5).forEach(i -> PubSubTestUtil.sendAvroRecord(service, configuration.getDataSet().getTopic()));
 
-
-        while(!flag.get()) {
+        while (!flag.get()) {
             Thread.sleep(500);
         }
 

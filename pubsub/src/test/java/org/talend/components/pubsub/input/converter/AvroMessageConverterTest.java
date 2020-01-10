@@ -1,3 +1,15 @@
+/*
+ * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.talend.components.pubsub.input.converter;
 
 import com.google.protobuf.ByteString;
@@ -28,62 +40,40 @@ import java.util.Locale;
 public class AvroMessageConverterTest {
 
     private AvroMessageConverter beanUnderTest;
+
     private PubSubDataSet dataSet;
 
     @BeforeEach
     public void init() {
         beanUnderTest = new AvroMessageConverter();
-        beanUnderTest.setI18nMessage(
-                new InternationalizationServiceFactory(() -> Locale.US)
-                        .create(I18nMessage.class, Thread.currentThread().getContextClassLoader()));
+        beanUnderTest.setI18nMessage(new InternationalizationServiceFactory(() -> Locale.US).create(I18nMessage.class,
+                Thread.currentThread().getContextClassLoader()));
         beanUnderTest.setRecordBuilderFactory(new RecordBuilderFactoryImpl(null));
 
         dataSet = new PubSubDataSet();
     }
 
     private Schema getAvroSchema() {
-        return SchemaBuilder.record("testRecord")
-                .namespace("org.talend.test")
-                .fields()
-                .name("aInt").type().intType().noDefault()
-                .name("aString").type().stringType().noDefault()
-                .name("aBoolean").type().booleanType().noDefault()
-                .name("someBytes").type().bytesType().noDefault()
-                .name("aDouble").type().doubleType().noDefault()
-                .name("aFloat").type().floatType().noDefault()
-                .name("aLong").type().longType().noDefault()
-                .name("innerArray")
-                .type(SchemaBuilder.array().items(SchemaBuilder.builder().stringType()))
-                .withDefault(null)
-                .name("innerRecord")
-                    .type(getInnerTypeAvroSchema())
-                    .withDefault(null)
-                .endRecord();
+        return SchemaBuilder.record("testRecord").namespace("org.talend.test").fields().name("aInt").type().intType().noDefault()
+                .name("aString").type().stringType().noDefault().name("aBoolean").type().booleanType().noDefault()
+                .name("someBytes").type().bytesType().noDefault().name("aDouble").type().doubleType().noDefault().name("aFloat")
+                .type().floatType().noDefault().name("aLong").type().longType().noDefault().name("innerArray")
+                .type(SchemaBuilder.array().items(SchemaBuilder.builder().stringType())).withDefault(null).name("innerRecord")
+                .type(getInnerTypeAvroSchema()).withDefault(null).endRecord();
     }
 
     private Schema getInnerTypeAvroSchema() {
-        return SchemaBuilder.record("innerRecord")
-                .namespace("org.talend.test")
-                .fields()
-                .requiredString("field0")
-                .requiredString("field1")
-                .endRecord();
+        return SchemaBuilder.record("innerRecord").namespace("org.talend.test").fields().requiredString("field0")
+                .requiredString("field1").endRecord();
     }
 
     private GenericRecord getAvroRecord() {
-        return new GenericRecordBuilder(getAvroSchema())
-                .set("aInt", 42)
-                .set("aString", "Talend")
-                .set("aBoolean", true)
-                .set("someBytes", ByteBuffer.wrap(new byte[]{0x00, 0x01, 0x02}))
-                .set("aDouble", Math.PI)
-                .set("aFloat", 3.1415926535f)
-                .set("aLong", 123456789l)
-                .set("innerArray", Arrays.asList(new String[] {"a", "b", "c"}))
-                .set("innerRecord", new GenericRecordBuilder(getInnerTypeAvroSchema())
-                        .set("field0", "innerField0")
-                        .set("field1", "innerField1")
-                        .build())
+        return new GenericRecordBuilder(getAvroSchema()).set("aInt", 42).set("aString", "Talend").set("aBoolean", true)
+                .set("someBytes", ByteBuffer.wrap(new byte[] { 0x00, 0x01, 0x02 })).set("aDouble", Math.PI)
+                .set("aFloat", 3.1415926535f).set("aLong", 123456789l)
+                .set("innerArray", Arrays.asList(new String[] { "a", "b", "c" }))
+                .set("innerRecord", new GenericRecordBuilder(getInnerTypeAvroSchema()).set("field0", "innerField0")
+                        .set("field1", "innerField1").build())
                 .build();
     }
 
@@ -96,9 +86,8 @@ public class AvroMessageConverterTest {
         dataSet.setValueFormat(format);
         dataSet.setAvroSchema(getAvroSchema().toString(true));
         beanUnderTest.init(dataSet);
-        Assertions.assertEquals(
-                format == PubSubDataSet.ValueFormat.AVRO,
-                beanUnderTest.acceptFormat(format), "AvroMessageConverter must accept only Avro");
+        Assertions.assertEquals(format == PubSubDataSet.ValueFormat.AVRO, beanUnderTest.acceptFormat(format),
+                "AvroMessageConverter must accept only Avro");
     }
 
     @Test
@@ -116,15 +105,13 @@ public class AvroMessageConverterTest {
         writer.write(genericRecord, out);
         out.flush();
 
-        PubsubMessage message = PubsubMessage.newBuilder()
-                .setData(ByteString.copyFrom(bout.toByteArray()))
-                .build();
+        PubsubMessage message = PubsubMessage.newBuilder().setData(ByteString.copyFrom(bout.toByteArray())).build();
 
         Record record = beanUnderTest.convertMessage(message);
 
         Assertions.assertNotNull(record, "Record should not be null");
         Assertions.assertNotNull(record.getSchema(), "Record schema should not be null");
-        Assertions.assertNotNull(record.getArray(String.class, "innerArray"));
+        Assertions.assertNotNull(record.getArray(String.class, "innerArray"), "Inner array is null");
 
     }
 }

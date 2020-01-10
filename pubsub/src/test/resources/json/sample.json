@@ -8,7 +8,11 @@
   "innerArray": ["a","b","c"],
   "innerRecord": {
     "field0": "innerField0",
-    "field1": "innerField1"
+    "field1": "innerField1",
+    "field3": {
+      "field3_0" : "toto",
+      "field3_1": [1,2,3]
+    }
   },
   "nullValue": null
 }

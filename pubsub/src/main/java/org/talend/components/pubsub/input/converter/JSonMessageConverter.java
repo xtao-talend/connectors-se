@@ -1,3 +1,15 @@
+/*
+ * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.talend.components.pubsub.input.converter;
 
 import com.google.pubsub.v1.PubsubMessage;
@@ -19,7 +31,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 public class JSonMessageConverter extends MessageConverter {
-
 
     @Override
     public void init(PubSubDataSet dataset) {
@@ -50,45 +61,38 @@ public class JSonMessageConverter extends MessageConverter {
     private void fillEntry(String fieldName, JsonValue value, Record.Builder recordBuilder) {
         JsonValue.ValueType valueType = value.getValueType();
         switch (valueType) {
-            case ARRAY:
-                JsonArray array = (JsonArray) value;
-                recordBuilder.withArray(
-                        getRecordBuilderFactory().newEntryBuilder()
-                                .withName(fieldName)
-                                .withType(Schema.Type.ARRAY)
-                                .withElementSchema(getElementSchema(array))
-                                .withNullable(true)
-                                .build(),
-                        array.stream().collect(Collectors.toList()));
-                break;
-            case STRING:
-                recordBuilder.withString(fieldName, value.toString());
-                break;
-            case TRUE:
-                recordBuilder.withBoolean(fieldName, true);
-                break;
-            case FALSE:
-                recordBuilder.withBoolean(fieldName, false);
-                break;
-            case NUMBER:
-                recordBuilder.withDouble(fieldName, Double.parseDouble(value.toString()));
-                break;
-            case OBJECT:
-                recordBuilder.withRecord(fieldName, toRecord((JsonObject) value));
-                break;
+        case ARRAY:
+            JsonArray array = (JsonArray) value;
+            recordBuilder.withArray(
+                    getRecordBuilderFactory().newEntryBuilder().withName(fieldName).withType(Schema.Type.ARRAY)
+                            .withElementSchema(getElementSchema(array)).withNullable(true).build(),
+                    array.stream().collect(Collectors.toList()));
+            break;
+        case STRING:
+            recordBuilder.withString(fieldName, value.toString());
+            break;
+        case TRUE:
+            recordBuilder.withBoolean(fieldName, true);
+            break;
+        case FALSE:
+            recordBuilder.withBoolean(fieldName, false);
+            break;
+        case NUMBER:
+            recordBuilder.withDouble(fieldName, Double.parseDouble(value.toString()));
+            break;
+        case OBJECT:
+            recordBuilder.withRecord(fieldName, toRecord((JsonObject) value));
+            break;
         }
     }
 
     private Schema guessSchema(JsonObject jsonObject) {
-        Schema.Builder schemaBuilder=  getRecordBuilderFactory().newSchemaBuilder(Schema.Type.RECORD);
+        Schema.Builder schemaBuilder = getRecordBuilderFactory().newSchemaBuilder(Schema.Type.RECORD);
 
-        jsonObject.entrySet().stream().forEach(e ->
-            schemaBuilder.withEntry(getRecordBuilderFactory().newEntryBuilder()
-                .withName(e.getKey())
-                .withType(getTypeFor(e.getValue().getValueType()))
-                .withNullable(true)
-                .withElementSchema(getElementSchema(e.getValue()))
-                .build()));
+        jsonObject.entrySet().stream()
+                .forEach(e -> schemaBuilder.withEntry(getRecordBuilderFactory().newEntryBuilder().withName(e.getKey())
+                        .withType(getTypeFor(e.getValue().getValueType())).withNullable(true)
+                        .withElementSchema(getElementSchema(e.getValue())).build()));
 
         return schemaBuilder.build();
     }
@@ -118,12 +122,19 @@ public class JSonMessageConverter extends MessageConverter {
 
     private Schema.Type getTypeFor(JsonValue.ValueType valueType) {
         switch (valueType) {
-            case ARRAY: return Schema.Type.ARRAY;
-            case STRING:return Schema.Type.STRING;
-            case TRUE: case FALSE:return Schema.Type.BOOLEAN;
-            case NUMBER: return Schema.Type.DOUBLE;
-            case OBJECT: return Schema.Type.RECORD;
-            case NULL: return Schema.Type.STRING;
+        case ARRAY:
+            return Schema.Type.ARRAY;
+        case STRING:
+            return Schema.Type.STRING;
+        case TRUE:
+        case FALSE:
+            return Schema.Type.BOOLEAN;
+        case NUMBER:
+            return Schema.Type.DOUBLE;
+        case OBJECT:
+            return Schema.Type.RECORD;
+        case NULL:
+            return Schema.Type.STRING;
         }
         throw new RuntimeException(getI18nMessage().errorJsonType(valueType.toString()));
     }

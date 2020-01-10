@@ -21,11 +21,8 @@ import java.util.Optional;
 
 public class MessageConverterFactory {
 
-    private static final Class<? extends MessageConverter>[] IMPLEMENTATIONS = new Class[] {
-            CSVMessageConverter.class,
-            AvroMessageConverter.class,
-            JSonMessageConverter.class,
-            TextMessageConverter.class};
+    private static final Class<? extends MessageConverter>[] IMPLEMENTATIONS = new Class[] { CSVMessageConverter.class,
+            AvroMessageConverter.class, JSonMessageConverter.class, TextMessageConverter.class };
 
     public MessageConverter getConverter(PubSubDataSet dataSet, RecordBuilderFactory recordBuilderFactory, I18nMessage i18n) {
         PubSubDataSet.ValueFormat format = dataSet.getValueFormat();

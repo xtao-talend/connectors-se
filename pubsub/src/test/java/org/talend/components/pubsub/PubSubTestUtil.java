@@ -75,12 +75,8 @@ public final class PubSubTestUtil {
     }
 
     public static Schema getAvroSchema() {
-        return SchemaBuilder.builder().record("testRecord")
-                .namespace("org.talend.test")
-                .fields()
-                .requiredInt("ID")
-                .requiredString("content")
-                .endRecord();
+        return SchemaBuilder.builder().record("testRecord").namespace("org.talend.test").fields().requiredInt("ID")
+                .requiredString("content").endRecord();
     }
 
     public static String getAvroSchemaString() {
@@ -105,11 +101,9 @@ public final class PubSubTestUtil {
 
             log.debug(new String(out.toByteArray(), "ISO-8859-15"));
 
-            PubsubMessage message = PubsubMessage.newBuilder()
-                    .setData(ByteString.copyFrom(out.toByteArray()))
-                    .build();
+            PubsubMessage message = PubsubMessage.newBuilder().setData(ByteString.copyFrom(out.toByteArray())).build();
             ApiFuture<String> future = publisher.publish(message);
-            while(!future.isDone()) {
+            while (!future.isDone()) {
                 Thread.sleep(500);
             }
             log.debug("Message sent : " + future.get());
@@ -118,7 +112,6 @@ public final class PubSubTestUtil {
         } finally {
             publisher.shutdown();
         }
-
 
     }
 }
