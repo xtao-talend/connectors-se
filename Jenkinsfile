@@ -112,11 +112,13 @@ spec:
             when {
                 expression { params.Action == 'STANDARD' }
             }
-            stage('Nexus') {
-                steps {
-                    container('main') {
-                        withCredentials([nexusCredentials]) {
-                            sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
+            stages {
+                stage('Nexus') {
+                    steps {
+                        container('main') {
+                            withCredentials([nexusCredentials]) {
+                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
+                            }
                         }
                     }
                 }
