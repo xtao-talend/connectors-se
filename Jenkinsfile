@@ -1,17 +1,17 @@
 def slackChannel = 'components-ci'
 
 def nexusCredentials = usernamePassword(
-	credentialsId: 'nexus-artifact-zl-credentials',
-    usernameVariable: 'NEXUS_USER',
-    passwordVariable: 'NEXUS_PASSWORD')
+        credentialsId: 'nexus-artifact-zl-credentials',
+        usernameVariable: 'NEXUS_USER',
+        passwordVariable: 'NEXUS_PASSWORD')
 def gitCredentials = usernamePassword(
-	credentialsId: 'github-credentials',
-    usernameVariable: 'GITHUB_LOGIN',
-    passwordVariable: 'GITHUB_TOKEN')
+        credentialsId: 'github-credentials',
+        usernameVariable: 'GITHUB_LOGIN',
+        passwordVariable: 'GITHUB_TOKEN')
 def dockerCredentials = usernamePassword(
-	credentialsId: 'docker-registry-credentials',
-    passwordVariable: 'DOCKER_PASSWORD',
-    usernameVariable: 'DOCKER_LOGIN')
+        credentialsId: 'docker-registry-credentials',
+        passwordVariable: 'DOCKER_PASSWORD',
+        usernameVariable: 'DOCKER_LOGIN')
 
 
 def PRODUCTION_DEPLOYMENT_REPOSITORY = "TalendOpenSourceSnapshot"
@@ -74,9 +74,9 @@ spec:
     }
 
     parameters {
-        choice(name: 'Action', 
-               choices: [ 'STANDARD', 'PUSH_TO_XTM', 'DEPLOY_FROM_XTM', 'RELEASE' ],
-               description: 'Kind of running : \nSTANDARD (default), normal building\n PUSH_TO_XTM : Export the project i18n resources to Xtm to be translated. This action can be performed from master or maintenance branches only. \nDEPLOY_FROM_XTM: Download and deploy i18n resources from Xtm to nexus for this branch.\nRELEASE : build release')
+        choice(name: 'Action',
+                choices: ['STANDARD', 'PUSH_TO_XTM', 'DEPLOY_FROM_XTM', 'RELEASE'],
+                description: 'Kind of running : \nSTANDARD (default), normal building\n PUSH_TO_XTM : Export the project i18n resources to Xtm to be translated. This action can be performed from master or maintenance branches only. \nDEPLOY_FROM_XTM: Download and deploy i18n resources from Xtm to nexus for this branch.\nRELEASE : build release')
     }
 
     stages {
@@ -112,53 +112,62 @@ spec:
             when {
                 expression { params.Action == 'STANDARD' }
             }
-            parallel {
-                stage('Documentation') {
-                    steps {
-                        container('main') {
-                            withCredentials([dockerCredentials]) {
-                                sh """
-			                     |cd ci_documentation
-			                     |mvn -U -T1C -B -s .jenkins/settings.xml clean install -DskipTests
-			                     |chmod +x .jenkins/generate-doc.sh && .jenkins/generate-doc.sh
-			                     |""".stripMargin()
-                            }
-                        }
-                    }
-                    post {
-                        always {
-                            publishHTML(target: [
-                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
-                                    reportDir   : 'ci_documentation/target/talend-component-kit_documentation/', reportFiles: 'index.html', reportName: "Component Documentation"
-                            ])
-                        }
-                    }
-                }
-                stage('Site') {
-                    steps {
-                        container('main') {
-                            sh 'cd ci_site && mvn -T1C -U -B -s .jenkins/settings.xml clean site site:stage -Dmaven.test.failure.ignore=true'
-                        }
-                    }
-                    post {
-                        always {
-                            publishHTML(target: [
-                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
-                                    reportDir   : 'ci_site/target/staging', reportFiles: 'index.html', reportName: "Maven Site"
-                            ])
-                        }
-                    }
-                }
-                stage('Nexus') {
-                    steps {
-                        container('main') {
-                            withCredentials([nexusCredentials]) {
-                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
-                            }
+            stage('Nexus') {
+                steps {
+                    container('main') {
+                        withCredentials([nexusCredentials]) {
+                            sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
                         }
                     }
                 }
             }
+//            parallel {
+//                stage('Documentation') {
+//                    steps {
+//                        container('main') {
+//                            withCredentials([dockerCredentials]) {
+//                                sh """
+//			                     |cd ci_documentation
+//			                     |mvn -U -T1C -B -s .jenkins/settings.xml clean install -DskipTests
+//			                     |chmod +x .jenkins/generate-doc.sh && .jenkins/generate-doc.sh
+//			                     |""".stripMargin()
+//                            }
+//                        }
+//                    }
+//                    post {
+//                        always {
+//                            publishHTML(target: [
+//                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
+//                                    reportDir   : 'ci_documentation/target/talend-component-kit_documentation/', reportFiles: 'index.html', reportName: "Component Documentation"
+//                            ])
+//                        }
+//                    }
+//                }
+//                stage('Site') {
+//                    steps {
+//                        container('main') {
+//                            sh 'cd ci_site && mvn -T1C -U -B -s .jenkins/settings.xml clean site site:stage -Dmaven.test.failure.ignore=true'
+//                        }
+//                    }
+//                    post {
+//                        always {
+//                            publishHTML(target: [
+//                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
+//                                    reportDir   : 'ci_site/target/staging', reportFiles: 'index.html', reportName: "Maven Site"
+//                            ])
+//                        }
+//                    }
+//                }
+//                stage('Nexus') {
+//                    steps {
+//                        container('main') {
+//                            withCredentials([nexusCredentials]) {
+//                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
+//                            }
+//                        }
+//                    }
+//                }
+//            }
         }
         stage('Push to Xtm') {
             when {
@@ -195,10 +204,10 @@ spec:
             steps {
                 container('main') {
                     withCredentials([nexusCredentials,
-                            string(
-                                    credentialsId: 'xtm-token',
-                                    variable: 'XTM_TOKEN'),
-                            gitCredentials ]) {
+                                     string(
+                                             credentialsId: 'xtm-token',
+                                             variable: 'XTM_TOKEN'),
+                                     gitCredentials]) {
                         script {
                             sh "mvn -e -B -s .jenkins/settings.xml clean package -pl . -Pi18n-deploy"
                             sh "cd tmp/repository && mvn -s ../../.jenkins/settings.xml clean deploy -DaltDeploymentRepository=talend_nexus_deployment::default::https://artifacts-zl.talend.com/nexus/content/repositories/TalendOpenSourceRelease/"
@@ -208,19 +217,19 @@ spec:
             }
         }
         stage('Release') {
-			when {
-				expression { params.Action == 'RELEASE' }
+            when {
+                expression { params.Action == 'RELEASE' }
                 anyOf {
                     branch 'master'
                     expression { BRANCH_NAME.startsWith('maintenance/') }
                 }
             }
             steps {
-            	withCredentials([gitCredentials, nexusCredentials]) {
-					container('main') {
+                withCredentials([gitCredentials, nexusCredentials]) {
+                    container('main') {
                         sh "sh .jenkins/release.sh"
-              		}
-            	}
+                    }
+                }
             }
         }
     }
