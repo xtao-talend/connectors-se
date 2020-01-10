@@ -108,68 +108,17 @@ spec:
                 }
             }
         }
-        stage('Post Build Steps') {
+        stage('Nexus') {
             when {
                 expression { params.Action == 'STANDARD' }
             }
-            stages {
-                stage('Nexus') {
-                    steps {
-                        container('main') {
-                            withCredentials([nexusCredentials]) {
-                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
-                            }
-                        }
+            steps {
+                container('main') {
+                    withCredentials([nexusCredentials]) {
+                        sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
                     }
                 }
             }
-//            parallel {
-//                stage('Documentation') {
-//                    steps {
-//                        container('main') {
-//                            withCredentials([dockerCredentials]) {
-//                                sh """
-//			                     |cd ci_documentation
-//			                     |mvn -U -T1C -B -s .jenkins/settings.xml clean install -DskipTests
-//			                     |chmod +x .jenkins/generate-doc.sh && .jenkins/generate-doc.sh
-//			                     |""".stripMargin()
-//                            }
-//                        }
-//                    }
-//                    post {
-//                        always {
-//                            publishHTML(target: [
-//                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
-//                                    reportDir   : 'ci_documentation/target/talend-component-kit_documentation/', reportFiles: 'index.html', reportName: "Component Documentation"
-//                            ])
-//                        }
-//                    }
-//                }
-//                stage('Site') {
-//                    steps {
-//                        container('main') {
-//                            sh 'cd ci_site && mvn -T1C -U -B -s .jenkins/settings.xml clean site site:stage -Dmaven.test.failure.ignore=true'
-//                        }
-//                    }
-//                    post {
-//                        always {
-//                            publishHTML(target: [
-//                                    allowMissing: true, alwaysLinkToLastBuild: false, keepAll: true,
-//                                    reportDir   : 'ci_site/target/staging', reportFiles: 'index.html', reportName: "Maven Site"
-//                            ])
-//                        }
-//                    }
-//                }
-//                stage('Nexus') {
-//                    steps {
-//                        container('main') {
-//                            withCredentials([nexusCredentials]) {
-//                                sh "cd ci_nexus && mvn -U -T1C -B -s .jenkins/settings.xml clean deploy -e -Pdocker -DskipTests ${talendOssRepositoryArg}"
-//                            }
-//                        }
-//                    }
-//                }
-//            }
         }
         stage('Push to Xtm') {
             when {
@@ -205,11 +154,7 @@ spec:
             }
             steps {
                 container('main') {
-                    withCredentials([nexusCredentials,
-                                     string(
-                                             credentialsId: 'xtm-token',
-                                             variable: 'XTM_TOKEN'),
-                                     gitCredentials]) {
+                    withCredentials([nexusCredentials, string(credentialsId: 'xtm-token', variable: 'XTM_TOKEN'), gitCredentials]) {
                         script {
                             sh "mvn -e -B -s .jenkins/settings.xml clean package -pl . -Pi18n-deploy"
                             sh "cd tmp/repository && mvn -s ../../.jenkins/settings.xml clean deploy -DaltDeploymentRepository=talend_nexus_deployment::default::https://artifacts-zl.talend.com/nexus/content/repositories/TalendOpenSourceRelease/"
