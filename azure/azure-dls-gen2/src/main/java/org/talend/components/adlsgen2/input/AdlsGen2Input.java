@@ -38,6 +38,8 @@ import lombok.extern.slf4j.Slf4j;
 @Documentation("Azure Data Lake Storage Gen2 Input")
 public class AdlsGen2Input implements Serializable {
 
+    private static final long serialVersionUID = -6879403132514851137L;
+
     @Service
     private final AdlsGen2Service service;
 
@@ -51,7 +53,7 @@ public class AdlsGen2Input implements Serializable {
 
     private Iterator<Record> records;
 
-    private BlobReader reader;
+    private transient BlobReader reader;
 
     public AdlsGen2Input(@Option("configuration") final InputConfiguration configuration, final AdlsGen2Service service,
             final RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonFactory) {

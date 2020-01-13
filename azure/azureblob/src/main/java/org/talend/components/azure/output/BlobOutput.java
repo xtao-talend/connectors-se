@@ -43,9 +43,9 @@ public class BlobOutput implements Serializable {
 
     private final BlobOutputConfiguration configuration;
 
-    private transient final AzureBlobComponentServices service;
+    private final AzureBlobComponentServices service;
 
-    private transient final MessageService messageService;
+    private final MessageService messageService;
 
     private transient BlobFileWriter fileWriter;
 

@@ -44,11 +44,11 @@ public class InputMapper implements Serializable {
 
     private final BlobInputProperties configuration;
 
-    private transient final AzureBlobComponentServices service;
+    private final AzureBlobComponentServices service;
 
-    private transient final RecordBuilderFactory recordBuilderFactory;
+    private final RecordBuilderFactory recordBuilderFactory;
 
-    private transient final MessageService messageService;
+    private final MessageService messageService;
 
     public InputMapper(@Option("configuration") final BlobInputProperties configuration, final AzureBlobComponentServices service,
             final RecordBuilderFactory recordBuilderFactory, final MessageService messageService) {

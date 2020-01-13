@@ -12,6 +12,8 @@
  */
 package org.talend.components.common.format.csv;
 
+import java.io.Serializable;
+
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -22,7 +24,9 @@ import lombok.Data;
         @GridLayout.Row("csvFormatOptions"), @GridLayout.Row("csvSchema") })
 @Data
 @Documentation("Basic CSV configuration and CSV Schema")
-public class CSVFormatOptionsWithSchema {
+public class CSVFormatOptionsWithSchema implements Serializable {
+
+    private static final long serialVersionUID = 2210924710439683018L;
 
     @Option
     @Documentation("Basic CSV Format options")

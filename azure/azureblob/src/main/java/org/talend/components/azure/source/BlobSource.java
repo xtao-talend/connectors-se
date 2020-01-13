@@ -34,11 +34,11 @@ public class BlobSource implements Serializable {
 
     private final BlobInputProperties configuration;
 
-    private transient final AzureBlobComponentServices service;
+    private final AzureBlobComponentServices service;
 
-    private transient final RecordBuilderFactory builderFactory;
+    private final RecordBuilderFactory builderFactory;
 
-    private transient final MessageService messageService;
+    private final MessageService messageService;
 
     private transient BlobFileReader reader;
 

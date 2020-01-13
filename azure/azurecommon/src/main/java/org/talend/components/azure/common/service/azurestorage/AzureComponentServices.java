@@ -12,6 +12,7 @@
  */
 package org.talend.components.azure.common.service.azurestorage;
 
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.HashMap;
 import java.util.regex.Matcher;
@@ -34,7 +35,7 @@ import com.microsoft.azure.storage.StorageCredentialsSharedAccessSignature;
 import com.microsoft.azure.storage.blob.CloudBlobClient;
 
 @Service
-public class AzureComponentServices {
+public class AzureComponentServices implements Serializable {
 
     public static final RetryPolicy DEFAULT_RETRY_POLICY = new RetryExponentialRetry(10, 3);
 
@@ -46,6 +47,8 @@ public class AzureComponentServices {
      * Would be set as User-agent when real user-agent creation would fail
      */
     private static final String UNKNOWN_VERSION = "UNKNOWN";
+
+    private static final long serialVersionUID = -2636597521218304607L;
 
     private static String applicationVersion = UNKNOWN_VERSION;
 

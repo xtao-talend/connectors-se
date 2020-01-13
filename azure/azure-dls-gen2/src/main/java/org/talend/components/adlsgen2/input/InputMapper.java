@@ -39,6 +39,8 @@ import static java.util.Collections.singletonList;
 @Documentation("Mapper for Azure Data Lake Storage Gen2")
 public class InputMapper implements Serializable {
 
+    private static final long serialVersionUID = 3508596515870641831L;
+
     @Service
     private final AdlsGen2Service service;
 

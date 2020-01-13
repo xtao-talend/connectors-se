@@ -48,17 +48,17 @@ public class AdlsGen2Output implements Serializable {
     private static final long serialVersionUID = 1484337455733965066L;
 
     @Service
-    final transient RecordBuilderFactory recordBuilderFactory;
+    final RecordBuilderFactory recordBuilderFactory;
 
     @Service
-    final transient JsonBuilderFactory jsonBuilderFactory;
+    final JsonBuilderFactory jsonBuilderFactory;
 
     @Service
     private final AdlsGen2Service service;
 
     private OutputConfiguration configuration;
 
-    private BlobWriter blobWriter;
+    private transient BlobWriter blobWriter;
 
     public AdlsGen2Output(@Option("configuration") final OutputConfiguration configuration, final AdlsGen2Service service,
             final RecordBuilderFactory recordBuilderFactory, final JsonBuilderFactory jsonBuilderFactory) {

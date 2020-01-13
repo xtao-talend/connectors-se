@@ -12,6 +12,7 @@
  */
 package org.talend.components.azure.service;
 
+import java.io.Serializable;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ import com.microsoft.azure.storage.blob.CloudBlobContainer;
 import lombok.Getter;
 
 @Service
-public class AzureBlobComponentServices {
+public class AzureBlobComponentServices implements Serializable {
 
     /**
      * The name of HealthCheck service
@@ -40,6 +41,8 @@ public class AzureBlobComponentServices {
     public static final String TEST_CONNECTION = "testConnection";
 
     public static final String GET_CONTAINER_NAMES = "getContainers";
+
+    private static final long serialVersionUID = 292334557595377007L;
 
     @Getter
     @Service
