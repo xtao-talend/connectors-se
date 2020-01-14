@@ -30,7 +30,7 @@
         <dependency>
             <groupId>org.talend.components</groupId>
             <artifactId>connectors-common</artifactId>
-            <version>${projectgit s.version}</version>
+            <version>${project.version}</version>
         </dependency>
         <!-- Testing -->
         <dependency>

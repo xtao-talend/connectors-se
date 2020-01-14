@@ -8,7 +8,7 @@
         <version>1.6.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>azureblob</artifactId>
+    <artifactId>azure-blob</artifactId>
     <packaging>jar</packaging>
 
     <name>Components :: AzureBlob</name>
@@ -17,7 +17,7 @@
         <!--
         Used to inject service from the azurecommon module into the azureblob services
         -->
-        <talend.scan.scannedDependencies>org.talend.components:azurecommon</talend.scan.scannedDependencies>
+        <talend.scan.scannedDependencies>org.talend.components:azure-common</talend.scan.scannedDependencies>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <talend.documentation.htmlAndPdf>false</talend.documentation.htmlAndPdf>
 
@@ -34,7 +34,7 @@
 
         <dependency>
             <groupId>org.talend.components</groupId>
-            <artifactId>azurecommon</artifactId>
+            <artifactId>azure-common</artifactId>
             <version>${project.version}</version>
         </dependency>
 

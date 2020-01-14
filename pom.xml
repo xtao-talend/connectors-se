@@ -39,8 +39,9 @@
         <module>couchbase</module>
         <module>azure</module>
         <module>rest</module>
-        <!--disabled until build fixed -->
-	    <module>azure-eventhubs</module>
+        <!-- disable eventhubs build before all ready
+        <module>azure-eventhubs</module>
+        -->
         <module>marketo</module>
         <module>connectors-test-bom</module>
         <module>bigquery</module>
