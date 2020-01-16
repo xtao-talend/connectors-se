@@ -27,6 +27,7 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -63,11 +64,23 @@ public class JSonMessageConverter extends MessageConverter {
         switch (valueType) {
         case ARRAY:
             JsonArray array = (JsonArray) value;
-            recordBuilder.withArray(
-                    getRecordBuilderFactory().newEntryBuilder().withName(fieldName).withType(Schema.Type.ARRAY)
-                            .withElementSchema(getElementSchema(array)).withNullable(true).build(),
-                    array.stream().collect(Collectors.toList()));
-            break;
+            if (!array.isEmpty()) {
+                JsonValue.ValueType itemType = array.get(0).getValueType();
+                Schema.Entry arrayEntry = getRecordBuilderFactory().newEntryBuilder().withName(fieldName).withType(Schema.Type.ARRAY)
+                        .withElementSchema(getElementSchema(array)).withNullable(true).build();
+                switch (itemType) {
+                    case STRING:
+                        recordBuilder.withArray(arrayEntry, array.stream().map(Object::toString).collect(Collectors.toList()));
+                        break;
+                    case NUMBER:
+                        recordBuilder.withArray(arrayEntry, array.stream().map(Object::toString).map(Double::parseDouble).collect(Collectors.toList()));
+                        break;
+                    case OBJECT:
+                        recordBuilder.withArray(arrayEntry, array.stream().map(o -> toRecord((JsonObject) o)).collect(Collectors.toList()));
+                        break;
+                }
+                break;
+            }
         case STRING:
             recordBuilder.withString(fieldName, value.toString());
             break;
