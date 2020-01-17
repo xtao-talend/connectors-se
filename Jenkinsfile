@@ -29,10 +29,12 @@ def talendOssRepositoryArg = (env.BRANCH_NAME == "master" || env.BRANCH_NAME.sta
 
 def calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
 
+def podLabel = "connectors-se-${UUID.randomUUID().toString()}".take(53)
+
 pipeline {
     agent {
         kubernetes {
-            label 'connectors-se'
+            label podLabel
             yaml """
 apiVersion: v1
 kind: Pod
@@ -40,7 +42,7 @@ spec:
     containers:
         -
             name: main
-            image: 'artifactory.datapwn.com/tlnd-docker-dev/talend/common/tsbi/jdk8-builder-base:1.12.0-20191022071355'
+            image: '${env.TSBI_IMAGE}'
             command: [cat]
             tty: true
             volumeMounts: [{name: docker, mountPath: /var/run/docker.sock}, {name: m2main, mountPath: /root/.m2/repository}]
