@@ -66,18 +66,20 @@ public class JSonMessageConverter extends MessageConverter {
             JsonArray array = (JsonArray) value;
             if (!array.isEmpty()) {
                 JsonValue.ValueType itemType = array.get(0).getValueType();
-                Schema.Entry arrayEntry = getRecordBuilderFactory().newEntryBuilder().withName(fieldName).withType(Schema.Type.ARRAY)
-                        .withElementSchema(getElementSchema(array)).withNullable(true).build();
+                Schema.Entry arrayEntry = getRecordBuilderFactory().newEntryBuilder().withName(fieldName)
+                        .withType(Schema.Type.ARRAY).withElementSchema(getElementSchema(array)).withNullable(true).build();
                 switch (itemType) {
-                    case STRING:
-                        recordBuilder.withArray(arrayEntry, array.stream().map(Object::toString).collect(Collectors.toList()));
-                        break;
-                    case NUMBER:
-                        recordBuilder.withArray(arrayEntry, array.stream().map(Object::toString).map(Double::parseDouble).collect(Collectors.toList()));
-                        break;
-                    case OBJECT:
-                        recordBuilder.withArray(arrayEntry, array.stream().map(o -> toRecord((JsonObject) o)).collect(Collectors.toList()));
-                        break;
+                case STRING:
+                    recordBuilder.withArray(arrayEntry, array.stream().map(Object::toString).collect(Collectors.toList()));
+                    break;
+                case NUMBER:
+                    recordBuilder.withArray(arrayEntry,
+                            array.stream().map(Object::toString).map(Double::parseDouble).collect(Collectors.toList()));
+                    break;
+                case OBJECT:
+                    recordBuilder.withArray(arrayEntry,
+                            array.stream().map(o -> toRecord((JsonObject) o)).collect(Collectors.toList()));
+                    break;
                 }
                 break;
             }
