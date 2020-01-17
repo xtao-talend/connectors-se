@@ -29,10 +29,12 @@ def talendOssRepositoryArg = (env.BRANCH_NAME == "master" || env.BRANCH_NAME.sta
 
 def calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
 
+def podLabel = "connectors-se-${UUID.randomUUID().toString()}".take(53)
+
 pipeline {
     agent {
         kubernetes {
-            label 'connectors-se'
+            label podLabel
             yaml """
 apiVersion: v1
 kind: Pod
@@ -40,7 +42,7 @@ spec:
     containers:
         -
             name: main
-            image: 'artifactory.datapwn.com/tlnd-docker-dev/talend/common/tsbi/jdk8-svc-springboot-builder:1.14.0-2.1-20191203093421'
+            image: '${env.TSBI_IMAGE}'
             command: [cat]
             tty: true
             volumeMounts: [{name: docker, mountPath: /var/run/docker.sock}, {name: m2main, mountPath: /root/.m2/repository}]
@@ -71,12 +73,11 @@ spec:
 
     triggers {
         cron(env.BRANCH_NAME == "master" ? "@daily" : "")
-        parameterizedCron(env.BRANCH_NAME == "master" ? "0 9 * * 2 %SCA_SCAN=true" : "") // Tuesday temporary at 9am. Only on master
     }
 
     parameters {
         choice(name: 'Action', 
-               choices: [ 'STANDARD', 'PUSH_TO_XTM', 'DEPLOY_FROM_XTM', 'SCAN', 'RELEASE' ],
+               choices: [ 'STANDARD', 'PUSH_TO_XTM', 'DEPLOY_FROM_XTM', 'RELEASE' ],
                description: 'Kind of running : \nSTANDARD (default), normal building\n PUSH_TO_XTM : Export the project i18n resources to Xtm to be translated. This action can be performed from master or maintenance branches only. \nDEPLOY_FROM_XTM: Download and deploy i18n resources from Xtm to nexus for this branch.\nRELEASE : build release')
     }
 
@@ -204,20 +205,6 @@ spec:
                             sh "mvn -e -B -s .jenkins/settings.xml clean package -pl . -Pi18n-deploy"
                             sh "cd tmp/repository && mvn -s ../../.jenkins/settings.xml clean deploy -DaltDeploymentRepository=talend_nexus_deployment::default::https://artifacts-zl.talend.com/nexus/content/repositories/TalendOpenSourceRelease/"
                         }
-                    }
-                }
-            }
-        }
-        stage("SourceClear analysis") {
-            when {
-                expression { params.Action == 'SCAN' || ${SCA_SCAN} == true }
-            }
-            steps {
-                container('main') {
-                    withCredentials([string(credentialsId: 'veracode-token', variable: 'SRCCLR_API_TOKEN')]) {
-                        sh '''#!/bin/bash
-                          curl -sSL https://download.sourceclear.com/ci.sh | SRCCLR_API_TOKEN=${SRCCLR_API_TOKEN} DEBUG=1 sh -s -- scan --allow-dirty --recursive --skip-collectors npm;
-                        '''
                     }
                 }
             }
