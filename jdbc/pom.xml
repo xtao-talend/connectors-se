@@ -163,10 +163,9 @@
                     <scope>provided</scope>
                 </dependency>
                 <dependency>
-                    <groupId>com.oracle</groupId>
-                    <artifactId>ojdbc7</artifactId>
-                    <version>12.1.0.2</version>
-                    <scope>provided</scope>
+                    <groupId>com.oracle.ojdbc</groupId>
+                    <artifactId>ojdbc8</artifactId>
+                    <version>19.3.0.0</version>
                 </dependency>
                 <dependency>
                     <groupId>org.mariadb.jdbc</groupId>
@@ -195,15 +194,6 @@
             </dependencies>
 
             <repositories>
-                <repository>
-                    <!-- repository for oracle driver-->
-                    <id>hand-china</id>
-                    <name>nexus.saas.hand-china</name>
-                    <url>http://nexus.saas.hand-china.com/content/repositories/rdc/</url>
-                    <snapshots>
-                        <enabled>false</enabled>
-                    </snapshots>
-                </repository>
                 <repository>
                     <id>redshift</id>
                     <url>http://s3.amazonaws.com/redshift-maven-repository/release</url>
