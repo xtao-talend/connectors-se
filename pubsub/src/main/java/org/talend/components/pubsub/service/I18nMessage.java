@@ -52,4 +52,6 @@ public interface I18nMessage {
     String errorReadCSV(String message);
 
     String errorBadCSV();
+
+    String errorCredentials(String message);
 }

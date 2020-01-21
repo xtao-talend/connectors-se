@@ -169,12 +169,12 @@ public class PubSubService {
         }
     }
 
-    public static GoogleCredentials getCredentials(String credentials) {
+    public GoogleCredentials getCredentials(String credentials) {
         try {
             return GoogleCredentials.fromStream(new ByteArrayInputStream(credentials.getBytes()));
         } catch (IOException e) {
-            throw new PubSubConnectorException(
-                    "Exception when reading service account file: " + credentials + "\nMessage is:" + e.getMessage());
+            log.error(i18n.errorCredentials(e.getMessage()), e);
+            throw new PubSubConnectorException(i18n.errorCredentials(e.getMessage()));
         }
     }
 
@@ -183,6 +183,7 @@ public class PubSubService {
             return Publisher.newBuilder(ProjectTopicName.of(dataStore.getProjectName(), topic))
                     .setCredentialsProvider(() -> createCredentials(dataStore)).build();
         } catch (IOException e) {
+            log.error(i18n.errorCreatePublisher(e.getMessage()), e);
             throw new PubSubConnectorException(i18n.errorCreatePublisher(e.getMessage()));
         }
     }
