@@ -34,11 +34,6 @@ import java.util.stream.Collectors;
 public class JSonMessageConverter extends MessageConverter {
 
     @Override
-    public void init(PubSubDataSet dataset) {
-
-    }
-
-    @Override
     public boolean acceptFormat(PubSubDataSet.ValueFormat format) {
         return format == PubSubDataSet.ValueFormat.JSON;
     }

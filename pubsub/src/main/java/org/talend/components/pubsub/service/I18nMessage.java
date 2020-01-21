@@ -47,4 +47,9 @@ public interface I18nMessage {
 
     String errorJsonType(String toString);
 
+    String errorReadAVRO(String message);
+
+    String errorReadCSV(String message);
+
+    String errorBadCSV();
 }

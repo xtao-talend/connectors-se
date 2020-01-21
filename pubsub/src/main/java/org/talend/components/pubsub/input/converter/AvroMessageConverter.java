@@ -58,7 +58,7 @@ public class AvroMessageConverter extends MessageConverter {
             GenericRecord gr = recordDatumReader.read(null, decoder);
             record = AvroRecordConverter.of(getRecordBuilderFactory()).toRecord(gr);
         } catch (Exception e) {
-            log.error("Cannot rear AVRO record : " + e.getMessage());
+            log.error(getI18nMessage().errorReadAVRO(e.getMessage()));
         }
 
         return record;
