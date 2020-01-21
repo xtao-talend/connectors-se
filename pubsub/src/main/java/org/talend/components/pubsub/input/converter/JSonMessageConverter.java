@@ -47,6 +47,7 @@ public class JSonMessageConverter extends MessageConverter {
         JsonParser parser = Json.createParser(in);
         JsonObject jsonObject = parser.getObject();
         final Jsonb jsonb = JsonbProvider.provider().create().build();
-        return new RecordConverters().toRecord(new RecordConverters.MappingMetaRegistry(), jsonObject, () -> jsonb, this::getRecordBuilderFactory);
+        return new RecordConverters().toRecord(new RecordConverters.MappingMetaRegistry(), jsonObject, () -> jsonb,
+                this::getRecordBuilderFactory);
     }
 }
