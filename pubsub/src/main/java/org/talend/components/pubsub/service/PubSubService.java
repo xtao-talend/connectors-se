@@ -149,7 +149,7 @@ public class PubSubService {
                 }
             }
         } catch (IOException ioe) {
-            log.warn(i18n.errorCreateAdminSettings(ioe.getMessage()));
+            log.warn(i18n.errorCreateSubscription(ioe.getMessage()));
         }
     }
 
@@ -165,7 +165,7 @@ public class PubSubService {
                 log.error(i18n.cannotDeleteSubscription(apiEx.getMessage()), apiEx);
             }
         } catch (IOException ioe) {
-            log.warn(i18n.errorCreateAdminSettings(ioe.getMessage()));
+            log.warn(i18n.errorRemoveSubscription(ioe.getMessage()));
         }
     }
 

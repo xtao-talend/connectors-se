@@ -27,8 +27,6 @@ public interface I18nMessage {
 
     String errorListSubscriptions(String message);
 
-    String errorCreateAdminSettings(String message);
-
     String subscriptionFound(String toString);
 
     String subscriptionNotFound();
@@ -54,4 +52,8 @@ public interface I18nMessage {
     String errorBadCSV();
 
     String errorCredentials(String message);
+
+    String errorRemoveSubscription(String message);
+
+    String errorCreateSubscription(String message);
 }
