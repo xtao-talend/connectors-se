@@ -56,4 +56,6 @@ public interface I18nMessage {
     String errorRemoveSubscription(String message);
 
     String errorCreateSubscription(String message);
+
+    String errorCreateSubscriber(String message);
 }
