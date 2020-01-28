@@ -34,6 +34,7 @@ import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.stream.StreamSupport;
 
 import static java.util.Collections.emptyList;
@@ -208,7 +209,7 @@ public class PubSubService {
     public void ackMessage(SubscriberStub subscriberStub, PubSubDataStore dataStore, String subscriptionId, String ackId) {
         AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
                 .setSubscription(ProjectSubscriptionName.format(dataStore.getProjectName(), subscriptionId))
-                .addAckIdsBytes(ByteString.copyFromUtf8(ackId)).build();
+                .addAllAckIds(Collections.singleton(ackId)).build();
         subscriberStub.acknowledgeCallable().call(acknowledgeRequest);
     }
 
