@@ -58,4 +58,6 @@ public interface I18nMessage {
     String errorCreateSubscription(String message);
 
     String errorCreateSubscriber(String message);
+
+    String warnReadMessage(String messageId, String errMessage);
 }

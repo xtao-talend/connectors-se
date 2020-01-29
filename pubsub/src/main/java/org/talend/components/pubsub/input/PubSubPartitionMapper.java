@@ -14,6 +14,7 @@ package org.talend.components.pubsub.input;
 
 import com.google.gson.internal.Streams;
 import lombok.extern.slf4j.Slf4j;
+import org.talend.components.pubsub.service.AckMessageService;
 import org.talend.components.pubsub.service.I18nMessage;
 import org.talend.components.pubsub.service.PubSubService;
 import org.talend.sdk.component.api.component.Icon;
@@ -44,6 +45,8 @@ public class PubSubPartitionMapper implements Serializable {
 
     protected final PubSubService service;
 
+    protected final AckMessageService ackMessageService;
+
     protected final I18nMessage i18n;
 
     protected final RecordBuilderFactory builderFactory;
@@ -52,19 +55,22 @@ public class PubSubPartitionMapper implements Serializable {
     protected boolean uuidSubscription;
 
     public PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
-            final PubSubService service, final I18nMessage i18n, final RecordBuilderFactory builderFactory) {
+            final PubSubService service, final AckMessageService ackMessageService, final I18nMessage i18n,
+            final RecordBuilderFactory builderFactory) {
         this.configuration = configuration;
         this.service = service;
+        this.ackMessageService = ackMessageService;
         this.i18n = i18n;
         this.builderFactory = builderFactory;
         uuidSubscription = false;
     }
 
     protected PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
-            final PubSubService service, final I18nMessage i18n, final RecordBuilderFactory builderFactory,
-            boolean uuidSubscription) {
+            final PubSubService service, final AckMessageService ackMessageService, final I18nMessage i18n,
+            final RecordBuilderFactory builderFactory, boolean uuidSubscription) {
         this.configuration = configuration;
         this.service = service;
+        this.ackMessageService = ackMessageService;
         this.i18n = i18n;
         this.builderFactory = builderFactory;
         this.uuidSubscription = uuidSubscription;
@@ -85,13 +91,13 @@ public class PubSubPartitionMapper implements Serializable {
         }
 
         return IntStream.range(0, desiredNbSplits)
-                .mapToObj(i -> new PubSubPartitionMapper(configuration, service, i18n, builderFactory))
+                .mapToObj(i -> new PubSubPartitionMapper(configuration, service, ackMessageService, i18n, builderFactory))
                 .collect(Collectors.toList());
     }
 
     @Emitter
     public PubSubInput createSource() {
-        return new PubSubInput(configuration, service, i18n, builderFactory);
+        return new PubSubInput(configuration, service, ackMessageService, i18n, builderFactory);
     }
 
     @PreDestroy

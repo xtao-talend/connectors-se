@@ -206,11 +206,4 @@ public class PubSubService {
         }
     }
 
-    public void ackMessage(SubscriberStub subscriberStub, PubSubDataStore dataStore, String subscriptionId, String ackId) {
-        AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
-                .setSubscription(ProjectSubscriptionName.format(dataStore.getProjectName(), subscriptionId))
-                .addAllAckIds(Collections.singleton(ackId)).build();
-        subscriberStub.acknowledgeCallable().call(acknowledgeRequest);
-    }
-
 }
