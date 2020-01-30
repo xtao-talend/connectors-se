@@ -60,4 +60,6 @@ public interface I18nMessage {
     String errorCreateSubscriber(String message);
 
     String warnReadMessage(String messageId, String errMessage);
+
+    String inputReleaseWithMessageInbox(int size);
 }

@@ -37,6 +37,10 @@ public class AckMessageService implements Serializable {
         return messagesToAck.containsKey(messageId);
     }
 
+    public void removeMessage(String messageId) {
+        messagesToAck.remove(messageId);
+    }
+
     public void ackMessage(String messageId) {
         AckReplyConsumer consumer = messagesToAck.remove(messageId);
         if (consumer != null) {
@@ -45,6 +49,18 @@ public class AckMessageService implements Serializable {
     }
 
     protected void ackMessage(SubscriberStub subscriberStub, PubSubDataStore dataStore, String topic, String subscriptionId,
+            String ackId) {
+        if (subscriberStub == null || subscriberStub.isShutdown()) {
+            subscriberStub = pubSubService.createSubscriber(dataStore, topic, subscriptionId);
+        }
+
+        AcknowledgeRequest acknowledgeRequest = AcknowledgeRequest.newBuilder()
+                .setSubscription(ProjectSubscriptionName.format(dataStore.getProjectName(), subscriptionId))
+                .addAllAckIds(Collections.singleton(ackId)).build();
+        subscriberStub.acknowledgeCallable().call(acknowledgeRequest);
+    }
+
+    protected void nackMessage(SubscriberStub subscriberStub, PubSubDataStore dataStore, String topic, String subscriptionId,
             String ackId) {
         if (subscriberStub == null || subscriberStub.isShutdown()) {
             subscriberStub = pubSubService.createSubscriber(dataStore, topic, subscriptionId);

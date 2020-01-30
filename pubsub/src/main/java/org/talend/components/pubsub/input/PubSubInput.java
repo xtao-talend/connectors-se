@@ -91,6 +91,10 @@ public class PubSubInput implements MessageReceiver, Serializable {
 
     @PreDestroy
     public void release() {
+        if (!inbox.isEmpty()) {
+            log.info(i18n.inputReleaseWithMessageInbox(inbox.size()));
+            inbox.stream().map(PubsubMessage::getMessageId).forEach(ackMessageService::removeMessage);
+        }
         if (subscriber != null) {
             subscriber.stopAsync();
         }
