@@ -162,12 +162,12 @@ public class PubSubService {
                     log.info(i18n.subscriptionNotFound());
                     ProjectTopicName topicName = ProjectTopicName.of(dataStore.getProjectName(), topic);
                     Subscription subscription = subscriptionAdminClient.createSubscription(subscriptionName, topicName,
-                            PushConfig.getDefaultInstance(), 0);
+                            PushConfig.getDefaultInstance(), 10);
                     log.info(i18n.subscriptionCreated(subscription.toString()));
                 }
             }
-        } catch (IOException ioe) {
-            log.warn(i18n.errorCreateSubscription(ioe.getMessage()));
+        } catch (Exception e) {
+            log.warn(i18n.errorCreateSubscription(e.getMessage()));
         }
     }
 
@@ -182,8 +182,8 @@ public class PubSubService {
             } catch (ApiException apiEx) {
                 log.error(i18n.cannotDeleteSubscription(apiEx.getMessage()), apiEx);
             }
-        } catch (IOException ioe) {
-            log.warn(i18n.errorRemoveSubscription(ioe.getMessage()));
+        } catch (Exception e) {
+            log.warn(i18n.errorRemoveSubscription(e.getMessage()));
         }
     }
 

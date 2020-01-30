@@ -51,9 +51,6 @@ public class PubSubPartitionMapper implements Serializable {
 
     protected final RecordBuilderFactory builderFactory;
 
-    /** indicates if subscription was generated at start, and thus must be deleted when process is finished */
-    protected boolean uuidSubscription;
-
     public PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
             final PubSubService service, final AckMessageService ackMessageService, final I18nMessage i18n,
             final RecordBuilderFactory builderFactory) {
@@ -62,18 +59,6 @@ public class PubSubPartitionMapper implements Serializable {
         this.ackMessageService = ackMessageService;
         this.i18n = i18n;
         this.builderFactory = builderFactory;
-        uuidSubscription = false;
-    }
-
-    protected PubSubPartitionMapper(@Option("configuration") final PubSubInputConfiguration configuration,
-            final PubSubService service, final AckMessageService ackMessageService, final I18nMessage i18n,
-            final RecordBuilderFactory builderFactory, boolean uuidSubscription) {
-        this.configuration = configuration;
-        this.service = service;
-        this.ackMessageService = ackMessageService;
-        this.i18n = i18n;
-        this.builderFactory = builderFactory;
-        this.uuidSubscription = uuidSubscription;
     }
 
     @Assessor
@@ -87,7 +72,6 @@ public class PubSubPartitionMapper implements Serializable {
         if (subscription == null || "".equals(subscription.trim())) {
             subscription = UUID.randomUUID().toString();
             configuration.getDataSet().setSubscription(subscription);
-            uuidSubscription = true;
         }
 
         return IntStream.range(0, desiredNbSplits)
@@ -98,13 +82,6 @@ public class PubSubPartitionMapper implements Serializable {
     @Emitter
     public PubSubInput createSource() {
         return new PubSubInput(configuration, service, ackMessageService, i18n, builderFactory);
-    }
-
-    @PreDestroy
-    public void release() {
-        if (uuidSubscription) {
-            service.removeSubscription(configuration.getDataSet().getDataStore(), configuration.getDataSet().getSubscription());
-        }
     }
 
 }
