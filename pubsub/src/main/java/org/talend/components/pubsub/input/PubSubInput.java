@@ -115,11 +115,12 @@ public class PubSubInput implements MessageReceiver, Serializable {
         if (message != null && (!configuration.isConsumeMsg() || ackMessageService.messageExists(message.getMessageId()))) {
             try {
                 record = messageConverter == null ? null : messageConverter.convertMessage(message);
-                if (configuration.isConsumeMsg()) {
-                    ackMessageService.ackMessage(message.getMessageId());
-                }
             } catch (Exception e) {
                 log.warn(i18n.warnReadMessage(message.getMessageId(), e.getMessage()), e);
+            }
+
+            if (configuration.isConsumeMsg()) {
+                ackMessageService.ackMessage(message.getMessageId());
             }
         }
 
