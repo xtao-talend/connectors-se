@@ -112,7 +112,7 @@ public class PubSubInput implements MessageReceiver, Serializable {
         PubsubMessage message = inbox.poll();
 
         Record record = null;
-        if (message != null && ackMessageService.messageExists(message.getMessageId())) {
+        if (message != null && (!configuration.isConsumeMsg() || ackMessageService.messageExists(message.getMessageId()))) {
             try {
                 record = messageConverter == null ? null : messageConverter.convertMessage(message);
                 if (configuration.isConsumeMsg()) {
