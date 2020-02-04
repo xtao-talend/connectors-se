@@ -71,7 +71,7 @@ public class PubSubDataSet implements Serializable {
     @ActiveIfs(operator = ActiveIfs.Operator.AND, value = { @ActiveIf(target = "fieldDelimiter", value = { "OTHER" }),
             @ActiveIf(target = "valueFormat", value = { "CSV" }) })
     @Documentation("Other field delimiter for CSV")
-    private String otherDelimiter;
+    private Character otherDelimiter;
 
     @Option
     @Code(value = "json")
