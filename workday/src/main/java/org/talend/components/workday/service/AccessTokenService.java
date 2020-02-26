@@ -15,9 +15,11 @@ package org.talend.components.workday.service;
 import org.talend.components.workday.datastore.Token;
 import org.talend.components.workday.datastore.WorkdayDataStore;
 import org.talend.sdk.component.api.service.Service;
+import org.talend.sdk.component.api.service.cache.LocalCache;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
+import java.util.Optional;
 
 @Service
 public class AccessTokenService {
@@ -25,20 +27,29 @@ public class AccessTokenService {
     @Service
     private AccessTokenProvider service;
 
-    private transient Token token = null;
+    @Service
+    private LocalCache tokenCache;
 
     public Token findToken(WorkdayDataStore datastore) {
-        if (this.token == null || this.isTokenTooOld()) {
-            this.newToken(datastore);
-        }
-        return this.token;
+        return this.tokenCache.computeIfAbsent(Token.class,
+                datastore.getClientId() + "-" + datastore.getEndpoint(),
+                this::isTokenTooOld,
+                 () -> this.newToken(datastore));
     }
 
-    private boolean isTokenTooOld() {
-        return token.getExpireDate().isAfter(Instant.now().minus(30, ChronoUnit.SECONDS));
+
+    private Token newToken(WorkdayDataStore datastore) {
+        return service.getAccessToken(datastore);
     }
 
-    private synchronized void newToken(WorkdayDataStore datastore) {
-        this.token = service.getAccessToken(datastore);
+    private boolean isTokenTooOld(LocalCache.Element element) {
+        return Optional.ofNullable(element)
+                .map(LocalCache.Element::getValue) // element value => token
+                .filter(Token.class::isInstance) // should be true
+                .map(Token.class::cast) //
+                .map(Token::isTooOld) // test expiry date.
+                .orElse(true);
     }
+
+
 }

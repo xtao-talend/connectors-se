@@ -16,6 +16,7 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 @Getter
 @RequiredArgsConstructor
@@ -29,5 +30,13 @@ public class Token {
 
     public String getAuthorizationHeaderValue() {
         return tokenType + ' ' + accessToken;
+    }
+
+    /**
+     * No enough time to do operations.
+     * @return true if too old (not enough time left)
+     */
+    public boolean isTooOld() {
+        return this.getExpireDate().isBefore(Instant.now().plus(30, ChronoUnit.SECONDS));
     }
 }
