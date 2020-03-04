@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ * Copyright (C) 2006-2020 Talend Inc. - www.talend.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -135,8 +135,12 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                     configuration.getStorageConn().getProtocol(), ACCOUNT_NAME_NAME,
                     configuration.getStorageConn().getAccountName(), ACCOUNT_KEY_NAME,
                     configuration.getStorageConn().getAccountKey(), ENDPOINT_SUFFIX_NAME, DEFAULT_DNS);
-            final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder()//
-                    .setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));
+            final ConnectionStringBuilder eventHubConnectionString = new ConnectionStringBuilder();//
+            if (configuration.getDataset().getConnection().isSpecifyEndpoint()) {
+                eventHubConnectionString.setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));//
+            } else {
+                eventHubConnectionString.setNamespaceName(configuration.getDataset().getConnection().getNamespace());
+            }
             eventHubConnectionString.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
             eventHubConnectionString.setSasKey(configuration.getDataset().getConnection().getSasKey());
             eventHubConnectionString.setEventHubName(configuration.getDataset().getEventHubName());

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ * Copyright (C) 2006-2020 Talend Inc. - www.talend.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -28,7 +28,7 @@ import lombok.Data;
 @WithComponents("org.talend.components.azure.eventhubs")
 public class AzureEventHubsTestBase implements Serializable {
 
-    public static String ENDPOINT = "sb://comp-test.servicebus.windows.net";
+    public static String ENDPOINT = "sb://comptest.servicebus.windows.net";
 
     public static String SASKEY_NAME;
 

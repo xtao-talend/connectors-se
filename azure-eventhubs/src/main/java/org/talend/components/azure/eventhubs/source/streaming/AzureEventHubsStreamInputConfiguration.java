@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2006-2019 Talend Inc. - www.talend.com
+ * Copyright (C) 2006-2020 Talend Inc. - www.talend.com
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
@@ -16,6 +16,8 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 
 import java.io.Serializable;
 
+import org.talend.components.extension.Reference;
+import org.talend.components.extension.Reference.Bindings;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.sdk.component.api.configuration.Option;
@@ -68,6 +70,10 @@ public class AzureEventHubsStreamInputConfiguration implements Serializable {
     private String enqueuedDateTime;
 
     @Option
+    @Reference(configurationId = "YXp1cmVibG9iI0F6dXJlI2RhdGFzdG9yZSNkZWZhdWx0", bindings = {
+            @Bindings(from = "configuration.accountConnection.accountName", to = "configuration.storageConn.accountName"),
+            @Bindings(from = "configuration.accountConnection.accountKey", to = "configuration.storageConn.accountKey"),
+            @Bindings(from = "configuration.accountConnection.protocol", to = "configuration.storageConn.protocol") })
     @Documentation("Connection for the Azure Storage account to use for persisting leases and checkpoints.")
     private AzureStorageConnectionAccount storageConn;
 
