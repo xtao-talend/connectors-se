@@ -16,6 +16,9 @@ import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
+import org.talend.components.mongodb.DataAction;
+import org.talend.components.mongodb.ReadPreference;
+import org.talend.components.mongodb.WriteConcern;
 import org.talend.components.mongodb.dataset.MongoDBDataSet;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
@@ -31,8 +34,9 @@ import lombok.Data;
 @Version(1)
 @Data
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataset" }), //
-        @GridLayout.Row({ "bulkWrite" }), //
-        }),
+        @GridLayout.Row({ "setWriteConcern" }), //
+        @GridLayout.Row({ "writeConcern" }), //
+        @GridLayout.Row({ "bulkWrite" }), @GridLayout.Row({ "dataAction" }), @GridLayout.Row({ "updateAllDocuments" }) }),
         // @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "todo" }) })
 })
 @Documentation("MongoDB sink configuration")
@@ -43,7 +47,25 @@ public class MongoDBSinkConfiguration implements Serializable {
     private MongoDBDataSet dataset;
 
     @Option
+    @Documentation("Set read preference")
+    private boolean setWriteConcern;
+
+    @Option
+    @ActiveIf(target = "setWriteConcern", value = "true")
+    @Documentation("Write concern")
+    private WriteConcern writeConcern = WriteConcern.ACKNOWLEDGED;
+
+    @Option
     @Documentation("Bulk load")
     private boolean bulkWrite = false;
+
+    @Option
+    @Documentation("Data action")
+    private DataAction dataAction = DataAction.INSERT;
+
+    @Option
+    @ActiveIf(target = "dataAction", value = { "SET", "UPSERT_WITH_SET" })
+    @Documentation("update all documents")
+    private boolean updateAllDocuments = false;
 
 }

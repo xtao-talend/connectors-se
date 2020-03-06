@@ -25,21 +25,17 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@GridLayouts({
-        @GridLayout({ @GridLayout.Row({ "column" }), @GridLayout.Row({ "originElement" }), @GridLayout.Row({ "parentNodePath" }) }) })
-@Documentation("Path Mapping")
-public class PathMapping implements Serializable {
+@GridLayouts({ @GridLayout({ @GridLayout.Row({ "column" }), @GridLayout.Row({ "order" }) }) })
+@Documentation("Sort by")
+public class SortBy implements Serializable {
 
+    // TODO make it to a closedlist to choose? not good as not flexable if driver change?
     @Option
-    @Documentation("Column")
+    @Documentation("sort by this key")
     private String column;
 
     @Option
-    @Documentation("the mongodb's origin element name in bson")
-    private String originElement;
-
-    @Option
-    @Documentation("Path to locate the parent node in json, then append there")
-    private String parentNodePath;
+    @Documentation("asc or desc")
+    private SortOrder order = SortOrder.ASC;
 
 }

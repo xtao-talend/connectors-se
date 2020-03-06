@@ -15,9 +15,9 @@ package org.talend.components.mongodb.source;
 import com.mongodb.MongoClient;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -78,16 +78,24 @@ public class MongoDBReader implements Serializable {
         Iterable iterable = null;
         switch (dataset.getQueryType()) {
         case FIND:
-            Document query = Document.parse(dataset.getQuery());
+            BsonDocument query = service.getBsonDocument(dataset.getQuery());
+            BsonDocument projection = service.getBsonDocument(dataset.getProjection());
             // FindIterable<Document>
-            iterable = collection.find(query);
+            int limit = configuration.getLimit();
+            FindIterable ft = collection.find(query).projection(projection);
+            if(limit > 0) {
+                iterable = ft.limit(limit);
+            } else {
+                iterable = ft;
+            }
+            break;
         case AGGREGATION:
-            List<Document> aggregationStages = new ArrayList<Document>();
-            // TODO use another table setting to replace it
-            Document stage = Document.parse(dataset.getQuery());
-            aggregationStages.add(stage);
+            List<BsonDocument> aggregationStages = new ArrayList<>();
+            for (String stage : dataset.getAggregationStages()) {
+                aggregationStages.add(service.getBsonDocument(stage));
+            }
             // AggregateIterable<Document>
-            iterable = collection.aggregate(aggregationStages).allowDiskUse(false);
+            iterable = collection.aggregate(aggregationStages).allowDiskUse(dataset.isEnableExternalSort());
             break;
         default:
             break;
@@ -118,14 +126,9 @@ public class MongoDBReader implements Serializable {
     private List<PathMapping> initPathMappings(Document document) {
         List<PathMapping> pathMappings = configuration.getDataset().getPathMappings();
         if (pathMappings == null || pathMappings.isEmpty()) {
-            return guessPathMappingsFromDocument(document);
+            return service.guessPathMappingsFromDocument(document);
         }
         return pathMappings;
-    }
-
-    public List<PathMapping> guessPathMappingsFromDocument(Document document) {
-        // TODO
-        return null;
     }
 
     // only create schema by first document and path mapping
@@ -143,9 +146,9 @@ public class MongoDBReader implements Serializable {
             String column = mapping.getColumn();
             // the mongodb's origin element name in bson
             String originElement = mapping.getOriginElement();
-            // path to locate the element of value provider of bson object
-            String path = mapping.getPath();
-            Object value = service.getValueByPathFromDocument(document, path, originElement);
+            // path to locate the parent element of value provider of bson object
+            String parentNodePath = mapping.getParentNodePath();
+            Object value = service.getValueByPathFromDocument(document, parentNodePath, originElement);
 
             Schema.Entry entry = entries.next();
 
@@ -213,7 +216,8 @@ public class MongoDBReader implements Serializable {
             recordBuilder.withBytes(entryBuilder.build(), (byte[]) value);
         case STRING:
             // toString is right for all type, like document? TODO
-            recordBuilder.withString(entryBuilder.build(), value.toString());
+            recordBuilder.withString(entryBuilder.build(),
+                    value instanceof Document ? ((Document) value).toJson() : value.toString());
             break;
         case LONG:
             recordBuilder.withLong(entryBuilder.build(), (Long) value);

@@ -12,42 +12,72 @@
  */
 package org.talend.components.mongodb.datastore;
 
+import lombok.Data;
+import org.talend.components.mongodb.AddressType;
+import org.talend.components.mongodb.Adress;
+import org.talend.components.mongodb.Auth;
+import org.talend.components.mongodb.ConnectionParameter;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Checkable;
-import org.talend.sdk.component.api.configuration.constraint.Min;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataStore;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
-import org.talend.sdk.component.api.configuration.ui.widget.Credential;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import java.io.Serializable;
-
-import lombok.Data;
+import java.util.Collections;
+import java.util.List;
 
 @Version(1)
 @Data
 @DataStore("MongoDBDataStore")
 @Checkable("healthCheck")
-@GridLayout(names = GridLayout.FormType.MAIN, value = { @GridLayout.Row({ "host" }), @GridLayout.Row({ "port" }) })
-// @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "todo" }) })
+@GridLayout(names = GridLayout.FormType.MAIN, value = { @GridLayout.Row({ "addressType" }), @GridLayout.Row({ "address" }),
+        @GridLayout.Row({ "replicaSetAddress" }), @GridLayout.Row({ "shardedClusterAddress" }), @GridLayout.Row({ "database" }),
+        @GridLayout.Row({ "auth" }) })
+@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "connectionParameter" }) })
 @Documentation("MongoDB connection")
 public class MongoDBDataStore implements Serializable {
 
     @Option
     @Required
-    @Documentation("Server host address")
-    private String host;
+    @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
+    private AddressType addressType = AddressType.STANDALONE;
 
     @Option
-    @Required
-    @Documentation("Server port")
-    private String port;
+    @ActiveIf(target = "addressType", value = "STANDALONE")
+    @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
+    private Adress address;
+
+    @Option
+    @ActiveIf(target = "addressType", value = "REPLICA_SET")
+    @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
+    private List<Adress> replicaSetAddress = Collections.emptyList();
+
+    @Option
+    @ActiveIf(target = "addressType", value = "SHARDED_CLUSTER")
+    @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
+    private List<Adress> shardedClusterAddress = Collections.emptyList();
 
     @Option
     @Required
     @Documentation("Database")
     private String database;
 
+    // TODO have to support the function for locate a file for cert if need cert? or trust any cert, not good for me?
+    // maybe remove it
+    @Option
+    @Documentation("Use SSL")
+    private boolean useSSL;
+
+    @Option
+    @Documentation("auth page")
+    private Auth auth;
+
+    // advanced page
+    @Option
+    @Documentation("Connection parameter")
+    private List<ConnectionParameter> connectionParameter = Collections.emptyList();
 }

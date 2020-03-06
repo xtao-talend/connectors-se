@@ -25,21 +25,17 @@ import java.io.Serializable;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@GridLayouts({
-        @GridLayout({ @GridLayout.Row({ "column" }), @GridLayout.Row({ "originElement" }), @GridLayout.Row({ "parentNodePath" }) }) })
-@Documentation("Path Mapping")
-public class PathMapping implements Serializable {
+@GridLayouts({ @GridLayout({ @GridLayout.Row({ "key" }), @GridLayout.Row({ "value" }) }) })
+@Documentation("Connection parameter")
+public class ConnectionParameter implements Serializable {
+
+    // TODO make it to a closedlist to choose? not good as not flexable if driver change?
+    @Option
+    @Documentation("key")
+    private String key;
 
     @Option
-    @Documentation("Column")
-    private String column;
-
-    @Option
-    @Documentation("the mongodb's origin element name in bson")
-    private String originElement;
-
-    @Option
-    @Documentation("Path to locate the parent node in json, then append there")
-    private String parentNodePath;
+    @Documentation("value")
+    private String value;
 
 }

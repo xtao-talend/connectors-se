@@ -12,6 +12,8 @@
  */
 package org.talend.components.mongodb.source;
 
+import org.talend.components.mongodb.ReadPreference;
+import org.talend.components.mongodb.SortBy;
 import org.talend.components.mongodb.dataset.MongoDBDataSet;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
@@ -23,12 +25,16 @@ import org.talend.sdk.component.api.configuration.ui.widget.TextArea;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
 
 import lombok.Data;
 
 @Version(1)
 @Data
-@GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataset" }) }),
+@GridLayouts({
+        @GridLayout({ @GridLayout.Row({ "dataset" }), @GridLayout.Row({ "dataset" }), @GridLayout.Row({ "setReadPreference" }),
+                @GridLayout.Row({ "readPreference" }), @GridLayout.Row({ "sortBy" }) }),
         @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "limit" }) }) })
 @Documentation("MongoDB Source Configuration")
 public class MongoDBSourceConfiguration implements Serializable {
@@ -37,9 +43,21 @@ public class MongoDBSourceConfiguration implements Serializable {
     @Documentation("dataset")
     private MongoDBDataSet dataset;
 
-    // TODO use integer
+    @Option
+    @Documentation("Set read preference")
+    private boolean setReadPreference;
+
+    @Option
+    @ActiveIf(target = "setReadPreference", value = "true")
+    @Documentation("Read preference")
+    private ReadPreference readPreference = ReadPreference.PRIMARY;
+
+    @Option
+    @Documentation("Sort by")
+    private List<SortBy> sortBy = Collections.emptyList();
+
     @Option
     @Documentation("Maximum number of documents to be returned")
-    private String limit = "";
+    private int limit = -1;
 
 }

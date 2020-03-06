@@ -81,16 +81,16 @@ public class MongoDBProcessor implements Serializable {
             document = new Document();
         }
 
-        void put(String path, String curentName, Object value) {
-            if (path == null || "".equals(path)) {
+        void put(String parentNodePath, String curentName, Object value) {
+            if (parentNodePath == null || "".equals(parentNodePath)) {
                 document.put(curentName, value);
             } else {
-                String objNames[] = path.split("\\.");
-                Document lastNode = getParentNode(path, objNames.length - 1);
+                String objNames[] = parentNodePath.split("\\.");
+                Document lastNode = getParentNode(parentNodePath, objNames.length - 1);
                 lastNode.put(curentName, value);
                 Document parentNode = null;
                 for (int i = objNames.length - 1; i >= 0; i--) {
-                    parentNode = getParentNode(path, i - 1);
+                    parentNode = getParentNode(parentNodePath, i - 1);
                     parentNode.put(objNames[i], lastNode);
                     lastNode = clone(parentNode);
                 }
@@ -106,12 +106,12 @@ public class MongoDBProcessor implements Serializable {
             return to;
         }
 
-        public Document getParentNode(String path, int index) {
+        public Document getParentNode(String parentNodePath, int index) {
             Document parentNode = document;
-            if (path == null || "".equals(path)) {
+            if (parentNodePath == null || "".equals(parentNodePath)) {
                 return document;
             } else {
-                String objNames[] = path.split("\\.");
+                String objNames[] = parentNodePath.split("\\.");
                 for (int i = 0; i <= index; i++) {
                     parentNode = (Document) parentNode.get(objNames[i]);
                     if (parentNode == null) {
@@ -152,7 +152,9 @@ public class MongoDBProcessor implements Serializable {
 
             for (Schema.Entry entry : record.getSchema().getEntries()) {// schema from input
                 PathMapping mapping = inputFieldName2PathMapping.get(entry.getName());
-                dg.put(mapping.getPath(), entry.getName(), record.get(Object.class, entry.getName()));
+                String originElement = mapping.getOriginElement();
+                dg.put(mapping.getParentNodePath(), originElement != null ? originElement : entry.getName(),
+                        record.get(Object.class, entry.getName()));
             }
 
             collection.insertOne(dg.getDocument());

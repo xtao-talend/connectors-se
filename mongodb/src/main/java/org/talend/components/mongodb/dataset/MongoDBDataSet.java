@@ -19,6 +19,7 @@ import org.talend.components.mongodb.QueryType;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.type.DataSet;
 import org.talend.sdk.component.api.configuration.ui.widget.Code;
@@ -34,8 +35,8 @@ import java.util.List;
 @DataSet("MongoDBDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
         @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "queryType" }), @GridLayout.Row({ "query" }),
-        @GridLayout.Row({ "sample" }) })
-// @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "todo" }) })
+        @GridLayout.Row({ "projection" }), @GridLayout.Row({ "aggregationStages" }), @GridLayout.Row({ "sample" }) })
+@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
 @Documentation("MongoDB DataSet")
 public class MongoDBDataSet implements Serializable {
 
@@ -53,7 +54,9 @@ public class MongoDBDataSet implements Serializable {
     @Documentation("Mode")
     private Mode mode = Mode.MAPPING;
 
+    // TODO almost impossible to split dataset with source and sink, the common part is almost no meaning as dataset
     @Option
+    @ActiveIf(target = "mode", value = "MAPPING")
     @Documentation("Path Mapping")
     private List<PathMapping> pathMappings = Collections.emptyList();
 
@@ -61,15 +64,32 @@ public class MongoDBDataSet implements Serializable {
     @Documentation("Query type")
     private QueryType queryType = QueryType.FIND;
 
-    // TODO check json is right
     @Option
     @Code("json")
+    @ActiveIf(target = "queryType", value = "FIND")
     @Documentation("Query")
-    private String query;
+    private String query = "{}";
+
+    @Option
+    @Code("json")
+    @ActiveIf(target = "queryType", value = "FIND")
+    @Documentation("http://mongodb.github.io/mongo-java-driver/4.0/driver-scala/builders/projections/")
+    private String projection = "{}";
+
+    @Option
+    @ActiveIf(target = "queryType", value = "AGGREGATION")
+    @Documentation("Aggregation stages")
+    private List<String> aggregationStages = Collections.emptyList();
 
     // TODO readonly and only for user view data
     @Option
     @Code("json")
+    @ActiveIf(target = "mode", value = "DOCUMENT")
     @Documentation("Sample for document json")
     private String sample;
+
+    @Option
+    @ActiveIf(target = "queryType", value = "AGGREGATION")
+    @Documentation("Enable external sort")
+    private boolean enableExternalSort;
 }

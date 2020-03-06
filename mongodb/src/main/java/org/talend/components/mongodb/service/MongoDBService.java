@@ -12,17 +12,17 @@
  */
 package org.talend.components.mongodb.service;
 
+import com.mongodb.BasicDBObject;
 import com.mongodb.MongoClient;
 import com.mongodb.MongoClientOptions;
 import com.mongodb.MongoClientURI;
-import com.mongodb.client.MongoCollection;
-import com.mongodb.client.MongoCursor;
 import com.mongodb.client.MongoDatabase;
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
+import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.mongodb.ConnectionParameter;
 import org.talend.components.mongodb.PathMapping;
 import org.talend.components.mongodb.dataset.MongoDBDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
@@ -36,12 +36,8 @@ import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheck;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
-import org.talend.sdk.component.api.service.schema.DiscoverSchema;
 
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.talend.sdk.component.api.record.Schema.Type.*;
 
@@ -59,34 +55,77 @@ public class MongoDBService {
     private RecordBuilderFactory builderFactory;
 
     public MongoClient createClient(MongoDBDataStore datastore) {
-        String host = datastore.getHost();
-        String port = datastore.getPort();
-
-        String uri = "mongodb://" + host + ":" + port;
-        MongoClientOptions.Builder optionsBuilder = new MongoClientOptions.Builder();
-
+        String uri = constructConnectionString(datastore);
         try {
-            MongoClient mongoClient = new MongoClient(new MongoClientURI(uri, optionsBuilder));
+            MongoClient mongoClient = new MongoClient(new MongoClientURI(uri, contrustOptions(datastore)));
             return mongoClient;
         } catch (Exception e) {
+            // TODO use i18n
             LOG.error(i18n.example("p1", "p2"));
             throw new RuntimeException(e);
         }
+    }
+
+    private String constructConnectionString(MongoDBDataStore datastore) {
+        String host = datastore.getAddress().getHost();
+        String port = datastore.getAddress().getPort();
+        // TODO construct more complex uri whith replica address and cluster addresss
+        switch (datastore.getAddressType()) {
+        case STANDALONE:
+            String uri = "mongodb://" + host + ":" + port;
+            return uri;
+        case REPLICA_SET:
+            // TODO
+            break;
+        case SHARDED_CLUSTER:
+            // TODO
+            break;
+        }
+        return null;
+    }
+
+    private MongoClientOptions.Builder contrustOptions(MongoDBDataStore datastore) {
+        MongoClientOptions.Builder optionsBuilder = new MongoClientOptions.Builder();
+        List<ConnectionParameter> connectionParameters = datastore.getConnectionParameter();
+        // TODO call right set method by the list above
+        // optionsBuilder.maxConnectionIdleTime(1000);
+
+        // do special process for ssl cert as sometimes, we need to ingore cert as impossible to provide it
+        /*
+         * if (sslEnabled) {
+         * optionsBuilder.sslEnabled(sslEnabled).sslInvalidHostNameAllowed(sslInvalidHostNameAllowed);
+         * if (ignoreSSLCertificate) {
+         * SSLContext sslContext = SSLUtils.ignoreSSLCertificate();
+         * optionsBuilder.sslContext(sslContext);
+         * optionsBuilder.socketFactory(sslContext.getSocketFactory());
+         * }
+         * }
+         */
+        return optionsBuilder;
     }
 
     @HealthCheck("healthCheck")
     public HealthCheckStatus healthCheck(@Option("configuration.dataset.connection") final MongoDBDataStore datastore) {
         try (MongoClient client = createClient(datastore)) {
             String database = datastore.getDatabase();
-            if (client.getDatabase(database) == null) {
-                return new HealthCheckStatus(HealthCheckStatus.Status.OK, "Can't find the database : " + database);
+            //TODO use another better method to replace it, here we do real check connection
+            client.getAddress();
+
+            MongoDatabase md = client.getDatabase(database);
+            if (md == null) {//TODO remove it as seems never go in even no that database exists
+                return new HealthCheckStatus(HealthCheckStatus.Status.KO, "Can't find the database : " + database);
             }
+
             return new HealthCheckStatus(HealthCheckStatus.Status.OK, "Connection OK");
         } catch (Exception exception) {
             String message = exception.getMessage();
             LOG.error(message, exception);
             return new HealthCheckStatus(HealthCheckStatus.Status.KO, message);
         }
+    }
+
+    public BsonDocument getBsonDocument(String bson) {
+        return Document.parse(bson).toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
     }
 
     public Schema retrieveSchema(@Option("dataset") final MongoDBDataSet dataset) {
@@ -108,32 +147,38 @@ public class MongoDBService {
         }
     }
 
+    public List<PathMapping> guessPathMappingsFromDocument(Document document) {
+        List<PathMapping> pathMappings = new ArrayList<>();
+        // order keep here as use LinkedHashMap/LinkedHashSet inside
+        Set<String> elements = document.keySet();
+        for (String element : elements) {
+            // TODO make the column name in schema is valid without special char that make invalid to schema
+            // para1 : column name in schema, para2 : key in document of mongodb, para3 : path to locate parent node in document of
+            // mongodb
+            // here we only iterate the root level, not go deep, keep it easy
+            pathMappings.add(new PathMapping(element, element, ""));
+        }
+        return pathMappings;
+    }
+
     public Schema createSchema(Document document, List<PathMapping> pathMappings) {
         Schema.Builder schemaBuilder = builderFactory.newSchemaBuilder(RECORD);
 
         if (pathMappings == null || pathMappings.isEmpty()) {// work for the next level element when RECORD, not necessary now,
                                                              // but keep it
-            pathMappings = new ArrayList<>();
-            // order keep here as use LinkedHashMap/LinkedHashSet inside
-            Set<String> elements = document.keySet();
-            for (String element : elements) {
-                // TODO make the column name in schema is valid without special char that make invalid to schema
-                // para1 : column name in schema, para2 : key in document of mongodb, para3 : path to locate in document of
-                // mongodb
-                pathMappings.add(new PathMapping(element, element, element));
-            }
+            pathMappings = guessPathMappingsFromDocument(document);
         }
 
         for (PathMapping mapping : pathMappings) {
-            // column for flow struct
+            // column for flow struct to pass
             String column = mapping.getColumn();
             // the mongodb's origin element name in bson
             String originElement = mapping.getOriginElement();
-            // path to locate the element of value provider of bson object
-            String path = mapping.getPath();
+            // path to locate the parent element of value provider of bson object
+            String parentNodePath = mapping.getParentNodePath();
 
-            // receive value from JSON
-            Object value = getValueByPathFromDocument(document, path, originElement);
+            // receive value from JSON, and use the value to decide the data type
+            Object value = getValueByPathFromDocument(document, parentNodePath, originElement);
 
             // With this value we can define type
             Schema.Type type = guessFieldTypeFromValueFromBSON(value);
@@ -157,21 +202,21 @@ public class MongoDBService {
 
     // use column diretly if path don't exists or empty
     // current implement logic copy from studio one, not sure is expected, TODO adjust it
-    public Object getValueByPathFromDocument(Document document, String path, String elementName) {
+    public Object getValueByPathFromDocument(Document document, String parentNodePath, String elementName) {
         if (document == null) {
             return null;
         }
 
         Object value = null;
-        if (path == null || "".equals(path)) {// if path is not set, use element name directly
+        if (parentNodePath == null || "".equals(parentNodePath)) {// if path is not set, use element name directly
             if ("*".equals(elementName)) {// * mean the whole object?
                 value = document;
             } else if (document.get(elementName) != null) {
                 value = document.get(elementName);
             }
         } else {
-            // use path to locate
-            String objNames[] = path.split("\\.");
+            // use parent path to locate
+            String objNames[] = parentNodePath.split("\\.");
             Document currentObj = document;
             for (int i = 0; i < objNames.length; i++) {
                 currentObj = (Document) currentObj.get(objNames[i]);
