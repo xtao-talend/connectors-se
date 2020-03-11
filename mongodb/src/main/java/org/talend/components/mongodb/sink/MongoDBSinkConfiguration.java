@@ -13,20 +13,16 @@
 package org.talend.components.mongodb.sink;
 
 import java.io.Serializable;
-import java.util.Collections;
-import java.util.List;
 
 import org.talend.components.mongodb.DataAction;
-import org.talend.components.mongodb.ReadPreference;
 import org.talend.components.mongodb.WriteConcern;
-import org.talend.components.mongodb.dataset.MongoDBDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayouts;
-import org.talend.sdk.component.api.configuration.ui.widget.Code;
-import org.talend.sdk.component.api.configuration.ui.widget.TextArea;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import lombok.Data;
@@ -36,15 +32,15 @@ import lombok.Data;
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataset" }), //
         @GridLayout.Row({ "setWriteConcern" }), //
         @GridLayout.Row({ "writeConcern" }), //
-        @GridLayout.Row({ "bulkWrite" }), @GridLayout.Row({ "dataAction" }), @GridLayout.Row({ "updateAllDocuments" }) }),
-        // @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "todo" }) })
-})
+        @GridLayout.Row({ "bulkWrite" }), @GridLayout.Row({ "dataAction" }), @GridLayout.Row({ "updateAllDocuments" }),
+        @GridLayout.Row({ "skipNullValue" }) }),
+        @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "dataset" }) }) })
 @Documentation("MongoDB sink configuration")
 public class MongoDBSinkConfiguration implements Serializable {
 
     @Option
     @Documentation("Dataset")
-    private MongoDBDataSet dataset;
+    private MongoDBReadAndWriteDataSet dataset;
 
     @Option
     @Documentation("Set read preference")
@@ -67,5 +63,9 @@ public class MongoDBSinkConfiguration implements Serializable {
     @ActiveIf(target = "dataAction", value = { "SET", "UPSERT_WITH_SET" })
     @Documentation("update all documents")
     private boolean updateAllDocuments = false;
+
+    @Option
+    @Documentation("not generate key without value in json if null")
+    private boolean skipNullValue = false;
 
 }

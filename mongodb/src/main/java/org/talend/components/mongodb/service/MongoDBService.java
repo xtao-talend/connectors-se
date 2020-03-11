@@ -24,10 +24,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.mongodb.ConnectionParameter;
 import org.talend.components.mongodb.PathMapping;
-import org.talend.components.mongodb.dataset.MongoDBDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.components.mongodb.source.MongoDBReader;
-import org.talend.components.mongodb.source.MongoDBSourceConfiguration;
+import org.talend.components.mongodb.source.MongoDBQuerySourceConfiguration;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.record.Record;
@@ -108,11 +108,11 @@ public class MongoDBService {
     public HealthCheckStatus healthCheck(@Option("configuration.dataset.connection") final MongoDBDataStore datastore) {
         try (MongoClient client = createClient(datastore)) {
             String database = datastore.getDatabase();
-            //TODO use another better method to replace it, here we do real check connection
+            // TODO use another better method to replace it, here we do real check connection
             client.getAddress();
 
             MongoDatabase md = client.getDatabase(database);
-            if (md == null) {//TODO remove it as seems never go in even no that database exists
+            if (md == null) {// TODO remove it as seems never go in even no that database exists
                 return new HealthCheckStatus(HealthCheckStatus.Status.KO, "Can't find the database : " + database);
             }
 
@@ -128,8 +128,8 @@ public class MongoDBService {
         return Document.parse(bson).toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
     }
 
-    public Schema retrieveSchema(@Option("dataset") final MongoDBDataSet dataset) {
-        MongoDBSourceConfiguration configuration = new MongoDBSourceConfiguration();
+    public Schema retrieveSchema(@Option("dataset") final MongoDBReadDataSet dataset) {
+        MongoDBQuerySourceConfiguration configuration = new MongoDBQuerySourceConfiguration();
         configuration.setDataset(dataset);
         MongoDBReader reader = new MongoDBReader(configuration, this, builderFactory, i18n);
         reader.init();
@@ -153,7 +153,8 @@ public class MongoDBService {
         Set<String> elements = document.keySet();
         for (String element : elements) {
             // TODO make the column name in schema is valid without special char that make invalid to schema
-            // para1 : column name in schema, para2 : key in document of mongodb, para3 : path to locate parent node in document of
+            // para1 : column name in schema, para2 : key in document of mongodb, para3 : path to locate parent node in document
+            // of
             // mongodb
             // here we only iterate the root level, not go deep, keep it easy
             pathMappings.add(new PathMapping(element, element, ""));

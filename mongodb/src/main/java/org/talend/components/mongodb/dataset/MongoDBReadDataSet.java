@@ -13,9 +13,7 @@
 package org.talend.components.mongodb.dataset;
 
 import lombok.Data;
-import org.talend.components.mongodb.Mode;
-import org.talend.components.mongodb.PathMapping;
-import org.talend.components.mongodb.QueryType;
+import org.talend.components.mongodb.*;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
@@ -26,19 +24,20 @@ import org.talend.sdk.component.api.configuration.ui.widget.Code;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.meta.Documentation;
 
-import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
 
 @Version(1)
 @Data
-@DataSet("MongoDBDataSet")
+@DataSet("MongoDBReadDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
         @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "queryType" }), @GridLayout.Row({ "query" }),
-        @GridLayout.Row({ "projection" }), @GridLayout.Row({ "aggregationStages" }), @GridLayout.Row({ "sample" }) })
+        @GridLayout.Row({ "projection" }), @GridLayout.Row({ "aggregationStages" }), @GridLayout.Row({ "sortBy" }),
+        @GridLayout.Row({ "limit" }), @GridLayout.Row({ "sample" }), @GridLayout.Row({ "setReadPreference" }),
+        @GridLayout.Row({ "readPreference" }) })
 @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
-@Documentation("MongoDB DataSet")
-public class MongoDBDataSet implements Serializable {
+@Documentation("MongoDB DataSet for read only")
+public class MongoDBReadDataSet implements BaseDataSet {
 
     @Option
     @Documentation("Connection")
@@ -81,12 +80,29 @@ public class MongoDBDataSet implements Serializable {
     @Documentation("Aggregation stages")
     private List<String> aggregationStages = Collections.emptyList();
 
+    @Option
+    @Documentation("Sort by")
+    private List<SortBy> sortBy = Collections.emptyList();
+
+    @Option
+    @Documentation("Maximum number of documents to be returned")
+    private int limit = -1;
+
     // TODO readonly and only for user view data
     @Option
     @Code("json")
     @ActiveIf(target = "mode", value = "DOCUMENT")
     @Documentation("Sample for document json")
     private String sample;
+
+    @Option
+    @Documentation("Set read preference")
+    private boolean setReadPreference;
+
+    @Option
+    @ActiveIf(target = "setReadPreference", value = "true")
+    @Documentation("Read preference")
+    private ReadPreference readPreference = ReadPreference.PRIMARY;
 
     @Option
     @ActiveIf(target = "queryType", value = "AGGREGATION")

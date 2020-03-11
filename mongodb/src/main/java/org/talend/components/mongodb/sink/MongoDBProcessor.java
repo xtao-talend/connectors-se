@@ -19,7 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
 import org.talend.components.mongodb.Mode;
 import org.talend.components.mongodb.PathMapping;
-import org.talend.components.mongodb.dataset.MongoDBDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.components.mongodb.service.I18nMessage;
 import org.talend.components.mongodb.service.MongoDBService;
@@ -66,7 +67,7 @@ public class MongoDBProcessor implements Serializable {
 
     @PostConstruct
     public void init() {
-        MongoDBDataSet dataset = configuration.getDataset();
+        MongoDBReadAndWriteDataSet dataset = configuration.getDataset();
         MongoDBDataStore datastore = dataset.getDatastore();
         client = service.createClient(datastore);
         MongoDatabase database = client.getDatabase(datastore.getDatabase());

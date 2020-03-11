@@ -29,11 +29,11 @@ import static java.util.Collections.singletonList;
 
 @Version(1)
 @Icon(value = Icon.IconType.CUSTOM, custom = "MongoDBSource")
-@PartitionMapper(name = "Source")
-@Documentation("MongoDB Source")
-public class MongoDBMapper implements Serializable {
+@PartitionMapper(name = "CollectionQuerySource")
+@Documentation("MongoDB Source with query")
+public class MongoDBQueryMapper implements Serializable {
 
-    private final MongoDBSourceConfiguration configuration;
+    private final MongoDBQuerySourceConfiguration configuration;
 
     private final MongoDBService service;
 
@@ -41,8 +41,8 @@ public class MongoDBMapper implements Serializable {
 
     private final I18nMessage i18nMessage;
 
-    public MongoDBMapper(@Option("configuration") final MongoDBSourceConfiguration configuration, final MongoDBService service,
-            final RecordBuilderFactory recordBuilderFactory, final I18nMessage i18nMessage) {
+    public MongoDBQueryMapper(@Option("configuration") final MongoDBQuerySourceConfiguration configuration,
+            final MongoDBService service, final RecordBuilderFactory recordBuilderFactory, final I18nMessage i18nMessage) {
         this.configuration = configuration;
         this.service = service;
         this.recordBuilderFactory = recordBuilderFactory;
@@ -60,7 +60,7 @@ public class MongoDBMapper implements Serializable {
     }
 
     @Split
-    public List<MongoDBMapper> split(@PartitionSize final long bundles) {
+    public List<MongoDBQueryMapper> split(@PartitionSize final long bundles) {
         // TODO support split
 
         // overall idea here is to split the work related to configuration in bundles of size "bundles"

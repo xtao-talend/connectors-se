@@ -22,7 +22,8 @@ import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.mongodb.PathMapping;
-import org.talend.components.mongodb.dataset.MongoDBDataSet;
+import org.talend.components.mongodb.dataset.BaseDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.components.mongodb.service.I18nMessage;
 import org.talend.components.mongodb.service.MongoDBService;
@@ -49,7 +50,7 @@ public class MongoDBReader implements Serializable {
 
     private static final transient Logger LOG = LoggerFactory.getLogger(MongoDBReader.class);
 
-    private final MongoDBSourceConfiguration configuration;
+    private final BaseSourceConfiguration configuration;
 
     private final RecordBuilderFactory builderFactory;
 
@@ -57,7 +58,7 @@ public class MongoDBReader implements Serializable {
 
     private transient MongoClient client;
 
-    public MongoDBReader(@Option("configuration") final MongoDBSourceConfiguration configuration, final MongoDBService service,
+    public MongoDBReader(@Option("configuration") final BaseSourceConfiguration configuration, final MongoDBService service,
             final RecordBuilderFactory builderFactory, final I18nMessage i18n) {
         this.configuration = configuration;
         this.service = service;
@@ -69,21 +70,34 @@ public class MongoDBReader implements Serializable {
 
     @PostConstruct
     public void init() {
-        MongoDBDataSet dataset = configuration.getDataset();
+        BaseDataSet dataset = configuration.getDataset();
         MongoDBDataStore datastore = dataset.getDatastore();
         client = service.createClient(datastore);
         MongoDatabase database = client.getDatabase(datastore.getDatabase());
         MongoCollection<Document> collection = database.getCollection(dataset.getCollection());
 
+        iterator = fetchData(dataset, collection);
+    }
+
+    // TODO make it generic
+    private Iterator<Document> fetchData(BaseDataSet dataset, MongoCollection<Document> collection) {
+        if (dataset instanceof MongoDBReadDataSet) {
+            return fetchData((MongoDBReadDataSet) dataset, collection);
+        } else {
+            return collection.find().iterator();
+        }
+    }
+
+    private Iterator<Document> fetchData(MongoDBReadDataSet dataset, MongoCollection<Document> collection) {
         Iterable iterable = null;
         switch (dataset.getQueryType()) {
         case FIND:
             BsonDocument query = service.getBsonDocument(dataset.getQuery());
             BsonDocument projection = service.getBsonDocument(dataset.getProjection());
             // FindIterable<Document>
-            int limit = configuration.getLimit();
+            int limit = dataset.getLimit();
             FindIterable ft = collection.find(query).projection(projection);
-            if(limit > 0) {
+            if (limit > 0) {
                 iterable = ft.limit(limit);
             } else {
                 iterable = ft;
@@ -101,7 +115,7 @@ public class MongoDBReader implements Serializable {
             break;
         }
 
-        iterator = iterable.iterator();
+        return iterable.iterator();
     }
 
     @Producer

@@ -1,15 +1,23 @@
+/*
+ * Copyright (C) 2006-2020 Talend Inc. - www.talend.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.talend.components.mongodb;
 
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.talend.components.mongodb.dataset.MongoDBDataSet;
+import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
-import org.talend.components.mongodb.service.I18nMessage;
-import org.talend.components.mongodb.service.MongoDBService;
-import org.talend.components.mongodb.source.MongoDBReader;
-import org.talend.components.mongodb.source.MongoDBSourceConfiguration;
-import org.talend.sdk.component.api.configuration.Option;
+import org.talend.components.mongodb.source.MongoDBQuerySourceConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
@@ -24,7 +32,7 @@ import java.util.List;
 import org.talend.sdk.component.junit.SimpleFactory;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
-//TODO current only for local test which have mongo env, will refactor it later
+// TODO current only for local test which have mongo env, will refactor it later
 @Slf4j
 @WithComponents("org.talend.components.mongodb")
 @DisplayName("testing of MongoDB connector")
@@ -38,7 +46,7 @@ public class MongoDBTestIT {
 
     @Test
     void testBasic() {
-        MongoDBDataSet dataset = getMongoDBDataSet("test");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("test");
 
         List<PathMapping> pathMappings = new ArrayList<>();
         pathMappings.add(new PathMapping("_id", "_id", ""));
@@ -48,7 +56,7 @@ public class MongoDBTestIT {
 
         dataset.setPathMappings(pathMappings);
 
-        MongoDBSourceConfiguration config = new MongoDBSourceConfiguration();
+        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
         executeJob(config);
@@ -59,7 +67,7 @@ public class MongoDBTestIT {
 
     @Test
     void testDate() {
-        MongoDBDataSet dataset = getMongoDBDataSet("bakesales");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
 
         List<PathMapping> pathMappings = new ArrayList<>();
         pathMappings.add(new PathMapping("_id", "_id", ""));
@@ -69,7 +77,7 @@ public class MongoDBTestIT {
 
         dataset.setPathMappings(pathMappings);
 
-        MongoDBSourceConfiguration config = new MongoDBSourceConfiguration();
+        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
         executeJob(config);
@@ -80,12 +88,12 @@ public class MongoDBTestIT {
 
     @Test
     void testFind() {
-        MongoDBDataSet dataset = getMongoDBDataSet("test");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("test");
 
         dataset.setQuery("{status : \"A\"}");
         dataset.setMode(Mode.DOCUMENT);
 
-        MongoDBSourceConfiguration config = new MongoDBSourceConfiguration();
+        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
         executeJob(config);
@@ -96,7 +104,7 @@ public class MongoDBTestIT {
 
     @Test
     void testAggregation() {
-        MongoDBDataSet dataset = getMongoDBDataSet("bakesales");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
 
         List<PathMapping> pathMappings = new ArrayList<>();
         pathMappings.add(new PathMapping("_id", "_id", ""));
@@ -106,9 +114,10 @@ public class MongoDBTestIT {
         dataset.setPathMappings(pathMappings);
 
         dataset.setQueryType(QueryType.AGGREGATION);
-        dataset.setAggregationStages(Arrays.asList("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }", "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }"));
+        dataset.setAggregationStages(Arrays.asList("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }",
+                "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }"));
 
-        MongoDBSourceConfiguration config = new MongoDBSourceConfiguration();
+        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
         executeJob(config);
@@ -117,12 +126,12 @@ public class MongoDBTestIT {
         System.out.println(res);
     }
 
-    private MongoDBDataSet getMongoDBDataSet(String collection) {
+    private MongoDBReadDataSet getMongoDBDataSet(String collection) {
         MongoDBDataStore datastore = new MongoDBDataStore();
         datastore.setAddress(new Adress("localhost", "27017"));
         datastore.setDatabase("test");
 
-        MongoDBDataSet dataset = new MongoDBDataSet();
+        MongoDBReadDataSet dataset = new MongoDBReadDataSet();
         dataset.setDatastore(datastore);
         dataset.setCollection(collection);
         return dataset;
@@ -130,10 +139,10 @@ public class MongoDBTestIT {
 
     @Test
     void testBasicDocumentMode() {
-        MongoDBDataSet dataset = getMongoDBDataSet("test");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("test");
         dataset.setMode(Mode.DOCUMENT);
 
-        MongoDBSourceConfiguration config = new MongoDBSourceConfiguration();
+        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
         executeJob(config);
@@ -142,10 +151,11 @@ public class MongoDBTestIT {
         System.out.println(res);
     }
 
-    private void executeJob(MongoDBSourceConfiguration configuration) {
+    private void executeJob(MongoDBQuerySourceConfiguration configuration) {
         final String inputConfig = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
-        Job.components().component("MongoDB_Source", "MongoDB://Source?" + inputConfig)
-                .component("collector", "test://collector").connections().from("MongoDB_Source").to("collector").build().run();
+        Job.components().component("MongoDB_CollectionQuerySource", "MongoDB://CollectionQuerySource?" + inputConfig)
+                .component("collector", "test://collector").connections().from("MongoDB_CollectionQuerySource").to("collector")
+                .build().run();
     }
 
 }
