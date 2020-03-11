@@ -17,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
+import org.talend.components.mongodb.service.MongoDBService;
 import org.talend.components.mongodb.source.MongoDBQuerySourceConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
@@ -39,10 +40,13 @@ import org.talend.sdk.component.runtime.manager.chain.Job;
 public class MongoDBTestIT {
 
     @Injected
-    protected BaseComponentsHandler componentsHandler;
+    private BaseComponentsHandler componentsHandler;
 
     @Service
-    protected RecordBuilderFactory recordBuilderFactory;
+    private RecordBuilderFactory recordBuilderFactory;
+
+    @Service
+    private MongoDBService mongoDBService;
 
     @Test
     void testBasic() {
@@ -149,6 +153,15 @@ public class MongoDBTestIT {
         final List<Record> res = componentsHandler.getCollectedData(Record.class);
 
         System.out.println(res);
+    }
+
+    @Test
+    void testHealthCheck() {
+        MongoDBDataStore datastore = new MongoDBDataStore();
+        datastore.setAddress(new Adress("localhost", "27017"));
+        datastore.setDatabase("test1");
+
+        System.out.println(mongoDBService.healthCheck(datastore));
     }
 
     private void executeJob(MongoDBQuerySourceConfiguration configuration) {
