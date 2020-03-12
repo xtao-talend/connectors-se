@@ -78,7 +78,7 @@ public class MongoDBReadDataSet implements BaseDataSet {
     @Option
     @ActiveIf(target = "queryType", value = "AGGREGATION")
     @Documentation("Aggregation stages")
-    private List<String> aggregationStages = Collections.emptyList();
+    private List<AggregationStage> aggregationStages = Collections.emptyList();
 
     @Option
     @Documentation("Sort by")

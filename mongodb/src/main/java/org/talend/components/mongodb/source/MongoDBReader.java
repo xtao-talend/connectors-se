@@ -21,6 +21,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.mongodb.AggregationStage;
 import org.talend.components.mongodb.PathMapping;
 import org.talend.components.mongodb.dataset.BaseDataSet;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
@@ -105,8 +106,8 @@ public class MongoDBReader implements Serializable {
             break;
         case AGGREGATION:
             List<BsonDocument> aggregationStages = new ArrayList<>();
-            for (String stage : dataset.getAggregationStages()) {
-                aggregationStages.add(service.getBsonDocument(stage));
+            for (AggregationStage stage : dataset.getAggregationStages()) {
+                aggregationStages.add(service.getBsonDocument(stage.getStage()));
             }
             // AggregateIterable<Document>
             iterable = collection.aggregate(aggregationStages).allowDiskUse(dataset.isEnableExternalSort());

@@ -117,9 +117,18 @@ public class MongoDBTestIT {
 
         dataset.setPathMappings(pathMappings);
 
+        List<AggregationStage> stages = new ArrayList<>();
+        AggregationStage stage = new AggregationStage();
+        stage.setStage("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }");
+        stages.add(stage);
+
+        stage = new AggregationStage();
+        stage.setStage(
+                "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }");
+        stages.add(stage);
+
         dataset.setQueryType(QueryType.AGGREGATION);
-        dataset.setAggregationStages(Arrays.asList("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }",
-                "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }"));
+        dataset.setAggregationStages(stages);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);

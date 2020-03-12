@@ -116,6 +116,9 @@ public class MongoDBService {
                 return new HealthCheckStatus(HealthCheckStatus.Status.KO, "Can't find the database : " + database);
             }
 
+            // TODO check connection status
+            // md.runCommand();
+
             return new HealthCheckStatus(HealthCheckStatus.Status.OK, "Connection OK");
         } catch (Exception exception) {
             String message = exception.getMessage();

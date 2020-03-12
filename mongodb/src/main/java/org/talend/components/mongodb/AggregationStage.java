@@ -23,23 +23,17 @@ import org.talend.sdk.component.api.meta.Documentation;
 import java.io.Serializable;
 
 @Data
-@AllArgsConstructor
+// @AllArgsConstructor if only one field in current class, will trigger a bug, please see
+// EnrichedPropertyEditorRegistry.doFindConverter
+// and PropertyEditorRegistry.findStructuralConverter
+// so here remove the construct with one field
 @NoArgsConstructor
-@GridLayouts({ @GridLayout({ @GridLayout.Row({ "column" }), @GridLayout.Row({ "originElement" }),
-        @GridLayout.Row({ "parentNodePath" }) }) })
-@Documentation("Path mapping")
-public class PathMapping implements Serializable {
+@GridLayouts({ @GridLayout({ @GridLayout.Row({ "stage" }) }) })
+@Documentation("Aggregation stage")
+public class AggregationStage implements Serializable {
 
     @Option
-    @Documentation("Column")
-    private String column;
-
-    @Option
-    @Documentation("the mongodb's origin element name in bson")
-    private String originElement;
-
-    @Option
-    @Documentation("Path to locate the parent node in json, then append there")
-    private String parentNodePath;
+    @Documentation("Stage")
+    private String stage;
 
 }
