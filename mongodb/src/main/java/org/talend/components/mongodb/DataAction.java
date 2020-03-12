@@ -12,11 +12,12 @@
  */
 package org.talend.components.mongodb;
 
+//hide update, upsert and delete as they don't support parallize
 public enum DataAction {
     INSERT,
-    UPDATE,
+    //UPDATE,
     SET,
-    UPSERT,
-    UPSERT_WITH_SET,
-    DELETE
+    //UPSERT,
+    UPSERT_WITH_SET
+    //DELETE
 }

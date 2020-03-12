@@ -31,11 +31,9 @@ import java.util.List;
 @Data
 @DataSet("MongoDBReadDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
-        @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "queryType" }), @GridLayout.Row({ "query" }),
-        @GridLayout.Row({ "projection" }), @GridLayout.Row({ "aggregationStages" }), @GridLayout.Row({ "sortBy" }),
-        @GridLayout.Row({ "limit" }), @GridLayout.Row({ "sample" }), @GridLayout.Row({ "setReadPreference" }),
-        @GridLayout.Row({ "readPreference" }) })
-@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
+        @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "query" })
+})
+//@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
 @Documentation("MongoDB DataSet for read only")
 public class MongoDBReadDataSet implements BaseDataSet {
 
@@ -59,16 +57,19 @@ public class MongoDBReadDataSet implements BaseDataSet {
     @Documentation("Path Mapping")
     private List<PathMapping> pathMappings = Collections.emptyList();
 
+    /*
     @Option
     @Documentation("Query type")
     private QueryType queryType = QueryType.FIND;
+    */
 
     @Option
     @Code("json")
-    @ActiveIf(target = "queryType", value = "FIND")
+    //@ActiveIf(target = "queryType", value = "FIND")
     @Documentation("Query")
     private String query = "{}";
 
+    /*
     @Option
     @Code("json")
     @ActiveIf(target = "queryType", value = "FIND")
@@ -108,4 +109,5 @@ public class MongoDBReadDataSet implements BaseDataSet {
     @ActiveIf(target = "queryType", value = "AGGREGATION")
     @Documentation("Enable external sort")
     private boolean enableExternalSort;
+     */
 }

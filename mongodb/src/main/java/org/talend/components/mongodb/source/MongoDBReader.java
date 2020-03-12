@@ -83,12 +83,15 @@ public class MongoDBReader implements Serializable {
     // TODO make it generic
     private Iterator<Document> fetchData(BaseDataSet dataset, MongoCollection<Document> collection) {
         if (dataset instanceof MongoDBReadDataSet) {
-            return fetchData((MongoDBReadDataSet) dataset, collection);
+            //return fetchData((MongoDBReadDataSet) dataset, collection);
+            BsonDocument query = service.getBsonDocument(((MongoDBReadDataSet) dataset).getQuery());
+            return collection.find(query).iterator();
         } else {
             return collection.find().iterator();
         }
     }
 
+    /*
     private Iterator<Document> fetchData(MongoDBReadDataSet dataset, MongoCollection<Document> collection) {
         Iterable iterable = null;
         switch (dataset.getQueryType()) {
@@ -118,6 +121,7 @@ public class MongoDBReader implements Serializable {
 
         return iterable.iterator();
     }
+    */
 
     @Producer
     public Record next() {

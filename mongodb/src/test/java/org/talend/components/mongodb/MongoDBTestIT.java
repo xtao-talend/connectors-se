@@ -106,6 +106,7 @@ public class MongoDBTestIT {
         System.out.println(res);
     }
 
+    /*
     @Test
     void testAggregation() {
         MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
@@ -138,6 +139,7 @@ public class MongoDBTestIT {
 
         System.out.println(res);
     }
+    */
 
     private MongoDBReadDataSet getMongoDBDataSet(String collection) {
         MongoDBDataStore datastore = new MongoDBDataStore();
