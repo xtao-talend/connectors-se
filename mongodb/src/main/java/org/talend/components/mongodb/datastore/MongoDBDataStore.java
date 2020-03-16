@@ -14,7 +14,7 @@ package org.talend.components.mongodb.datastore;
 
 import lombok.Data;
 import org.talend.components.mongodb.AddressType;
-import org.talend.components.mongodb.Adress;
+import org.talend.components.mongodb.Address;
 import org.talend.components.mongodb.Auth;
 import org.talend.components.mongodb.ConnectionParameter;
 import org.talend.sdk.component.api.component.Version;
@@ -49,17 +49,17 @@ public class MongoDBDataStore implements Serializable {
     @Option
     @ActiveIf(target = "addressType", value = "STANDALONE")
     @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
-    private Adress address;
+    private Address address;
 
     @Option
     @ActiveIf(target = "addressType", value = "REPLICA_SET")
     @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
-    private List<Adress> replicaSetAddress = Collections.emptyList();
+    private List<Address> replicaSetAddress = Collections.emptyList();
 
     @Option
     @ActiveIf(target = "addressType", value = "SHARDED_CLUSTER")
     @Documentation("https://docs.mongodb.com/manual/reference/connection-string/")
-    private List<Adress> shardedClusterAddress = Collections.emptyList();
+    private List<Address> shardedClusterAddress = Collections.emptyList();
 
     @Option
     @Required

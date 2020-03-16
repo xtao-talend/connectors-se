@@ -16,6 +16,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.talend.sdk.component.api.configuration.Option;
+import org.talend.sdk.component.api.configuration.constraint.Min;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayouts;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -27,7 +28,7 @@ import java.io.Serializable;
 @NoArgsConstructor
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "host" }), @GridLayout.Row({ "port" }) }) })
 @Documentation("Address")
-public class Adress implements Serializable {
+public class Address implements Serializable {
 
     @Option
     @Documentation("Host")
@@ -35,6 +36,7 @@ public class Adress implements Serializable {
 
     @Option
     @Documentation("Port")
-    private String port;
+    @Min(1)
+    private int port;
 
 }

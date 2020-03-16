@@ -12,7 +12,9 @@
  */
 package org.talend.components.mongodb;
 
+import com.mongodb.MongoClientOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Assert;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
@@ -26,8 +28,10 @@ import org.talend.sdk.component.junit.BaseComponentsHandler;
 import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.talend.sdk.component.junit.SimpleFactory;
@@ -58,7 +62,7 @@ public class MongoDBTestIT {
         pathMappings.add(new PathMapping("qty", "qty", ""));
         pathMappings.add(new PathMapping("status", "status", ""));
 
-        //dataset.setMode(Mode.MAPPING);
+        // dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
@@ -80,7 +84,7 @@ public class MongoDBTestIT {
         pathMappings.add(new PathMapping("quantity", "quantity", ""));
         pathMappings.add(new PathMapping("amount", "amount", ""));
 
-        //dataset.setMode(Mode.MAPPING);
+        // dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
@@ -146,8 +150,9 @@ public class MongoDBTestIT {
 
     private MongoDBReadDataSet getMongoDBDataSet(String collection) {
         MongoDBDataStore datastore = new MongoDBDataStore();
-        datastore.setAddress(new Adress("localhost", "27017"));
+        datastore.setAddress(new Address("localhost", 27017));
         datastore.setDatabase("test");
+        datastore.setAuth(new Auth());
 
         MongoDBReadDataSet dataset = new MongoDBReadDataSet();
         dataset.setDatastore(datastore);
@@ -171,11 +176,37 @@ public class MongoDBTestIT {
 
     @Test
     void testHealthCheck() {
-        MongoDBDataStore datastore = new MongoDBDataStore();
-        datastore.setAddress(new Adress("localhost", "27017"));
+        MongoDBDataStore datastore = getMongoDBDataSet("test").getDatastore();
+        datastore.setAddress(new Address("localhost", 27017));
         datastore.setDatabase("test1");
 
         System.out.println(mongoDBService.healthCheck(datastore));
+    }
+
+    @Test
+    void testMultiServers() {
+
+    }
+
+    @Test
+    void testAuth() {
+
+    }
+
+    @Test
+    void testGetOptions() {
+        MongoDBDataStore datastore = new MongoDBDataStore();
+        List<ConnectionParameter> cp = Arrays.asList(new ConnectionParameter("connectTimeoutMS", "300000"),
+                new ConnectionParameter("appName", "myapp"));
+        datastore.setConnectionParameter(cp);
+        MongoClientOptions options = mongoDBService.getOptions(datastore);
+        System.out.println(options.getConnectTimeout());
+        System.out.println(options.getApplicationName());
+
+        datastore.setConnectionParameter(Collections.emptyList());
+        options = mongoDBService.getOptions(datastore);
+        System.out.println(options.getConnectTimeout());
+        System.out.println(options.getApplicationName());
     }
 
     private void executeJob(MongoDBQuerySourceConfiguration configuration) {

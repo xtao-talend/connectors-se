@@ -12,16 +12,15 @@
  */
 package org.talend.components.mongodb.service;
 
-import com.mongodb.BasicDBObject;
-import com.mongodb.MongoClient;
-import com.mongodb.MongoClientOptions;
-import com.mongodb.MongoClientURI;
+import com.mongodb.*;
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.mongodb.Address;
+import org.talend.components.mongodb.Auth;
 import org.talend.components.mongodb.ConnectionParameter;
 import org.talend.components.mongodb.PathMapping;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
@@ -55,10 +54,32 @@ public class MongoDBService {
     private RecordBuilderFactory builderFactory;
 
     public MongoClient createClient(MongoDBDataStore datastore) {
-        String uri = constructConnectionString(datastore);
+        MongoCredential mc = getMongoCredential(datastore);
         try {
-            MongoClient mongoClient = new MongoClient(new MongoClientURI(uri, contrustOptions(datastore)));
-            return mongoClient;
+            switch (datastore.getAddressType()) {
+            case STANDALONE:
+                ServerAddress address = new ServerAddress(datastore.getAddress().getHost(), datastore.getAddress().getPort());
+                if (mc != null) {
+                    return new MongoClient(address, mc, getOptions(datastore));
+                } else {
+                    return new MongoClient(address, getOptions(datastore));
+                }
+            case REPLICA_SET:
+                // TODO check if it's right, not miss parameter like "replicaSet=myRepl"?
+                // https://docs.mongodb.com/manual/reference/connection-string/
+                if (mc != null) {
+                    return new MongoClient(getServerAddresses(datastore.getReplicaSetAddress()), mc, getOptions(datastore));
+                } else {
+                    return new MongoClient(getServerAddresses(datastore.getReplicaSetAddress()), getOptions(datastore));
+                }
+            case SHARDED_CLUSTER:
+                if (mc != null) {
+                    return new MongoClient(getServerAddresses(datastore.getShardedClusterAddress()), mc, getOptions(datastore));
+                } else {
+                    return new MongoClient(getServerAddresses(datastore.getShardedClusterAddress()), getOptions(datastore));
+                }
+            }
+            return null;
         } catch (Exception e) {
             // TODO use i18n
             LOG.error(i18n.example("p1", "p2"));
@@ -66,27 +87,48 @@ public class MongoDBService {
         }
     }
 
-    private String constructConnectionString(MongoDBDataStore datastore) {
-        String host = datastore.getAddress().getHost();
-        String port = datastore.getAddress().getPort();
-        // TODO construct more complex uri whith replica address and cluster addresss
-        switch (datastore.getAddressType()) {
-        case STANDALONE:
-            String uri = "mongodb://" + host + ":" + port;
-            return uri;
-        case REPLICA_SET:
-            // TODO
-            break;
-        case SHARDED_CLUSTER:
-            // TODO
-            break;
+    private MongoCredential getMongoCredential(MongoDBDataStore datastore) {
+        Auth auth = datastore.getAuth();
+        if (!auth.isNeedAuth()) {
+            return null;
         }
+
+        String authDatabase = auth.isUseAuthDatabase() ? auth.getAuthDatabase() : datastore.getDatabase();
+        switch (auth.getAuthMech()) {
+        case NEGOTIATE:
+            return MongoCredential.createCredential(auth.getUsername(), authDatabase, auth.getPassword().toCharArray());
+        case PLAIN_SASL:
+            return MongoCredential.createPlainCredential(auth.getUsername(), "$external", auth.getPassword().toCharArray());
+        case SCRAM_SHA_1_SASL:
+            return MongoCredential.createScramSha1Credential(auth.getUsername(), authDatabase, auth.getPassword().toCharArray());
+        }
+
         return null;
     }
 
-    private MongoClientOptions.Builder contrustOptions(MongoDBDataStore datastore) {
-        MongoClientOptions.Builder optionsBuilder = new MongoClientOptions.Builder();
-        List<ConnectionParameter> connectionParameters = datastore.getConnectionParameter();
+    private List<ServerAddress> getServerAddresses(List<Address> addresses) {
+        List<ServerAddress> result = new ArrayList<>();
+        for (Address address : addresses) {
+            result.add(new ServerAddress(address.getHost(), address.getPort()));
+        }
+        return result;
+    }
+
+    // https://docs.mongodb.com/manual/reference/connection-string/#connection-string-options
+    public MongoClientOptions getOptions(MongoDBDataStore datastore) {
+        StringBuilder uri = new StringBuilder("mongodb://noexist:27017/");// a fake uri, only work for get the options from key
+                                                                          // value string
+        boolean first = true;
+        for (ConnectionParameter parameter : datastore.getConnectionParameter()) {
+            if (first) {
+                uri.append('?');
+                first = false;
+            }
+            uri.append(parameter.getKey()).append('=').append(parameter.getValue()).append('&');
+        }
+        uri.deleteCharAt(uri.length() - 1);
+        MongoClientURI muri = new MongoClientURI(uri.toString());
+
         // TODO call right set method by the list above
         // optionsBuilder.maxConnectionIdleTime(1000);
 
@@ -101,7 +143,7 @@ public class MongoDBService {
          * }
          * }
          */
-        return optionsBuilder;
+        return muri.getOptions();
     }
 
     @HealthCheck("healthCheck")
