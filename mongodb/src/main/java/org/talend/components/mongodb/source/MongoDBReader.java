@@ -21,6 +21,7 @@ import org.bson.BsonDocument;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.talend.components.common.stream.input.json.JsonToRecord;
 import org.talend.components.mongodb.AggregationStage;
 import org.talend.components.mongodb.PathMapping;
 import org.talend.components.mongodb.dataset.BaseDataSet;
@@ -37,7 +38,11 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.json.Json;
+import javax.json.JsonObject;
+import javax.json.JsonReader;
 import java.io.Serializable;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -59,12 +64,16 @@ public class MongoDBReader implements Serializable {
 
     private transient MongoClient client;
 
+    private transient JsonToRecord jsonToRecord;
+
     public MongoDBReader(@Option("configuration") final BaseSourceConfiguration configuration, final MongoDBService service,
             final RecordBuilderFactory builderFactory, final I18nMessage i18n) {
         this.configuration = configuration;
         this.service = service;
         this.builderFactory = builderFactory;
         this.i18n = i18n;
+
+        this.jsonToRecord = new JsonToRecord(builderFactory);
     }
 
     Iterator<Document> iterator = null;
@@ -83,7 +92,7 @@ public class MongoDBReader implements Serializable {
     // TODO make it generic
     private Iterator<Document> fetchData(BaseDataSet dataset, MongoCollection<Document> collection) {
         if (dataset instanceof MongoDBReadDataSet) {
-            //return fetchData((MongoDBReadDataSet) dataset, collection);
+            // return fetchData((MongoDBReadDataSet) dataset, collection);
             BsonDocument query = service.getBsonDocument(((MongoDBReadDataSet) dataset).getQuery());
             return collection.find(query).iterator();
         } else {
@@ -92,36 +101,36 @@ public class MongoDBReader implements Serializable {
     }
 
     /*
-    private Iterator<Document> fetchData(MongoDBReadDataSet dataset, MongoCollection<Document> collection) {
-        Iterable iterable = null;
-        switch (dataset.getQueryType()) {
-        case FIND:
-            BsonDocument query = service.getBsonDocument(dataset.getQuery());
-            BsonDocument projection = service.getBsonDocument(dataset.getProjection());
-            // FindIterable<Document>
-            int limit = dataset.getLimit();
-            FindIterable ft = collection.find(query).projection(projection);
-            if (limit > 0) {
-                iterable = ft.limit(limit);
-            } else {
-                iterable = ft;
-            }
-            break;
-        case AGGREGATION:
-            List<BsonDocument> aggregationStages = new ArrayList<>();
-            for (AggregationStage stage : dataset.getAggregationStages()) {
-                aggregationStages.add(service.getBsonDocument(stage.getStage()));
-            }
-            // AggregateIterable<Document>
-            iterable = collection.aggregate(aggregationStages).allowDiskUse(dataset.isEnableExternalSort());
-            break;
-        default:
-            break;
-        }
-
-        return iterable.iterator();
-    }
-    */
+     * private Iterator<Document> fetchData(MongoDBReadDataSet dataset, MongoCollection<Document> collection) {
+     * Iterable iterable = null;
+     * switch (dataset.getQueryType()) {
+     * case FIND:
+     * BsonDocument query = service.getBsonDocument(dataset.getQuery());
+     * BsonDocument projection = service.getBsonDocument(dataset.getProjection());
+     * // FindIterable<Document>
+     * int limit = dataset.getLimit();
+     * FindIterable ft = collection.find(query).projection(projection);
+     * if (limit > 0) {
+     * iterable = ft.limit(limit);
+     * } else {
+     * iterable = ft;
+     * }
+     * break;
+     * case AGGREGATION:
+     * List<BsonDocument> aggregationStages = new ArrayList<>();
+     * for (AggregationStage stage : dataset.getAggregationStages()) {
+     * aggregationStages.add(service.getBsonDocument(stage.getStage()));
+     * }
+     * // AggregateIterable<Document>
+     * iterable = collection.aggregate(aggregationStages).allowDiskUse(dataset.isEnableExternalSort());
+     * break;
+     * default:
+     * break;
+     * }
+     * 
+     * return iterable.iterator();
+     * }
+     */
 
     @Producer
     public Record next() {
@@ -134,11 +143,30 @@ public class MongoDBReader implements Serializable {
 
     private Record convertDocument2Record(Document document) {
         switch (configuration.getDataset().getMode()) {
-        case DOCUMENT:
+        case TEXT:
             return toRecordWithWSingleDocumentContentColumn(document);
         case MAPPING:
+            return toFlatRecordWithMapping(document);
+        case JSON:
         default:
             return toFlatRecord(document);
+        }
+    }
+
+    private Record toFlatRecord(Document document) {
+        // TODO bson can convert to json with loss data? check it
+        String jsonContnt = document.toJson();
+        // can't use org.talend.components.common.stream.input.json.JsonRecordReader here, please see
+        // org.talend.components.common.stream.input.json.JsonRecordReaderTest that is not the result what we expect here
+        // here we expect one document, one record always
+        Record result = jsonToRecord.toRecord(getJsonObject(jsonContnt));
+        return result;
+    }
+
+    // TODO check it
+    private JsonObject getJsonObject(String jsonContent) {
+        try (JsonReader reader = Json.createReader(new StringReader(jsonContent))) {
+            return reader.readObject();
         }
     }
 
@@ -153,7 +181,7 @@ public class MongoDBReader implements Serializable {
     // only create schema by first document and path mapping
     private transient Schema schema;
 
-    private Record toFlatRecord(Document document) {
+    private Record toFlatRecordWithMapping(Document document) {
         List<PathMapping> pathMappings = initPathMappings(document);
         if (schema == null) {
             schema = service.createSchema(document, pathMappings);

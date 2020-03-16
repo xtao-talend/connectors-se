@@ -31,8 +31,7 @@ import java.util.List;
 @Data
 @DataSet("MongoDBReadAndWriteDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
-        @GridLayout.Row({ "pathMappings" })
-})
+        @GridLayout.Row({ "pathMappings" }) })
 // @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "todo" }) })
 @Documentation("MongoDB DataSet for read and write both")
 public class MongoDBReadAndWriteDataSet implements BaseDataSet {
@@ -49,7 +48,7 @@ public class MongoDBReadAndWriteDataSet implements BaseDataSet {
     @Option
     @Required
     @Documentation("Mode")
-    private Mode mode = Mode.MAPPING;
+    private Mode mode = Mode.JSON;
 
     // TODO almost impossible to split dataset with source and sink, the common part is almost no meaning as dataset
     @Option
@@ -58,11 +57,15 @@ public class MongoDBReadAndWriteDataSet implements BaseDataSet {
     private List<PathMapping> pathMappings = Collections.emptyList();
 
     /*
-    // TODO readonly and only for user view data
-    @Option
-    @Code("json")
-    @ActiveIf(target = "mode", value = "DOCUMENT")
-    @Documentation("Sample for document json")
-    private String sample;
-    */
+     * // TODO readonly and only for user view data
+     * 
+     * @Option
+     * 
+     * @Code("json")
+     * 
+     * @ActiveIf(target = "mode", value = "DOCUMENT")
+     * 
+     * @Documentation("Sample for document json")
+     * private String sample;
+     */
 }

@@ -69,10 +69,11 @@ public class MongoDBDataStore implements Serializable {
     // TODO have to support the function for locate a file for cert if need cert? or trust any cert, not good for me?
     // maybe remove it
     /*
-    @Option
-    @Documentation("Use SSL")
-    private boolean useSSL;
-    */
+     * @Option
+     * 
+     * @Documentation("Use SSL")
+     * private boolean useSSL;
+     */
 
     @Option
     @Documentation("auth page")

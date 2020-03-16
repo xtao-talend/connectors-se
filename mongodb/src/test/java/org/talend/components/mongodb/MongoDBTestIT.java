@@ -58,6 +58,7 @@ public class MongoDBTestIT {
         pathMappings.add(new PathMapping("qty", "qty", ""));
         pathMappings.add(new PathMapping("status", "status", ""));
 
+        //dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
@@ -79,6 +80,7 @@ public class MongoDBTestIT {
         pathMappings.add(new PathMapping("quantity", "quantity", ""));
         pathMappings.add(new PathMapping("amount", "amount", ""));
 
+        //dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
@@ -95,7 +97,7 @@ public class MongoDBTestIT {
         MongoDBReadDataSet dataset = getMongoDBDataSet("test");
 
         dataset.setQuery("{status : \"A\"}");
-        dataset.setMode(Mode.DOCUMENT);
+        dataset.setMode(Mode.TEXT);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
@@ -107,39 +109,40 @@ public class MongoDBTestIT {
     }
 
     /*
-    @Test
-    void testAggregation() {
-        MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
-
-        List<PathMapping> pathMappings = new ArrayList<>();
-        pathMappings.add(new PathMapping("_id", "_id", ""));
-        pathMappings.add(new PathMapping("sales_quantity", "sales_quantity", ""));
-        pathMappings.add(new PathMapping("sales_amount", "sales_amount", ""));
-
-        dataset.setPathMappings(pathMappings);
-
-        List<AggregationStage> stages = new ArrayList<>();
-        AggregationStage stage = new AggregationStage();
-        stage.setStage("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }");
-        stages.add(stage);
-
-        stage = new AggregationStage();
-        stage.setStage(
-                "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }");
-        stages.add(stage);
-
-        dataset.setQueryType(QueryType.AGGREGATION);
-        dataset.setAggregationStages(stages);
-
-        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
-        config.setDataset(dataset);
-
-        executeJob(config);
-        final List<Record> res = componentsHandler.getCollectedData(Record.class);
-
-        System.out.println(res);
-    }
-    */
+     * @Test
+     * void testAggregation() {
+     * MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
+     * 
+     * List<PathMapping> pathMappings = new ArrayList<>();
+     * pathMappings.add(new PathMapping("_id", "_id", ""));
+     * pathMappings.add(new PathMapping("sales_quantity", "sales_quantity", ""));
+     * pathMappings.add(new PathMapping("sales_amount", "sales_amount", ""));
+     * 
+     * dataset.setPathMappings(pathMappings);
+     * 
+     * List<AggregationStage> stages = new ArrayList<>();
+     * AggregationStage stage = new AggregationStage();
+     * stage.setStage("{ $match: { date: { $gte: new ISODate(\"2018-12-05\") } } }");
+     * stages.add(stage);
+     * 
+     * stage = new AggregationStage();
+     * stage.setStage(
+     * "{ $group: { _id: { $dateToString: { format: \"%Y-%m\", date: \"$date\" } }, sales_quantity: { $sum: \"$quantity\"}, sales_amount: { $sum: \"$amount\" } } }"
+     * );
+     * stages.add(stage);
+     * 
+     * dataset.setQueryType(QueryType.AGGREGATION);
+     * dataset.setAggregationStages(stages);
+     * 
+     * MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
+     * config.setDataset(dataset);
+     * 
+     * executeJob(config);
+     * final List<Record> res = componentsHandler.getCollectedData(Record.class);
+     * 
+     * System.out.println(res);
+     * }
+     */
 
     private MongoDBReadDataSet getMongoDBDataSet(String collection) {
         MongoDBDataStore datastore = new MongoDBDataStore();
@@ -155,7 +158,7 @@ public class MongoDBTestIT {
     @Test
     void testBasicDocumentMode() {
         MongoDBReadDataSet dataset = getMongoDBDataSet("test");
-        dataset.setMode(Mode.DOCUMENT);
+        dataset.setMode(Mode.TEXT);
 
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);

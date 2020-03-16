@@ -134,7 +134,7 @@ public class MongoDBProcessor implements Serializable {
 
     @ElementListener
     public void onNext(@Input final Record record) {
-        if (configuration.getDataset().getMode() == Mode.DOCUMENT) {
+        if (configuration.getDataset().getMode() == Mode.TEXT) {
             // we store the whole document here as a string
             String uniqueFieldName = record.getSchema().getEntries().get(0).getName();
             String value = record.getString(uniqueFieldName);

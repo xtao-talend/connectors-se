@@ -31,9 +31,8 @@ import java.util.List;
 @Data
 @DataSet("MongoDBReadDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
-        @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "query" })
-})
-//@GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
+        @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "query" }) })
+// @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
 @Documentation("MongoDB DataSet for read only")
 public class MongoDBReadDataSet implements BaseDataSet {
 
@@ -49,7 +48,7 @@ public class MongoDBReadDataSet implements BaseDataSet {
     @Option
     @Required
     @Documentation("Mode")
-    private Mode mode = Mode.MAPPING;
+    private Mode mode = Mode.JSON;
 
     // TODO almost impossible to split dataset with source and sink, the common part is almost no meaning as dataset
     @Option
@@ -58,56 +57,73 @@ public class MongoDBReadDataSet implements BaseDataSet {
     private List<PathMapping> pathMappings = Collections.emptyList();
 
     /*
-    @Option
-    @Documentation("Query type")
-    private QueryType queryType = QueryType.FIND;
-    */
+     * @Option
+     * 
+     * @Documentation("Query type")
+     * private QueryType queryType = QueryType.FIND;
+     */
 
     @Option
     @Code("json")
-    //@ActiveIf(target = "queryType", value = "FIND")
+    // @ActiveIf(target = "queryType", value = "FIND")
     @Documentation("Query")
     private String query = "{}";
 
     /*
-    @Option
-    @Code("json")
-    @ActiveIf(target = "queryType", value = "FIND")
-    @Documentation("http://mongodb.github.io/mongo-java-driver/4.0/driver-scala/builders/projections/")
-    private String projection = "{}";
-
-    @Option
-    @ActiveIf(target = "queryType", value = "AGGREGATION")
-    @Documentation("Aggregation stages")
-    private List<AggregationStage> aggregationStages = Collections.emptyList();
-
-    @Option
-    @Documentation("Sort by")
-    private List<SortBy> sortBy = Collections.emptyList();
-
-    @Option
-    @Documentation("Maximum number of documents to be returned")
-    private int limit = -1;
-
-    // TODO readonly and only for user view data
-    @Option
-    @Code("json")
-    @ActiveIf(target = "mode", value = "DOCUMENT")
-    @Documentation("Sample for document json")
-    private String sample;
-
-    @Option
-    @Documentation("Set read preference")
-    private boolean setReadPreference;
-
-    @Option
-    @ActiveIf(target = "setReadPreference", value = "true")
-    @Documentation("Read preference")
-    private ReadPreference readPreference = ReadPreference.PRIMARY;
-
-    @Option
-    @ActiveIf(target = "queryType", value = "AGGREGATION")
-    @Documentation("Enable external sort")
-    private boolean enableExternalSort;
+     * @Option
+     * 
+     * @Code("json")
+     * 
+     * @ActiveIf(target = "queryType", value = "FIND")
+     * 
+     * @Documentation("http://mongodb.github.io/mongo-java-driver/4.0/driver-scala/builders/projections/")
+     * private String projection = "{}";
+     * 
+     * @Option
+     * 
+     * @ActiveIf(target = "queryType", value = "AGGREGATION")
+     * 
+     * @Documentation("Aggregation stages")
+     * private List<AggregationStage> aggregationStages = Collections.emptyList();
+     * 
+     * @Option
+     * 
+     * @Documentation("Sort by")
+     * private List<SortBy> sortBy = Collections.emptyList();
+     * 
+     * @Option
+     * 
+     * @Documentation("Maximum number of documents to be returned")
+     * private int limit = -1;
+     * 
+     * // TODO readonly and only for user view data
+     * 
+     * @Option
+     * 
+     * @Code("json")
+     * 
+     * @ActiveIf(target = "mode", value = "DOCUMENT")
+     * 
+     * @Documentation("Sample for document json")
+     * private String sample;
+     * 
+     * @Option
+     * 
+     * @Documentation("Set read preference")
+     * private boolean setReadPreference;
+     * 
+     * @Option
+     * 
+     * @ActiveIf(target = "setReadPreference", value = "true")
+     * 
+     * @Documentation("Read preference")
+     * private ReadPreference readPreference = ReadPreference.PRIMARY;
+     * 
+     * @Option
+     * 
+     * @ActiveIf(target = "queryType", value = "AGGREGATION")
+     * 
+     * @Documentation("Enable external sort")
+     * private boolean enableExternalSort;
      */
 }
