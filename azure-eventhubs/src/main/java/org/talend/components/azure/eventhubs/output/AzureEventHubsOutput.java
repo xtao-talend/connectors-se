@@ -12,26 +12,24 @@
  */
 package org.talend.components.azure.eventhubs.output;
 
+import static com.azure.messaging.eventhubs.implementation.ClientConstants.ENDPOINT_FORMAT;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DOMAIN_NAME;
+
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.Locale;
 
 import javax.annotation.PreDestroy;
 import javax.json.JsonBuilderFactory;
 import javax.json.JsonReaderFactory;
 import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
 import javax.json.spi.JsonProvider;
 
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.EncoderFactory;
@@ -51,24 +49,19 @@ import org.talend.sdk.component.api.processor.ElementListener;
 import org.talend.sdk.component.api.processor.Input;
 import org.talend.sdk.component.api.processor.Processor;
 import org.talend.sdk.component.api.record.Record;
-import org.talend.sdk.component.api.service.Service;
-import org.talend.sdk.component.api.service.configuration.LocalConfiguration;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
-import com.microsoft.azure.eventhubs.BatchOptions;
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.EventDataBatch;
-import com.microsoft.azure.eventhubs.EventHubClient;
-import com.microsoft.azure.eventhubs.EventHubException;
+import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventDataBatch;
+import com.azure.messaging.eventhubs.EventHubClientBuilder;
+import com.azure.messaging.eventhubs.EventHubProducerClient;
+import com.azure.messaging.eventhubs.models.CreateBatchOptions;
 
 import lombok.extern.slf4j.Slf4j;
 
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
-
 @Slf4j
 @Version
-@Icon(Icon.IconType.AZURE_EVENT_HUBS)
+@Icon(value = Icon.IconType.CUSTOM, custom = "azure-event-hubs")
 @Processor(name = "AzureEventHubsOutput")
 @Documentation("AzureEventHubs output")
 public class AzureEventHubsOutput implements Serializable {
@@ -81,9 +74,7 @@ public class AzureEventHubsOutput implements Serializable {
 
     private boolean init;
 
-    private ScheduledExecutorService executorService;
-
-    private EventHubClient eventHubClient;
+    private EventHubProducerClient eventHubClient;
 
     private RecordConverter recordConverter;
 
@@ -119,7 +110,7 @@ public class AzureEventHubsOutput implements Serializable {
     }
 
     @ElementListener
-    public void elementListener(@Input final Record record) throws URISyntaxException, IOException, EventHubException {
+    public void elementListener(@Input final Record record) {
         if (!init) {
             // prevent creating db connection if no records
             // it's mostly useful for streaming scenario
@@ -128,16 +119,21 @@ public class AzureEventHubsOutput implements Serializable {
         records.add(record);
     }
 
-    private void lazyInit() throws URISyntaxException, IOException, EventHubException {
+    private void lazyInit() {
         this.init = true;
-        executorService = Executors.newScheduledThreadPool(1);
-        final ConnectionStringBuilder connStr = new ConnectionStringBuilder()//
-                .setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));
-        connStr.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
-        connStr.setSasKey(configuration.getDataset().getConnection().getSasKey());
-        connStr.setEventHubName(configuration.getDataset().getEventHubName());
+        String endpoint = null;
+        if (configuration.getDataset().getConnection().isSpecifyEndpoint()) {
+            endpoint = configuration.getDataset().getConnection().getEndpoint();//
+        } else {
+            endpoint = String.format(Locale.US, ENDPOINT_FORMAT, configuration.getDataset().getConnection().getNamespace(),
+                    DEFAULT_DOMAIN_NAME);
+        }
 
-        eventHubClient = EventHubClient.createSync(connStr.toString(), executorService);
+        String ehConnString = String.format("Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s", endpoint,
+                configuration.getDataset().getConnection().getSasKeyName(),
+                configuration.getDataset().getConnection().getSasKey(), configuration.getDataset().getEventHubName());
+
+        eventHubClient = new EventHubClientBuilder().connectionString(ehConnString).buildProducerClient();
 
     }
 
@@ -145,11 +141,14 @@ public class AzureEventHubsOutput implements Serializable {
     public void afterGroup() {
 
         try {
-            BatchOptions options = new BatchOptions();
+            EventDataBatch events = null;
             if (AzureEventHubsOutputConfiguration.PartitionType.COLUMN.equals(configuration.getPartitionType())) {
-                options.partitionKey = configuration.getKeyColumn();
+                CreateBatchOptions options = new CreateBatchOptions();
+                options.setPartitionKey(configuration.getKeyColumn());
+                events = eventHubClient.createBatch(options);
+            } else {
+                events = eventHubClient.createBatch();
             }
-            final EventDataBatch events = eventHubClient.createBatch(options);
             for (Record record : records) {
                 log.debug(record.toString());
                 byte[] payloadBytes = null;
@@ -197,9 +196,9 @@ public class AzureEventHubsOutput implements Serializable {
                 default:
                     throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
                 }
-                events.tryAdd(EventData.create(payloadBytes));
+                events.tryAdd(new EventData(payloadBytes));
             }
-            eventHubClient.sendSync(events);
+            eventHubClient.send(events);
         } catch (final Throwable e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
@@ -209,10 +208,7 @@ public class AzureEventHubsOutput implements Serializable {
     public void preDestroy() {
         try {
             if (eventHubClient != null) {
-                eventHubClient.closeSync();
-            }
-            if (executorService != null) {
-                executorService.shutdown();
+                eventHubClient.close();
             }
         } catch (Exception e) {
             throw new IllegalStateException(e.getMessage(), e);

@@ -28,4 +28,6 @@ public interface Messages {
     String errorNoAvailableReceiver();
 
     String errorMissingElement(String element);
+
+    String invalidatedSASURL();
 }

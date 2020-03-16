@@ -16,9 +16,10 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 
 import java.io.Serializable;
 
+import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
+import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.extension.Reference;
 import org.talend.components.extension.Reference.Bindings;
-import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
@@ -34,7 +35,7 @@ import lombok.Data;
         @GridLayout.Row({ "autoOffsetReset" }), //
         @GridLayout.Row({ "sequenceNum", "inclusiveFlag" }), //
         @GridLayout.Row({ "enqueuedDateTime" }), //
-        @GridLayout.Row({ "storageConn" }), //
+        @GridLayout.Row({ "storageConnectionSignature" }), //
         @GridLayout.Row({ "containerName" }), //
         @GridLayout.Row({ "commitOffsetEvery" }) })
 
@@ -71,11 +72,9 @@ public class AzureEventHubsStreamInputConfiguration implements Serializable {
 
     @Option
     @Reference(configurationId = "YXp1cmVibG9iI0F6dXJlI2RhdGFzdG9yZSNkZWZhdWx0", bindings = {
-            @Bindings(from = "configuration.accountConnection.accountName", to = "configuration.storageConn.accountName"),
-            @Bindings(from = "configuration.accountConnection.accountKey", to = "configuration.storageConn.accountKey"),
-            @Bindings(from = "configuration.accountConnection.protocol", to = "configuration.storageConn.protocol") })
+            @Bindings(from = "configuration.signatureConnection.azureSharedAccessSignature", to = "configuration.storageConnectionSignature.azureSharedAccessSignature") })
     @Documentation("Connection for the Azure Storage account to use for persisting leases and checkpoints.")
-    private AzureStorageConnectionAccount storageConn;
+    private AzureStorageConnectionSignature storageConnectionSignature;
 
     @Option
     @Documentation("Azure Storage container name for use by built-in lease and checkpoint manager.")

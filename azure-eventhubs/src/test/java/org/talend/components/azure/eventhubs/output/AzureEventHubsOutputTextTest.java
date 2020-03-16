@@ -22,6 +22,7 @@ import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.talend.components.azure.eventhubs.AzureEventHubsRWTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
@@ -38,6 +39,7 @@ import org.talend.sdk.component.runtime.manager.chain.Job;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Disabled("Run manually follow the comment")
 @WithComponents("org.talend.components.azure.eventhubs")
 class AzureEventHubsOutputTextTest extends AzureEventHubsRWTestBase {
 
@@ -80,7 +82,7 @@ class AzureEventHubsOutputTextTest extends AzureEventHubsRWTestBase {
         final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.TEXT);
-        dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
+        dataSet.setEventHubName(EVENTHUB_NAME);
         return dataSet;
     }
 

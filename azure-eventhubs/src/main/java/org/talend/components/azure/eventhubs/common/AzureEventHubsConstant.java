@@ -18,33 +18,6 @@ public class AzureEventHubsConstant {
 
     public static final String DEFAULT_CONSUMER_GROUP = "$Default";
 
-    /**
-     * Represents the setting name for the account key.
-     */
-    public static final String ACCOUNT_KEY_NAME = "AccountKey";
-
-    /**
-     * Represents the setting name for the account name.
-     */
-    public static final String ACCOUNT_NAME_NAME = "AccountName";
-
-    /**
-     * Represents the root storage DNS name.
-     */
-    public static final String DEFAULT_DNS = "core.windows.net";
-
-    /**
-     * Represents the setting name for a custom storage endpoint suffix.
-     */
-    public static final String ENDPOINT_SUFFIX_NAME = "EndpointSuffix";
-
-    /**
-     * The setting name for using the default storage endpoints with the specified protocol.
-     */
-    public static final String DEFAULT_ENDPOINTS_PROTOCOL_NAME = "DefaultEndpointsProtocol";
-
-    public static final String CHECKPOINTING_EVERY = "CHECKPOINTING_EVERY";
-
     public static final String PARTITION_ID = "PARTITION_ID";
 
     public static final String DEFAULT_PARTITION_ID = "0";
@@ -53,4 +26,7 @@ public class AzureEventHubsConstant {
 
     public static final String PAYLOAD_COLUMN = "Event";
 
+    public static final String DEFAULT_DOMAIN_NAME = "servicebus.windows.net";
+
+    public static final String EH_CONNECTION_PATTERN = "Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s";
 }

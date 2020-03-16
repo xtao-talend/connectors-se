@@ -33,7 +33,7 @@ class UiActionServiceTest extends AzureEventHubsTestBase {
 
     private static final String INVALID_NAMESPACE = "not-exit-ns";
 
-    private static final String VALID_NAMESPACE = "comp-test";
+    private static final String VALID_NAMESPACE = "comptest";
 
     // Bad config
     private static final String BAD_SHARED_EVENTHUB_NAME = "not-exist-event-hub";

@@ -12,21 +12,19 @@
  */
 package org.talend.components.azure.eventhubs.source.streaming;
 
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
+import static com.azure.messaging.eventhubs.implementation.ClientConstants.ENDPOINT_FORMAT;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DOMAIN_NAME;
 
-import java.io.IOException;
 import java.io.Serializable;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -53,14 +51,11 @@ import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
-import com.microsoft.azure.eventhubs.ConnectionStringBuilder;
-import com.microsoft.azure.eventhubs.EventData;
-import com.microsoft.azure.eventhubs.EventHubClient;
-import com.microsoft.azure.eventhubs.EventHubException;
-import com.microsoft.azure.eventhubs.EventHubRuntimeInformation;
-import com.microsoft.azure.eventhubs.EventPosition;
-import com.microsoft.azure.eventhubs.PartitionReceiver;
-import com.microsoft.azure.eventhubs.PartitionRuntimeInformation;
+import com.azure.messaging.eventhubs.EventData;
+import com.azure.messaging.eventhubs.EventHubClientBuilder;
+import com.azure.messaging.eventhubs.EventHubConsumerClient;
+import com.azure.messaging.eventhubs.models.EventPosition;
+import com.azure.messaging.eventhubs.models.PartitionEvent;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -74,11 +69,9 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     private ReceiverManager receiverManager;
 
-    private ScheduledExecutorService executorService;
+    private Iterator<PartitionEvent> receivedEvents;
 
-    private Iterator<EventData> receivedEvents;
-
-    private EventHubClient ehClient;
+    private EventHubConsumerClient ehClient;
 
     private long count;
 
@@ -117,31 +110,25 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     @PostConstruct
     public void init() {
-        try {
-            executorService = Executors.newScheduledThreadPool(8);
-
-            final ConnectionStringBuilder connStr = new ConnectionStringBuilder();
-            if (configuration.getDataset().getConnection().isSpecifyEndpoint()) {
-                connStr.setEndpoint(new URI(configuration.getDataset().getConnection().getEndpoint()));//
-            } else {
-                connStr.setNamespaceName(configuration.getDataset().getConnection().getNamespace());
-            }
-            connStr.setSasKeyName(configuration.getDataset().getConnection().getSasKeyName());
-            connStr.setSasKey(configuration.getDataset().getConnection().getSasKey());
-            connStr.setEventHubName(configuration.getDataset().getEventHubName());
-
-            ehClient = EventHubClient.createSync(connStr.toString(), executorService);
-            receiverManager = new ReceiverManager();
-            EventHubRuntimeInformation runtimeInfo = ehClient.getRuntimeInformation().get();
-            partitionIds = runtimeInfo.getPartitionIds();
-            receiverManager.addPartitions(partitionIds);
-            if (!receiverManager.isReceiverAvailable()) {
-                throw new IllegalStateException(messages.errorNoAvailableReceiver());
-            }
-        } catch (IOException | EventHubException | URISyntaxException | ExecutionException | InterruptedException e) {
-            throw new IllegalStateException(e.getMessage(), e);
+        String endpoint = null;
+        if (configuration.getDataset().getConnection().isSpecifyEndpoint()) {
+            endpoint = configuration.getDataset().getConnection().getEndpoint();//
+        } else {
+            endpoint = String.format(Locale.US, ENDPOINT_FORMAT, configuration.getDataset().getConnection().getNamespace(),
+                    DEFAULT_DOMAIN_NAME);
         }
 
+        String ehConnString = String.format("Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s", endpoint,
+                configuration.getDataset().getConnection().getSasKeyName(),
+                configuration.getDataset().getConnection().getSasKey(), configuration.getDataset().getEventHubName());
+
+        ehClient = new EventHubClientBuilder().connectionString(ehConnString).consumerGroup(configuration.getConsumerGroupName())
+                .buildConsumerClient();
+        receiverManager = new ReceiverManager();
+        List<String> partitionIdList = new ArrayList<String>();
+        ehClient.getPartitionIds().forEach(p -> partitionIdList.add(p));
+        partitionIds = partitionIdList.toArray(new String[partitionIdList.size()]);
+        receiverManager.addPartitions(partitionIds);
     }
 
     @Producer
@@ -150,15 +137,18 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
             if (receivedEvents == null || !receivedEvents.hasNext()) {
                 log.debug("fetch messages...");
                 // TODO let it configurable?
-                Iterable<EventData> iterable = receiverManager.getBatchEventData(100);
-                if (iterable == null) {
+                receivedEvents = receiverManager.getBatchEventData();
+                if (receivedEvents == null) {
                     log.debug("no record available now!");
                     return null;
                 }
-                receivedEvents = iterable.iterator();
             }
             if (receivedEvents.hasNext()) {
-                EventData eventData = receivedEvents.next();
+                PartitionEvent partitionEvent = receivedEvents.next();
+                // update the position which current partition have read
+                EventData eventData = partitionEvent.getData();
+                receiverManager.updatePartitionPosition(partitionEvent.getPartitionContext().getPartitionId(),
+                        EventPosition.fromSequenceNumber(eventData.getSequenceNumber()));
                 Record record = null;
                 if (eventData != null) {
                     count++;
@@ -171,7 +161,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                             schema = new org.apache.avro.Schema.Parser().parse(configuration.getDataset().getAvroSchema());
                             datumReader = new GenericDatumReader<GenericRecord>(schema);
                         }
-                        decoder = DecoderFactory.get().binaryDecoder(eventData.getBytes(), decoder);
+                        decoder = DecoderFactory.get().binaryDecoder(eventData.getBody(), decoder);
                         record = recordConverter.toRecord(datumReader.read(null, decoder));
                         break;
                     }
@@ -180,14 +170,14 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                             recordConverter = CSVConverter.of(recordBuilderFactory,
                                     configuration.getDataset().getFieldDelimiter(), messages);
                         }
-                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        record = recordConverter.toRecord(eventData.getBodyAsString());
                         break;
                     }
                     case TEXT: {
                         if (recordConverter == null) {
                             recordConverter = TextConverter.of(recordBuilderFactory, messages);
                         }
-                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        record = recordConverter.toRecord(eventData.getBodyAsString());
                         break;
                     }
                     case JSON: {
@@ -195,7 +185,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                             recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider,
                                     readerFactory, jsonb, messages);
                         }
-                        record = recordConverter.toRecord(new String(eventData.getBytes(), DEFAULT_CHARSET));
+                        record = recordConverter.toRecord(eventData.getBodyAsString());
                         break;
                     }
                     default:
@@ -203,6 +193,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                     }
                     log.debug(record.toString());
                 }
+                System.out.println(record.toString());
                 return record;
             } else {
                 return next();
@@ -214,12 +205,11 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     @PreDestroy
     public void release() {
-        try {
+        if (receiverManager != null) {
             receiverManager.closeAll();
-            ehClient.closeSync();
-            executorService.shutdown();
-        } catch (Exception e) {
-            throw new IllegalStateException(e.getMessage(), e);
+        }
+        if (ehClient != null) {
+            ehClient.close();
         }
     }
 
@@ -229,21 +219,20 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
         private Queue<String> partitionInQueue;
 
-        PartitionReceiver activedReceiver;
+        Iterator<PartitionEvent> events;
 
         ReceiverManager() {
             this.eventPositionMap = new LinkedHashMap<>();
             this.partitionInQueue = new LinkedList<>();
         }
 
-        void addPartitions(String... partitionIds) throws ExecutionException, InterruptedException {
+        void addPartitions(String... partitionIds) {
             for (String partitionId : partitionIds) {
                 // This would check whether position config is validate or not at the moment
                 if (!eventPositionMap.containsKey(partitionId)) {
-                    PartitionRuntimeInformation partitionRuntimeInfo = ehClient.getPartitionRuntimeInformation(partitionId).get();
                     try {
-                        EventPosition position = EventPosition.fromStartOfStream();
-                        receiverManager.updatePartitionPositation(partitionId, position);
+                        EventPosition position = EventPosition.earliest();
+                        receiverManager.updatePartitionPosition(partitionId, position);
                     } catch (IllegalArgumentException e) {
                         log.warn(e.getMessage());
                     }
@@ -255,53 +244,46 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
             }
         }
 
-        boolean isReceiverAvailable() throws EventHubException {
+        boolean isReceiverAvailable() {
             // eventPositionMap and partitionInQueue should not empty
-            if (activedReceiver == null && !this.eventPositionMap.isEmpty()) {
+            if ((events == null || !events.hasNext()) && !this.eventPositionMap.isEmpty()) {
                 while (!partitionInQueue.isEmpty()) {
-                    String partitionId = partitionInQueue.poll();
+                    String partitionId = partitionInQueue.peek();
                     if (partitionId != null && eventPositionMap.get(partitionId) == null) {
                         // No available position to create receiver. continue check next
                         continue;
                     } else {
-                        this.activedReceiver = ehClient.createEpochReceiverSync(configuration.getConsumerGroupName(), partitionId,
-                                eventPositionMap.get(partitionId), Integer.MAX_VALUE);
-                        this.activedReceiver.setReceiveTimeout(Duration.ofMillis(1000));// TODO
-                                                                                        // changeme
-                        break;
+                        // TODO batch size and read timeout configurable ?
+                        System.out.println(eventPositionMap.get(partitionId));
+                        events = ehClient.receiveFromPartition(partitionId, 100, eventPositionMap.get(partitionId),
+                                Duration.ofMillis(1000)).iterator();
+                        if (events != null && events.hasNext()) {
+                            return true;
+                        } else {
+                            // pool the partition id which data have been read
+                            partitionInQueue.poll();
+                            continue;
+                        }
                     }
                 }
             }
-            return activedReceiver != null;
+            return events != null && events.hasNext();
         }
 
-        void updatePartitionPositation(String partitionId, EventPosition position) {
+        void updatePartitionPosition(String partitionId, EventPosition position) {
             eventPositionMap.put(partitionId, position);
         }
 
-        Iterable<EventData> getBatchEventData(int maxBatchSize) throws EventHubException {
+        Iterator<PartitionEvent> getBatchEventData() {
             while (isReceiverAvailable()) {
-                Iterable<EventData> iterable = activedReceiver.receiveSync(maxBatchSize);
-                if (iterable == null) {
-                    // Current receiver no data received at the moment
-                    activedReceiver.closeSync();
-                    activedReceiver = null;
-                    continue;
-                }
-                // update the position which current partition have read
-                updatePartitionPositation(activedReceiver.getPartitionId(), activedReceiver.getEventPosition());
-                return iterable;
+                return this.events;
             }
             return null;
         }
 
-        void closeAll() throws EventHubException {
+        void closeAll() {
             eventPositionMap.clear();
             partitionInQueue.clear();
-            if (activedReceiver != null) {
-                activedReceiver.closeSync();
-                activedReceiver = null;
-            }
         }
 
     }

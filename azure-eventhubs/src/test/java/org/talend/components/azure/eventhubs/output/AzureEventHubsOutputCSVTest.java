@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.List;
 
 import org.apache.beam.sdk.Pipeline;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.talend.components.azure.eventhubs.AzureEventHubsRWTestBase;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
@@ -41,6 +42,7 @@ import org.talend.sdk.component.runtime.manager.chain.Job;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Disabled("Run manually follow the comment")
 @WithComponents("org.talend.components.azure.eventhubs")
 class AzureEventHubsOutputCSVTest extends AzureEventHubsRWTestBase {
 
@@ -224,7 +226,7 @@ class AzureEventHubsOutputCSVTest extends AzureEventHubsRWTestBase {
         final AzureEventHubsDataSet dataSet = new AzureEventHubsDataSet();
         dataSet.setConnection(getDataStore());
         dataSet.setValueFormat(AzureEventHubsDataSet.ValueFormat.CSV);
-        dataSet.setEventHubName(SHARED_EVENTHUB_NAME);
+        dataSet.setEventHubName(EVENTHUB_NAME);
         return dataSet;
     }
 
@@ -237,7 +239,7 @@ class AzureEventHubsOutputCSVTest extends AzureEventHubsRWTestBase {
         List<Record> records = new ArrayList<>();
         for (int i = 0; i < RECORD_PER_PARTITION; i++) {
             int seq = RECORD_PER_PARTITION * index + i;
-            records.add(factory.newRecordBuilder().withString("Id", "ID_" + i + "_" + seq)
+            records.add(factory.newRecordBuilder().withString("Id", "ID_" + index + "_" + seq)
                     .withString("Name", "TestName_" + seq + "_" + uniqueId).build());
         }
         return records;
@@ -253,7 +255,7 @@ class AzureEventHubsOutputCSVTest extends AzureEventHubsRWTestBase {
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);
         inputConfiguration.setAutoOffsetReset(AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.EARLIEST);
-        inputConfiguration.setCommitOffsetEvery(maxRecords < 5 ? 1 : 5);
+        inputConfiguration.setCommitOffsetEvery(1);
 
         final Mapper mapper = getComponentsHandler().createMapper(AzureEventHubsStreamInputMapper.class, inputConfiguration);
         assertTrue(mapper.isStream());

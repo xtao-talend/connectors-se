@@ -12,14 +12,12 @@
  */
 package org.talend.components.azure.eventhubs;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.talend.sdk.component.junit.SimpleFactory.configurationByExample;
 
 import java.util.List;
 
-import org.talend.components.azure.common.Protocol;
-import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
+import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
+import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
@@ -61,13 +59,17 @@ public abstract class AzureEventHubsRWTestBase extends AzureEventHubsTestBase {
 
     /**
      * Create a default azure storage connection properties
+     * 
+     * @return
      */
-    protected AzureStorageConnectionAccount getAzureStorageConnection() {
-        AzureStorageConnectionAccount connectionAccount = new AzureStorageConnectionAccount();
-        connectionAccount.setAccountName(ACCOUNT_NAME);
-        connectionAccount.setProtocol(Protocol.HTTPS);
-        connectionAccount.setAccountKey(ACCOUNT_KEY);
-        return connectionAccount;
+    protected AzureCloudConnection getAzureStorageConnection() {
+        AzureStorageConnectionSignature sasConn = new AzureStorageConnectionSignature();
+        sasConn.setAzureSharedAccessSignature(getSasToken());
+
+        AzureCloudConnection storageAccount = new AzureCloudConnection();
+        storageAccount.setSignatureConnection(sasConn);
+        storageAccount.setUseAzureSharedSignature(true);
+        return storageAccount;
     }
 
     /**
@@ -76,7 +78,7 @@ public abstract class AzureEventHubsRWTestBase extends AzureEventHubsTestBase {
     protected AzureEventHubsStreamInputConfiguration createInputConfiguration() {
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         inputConfiguration.setDataset(createDataSet());
-        inputConfiguration.setStorageConn(getAzureStorageConnection());
+        inputConfiguration.setStorageConnectionSignature(getAzureStorageConnection().getSignatureConnection());
         return inputConfiguration;
     }
 

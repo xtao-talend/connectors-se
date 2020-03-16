@@ -23,6 +23,7 @@ import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
 import org.talend.components.azure.eventhubs.service.Messages;
+import org.talend.components.azure.eventhubs.service.UiActionService;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
@@ -36,12 +37,14 @@ import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 @Version(1)
-@Icon(value = Icon.IconType.AZURE_EVENT_HUBS)
+@Icon(value = Icon.IconType.CUSTOM, custom = "azure-event-hubs")
 @PartitionMapper(name = "AzureEventHubsInputStream", infinite = true)
-@Documentation("Mapper to consume mesage from eventhubs")
+@Documentation("Mapper to consume message from eventhubs")
 public class AzureEventHubsStreamInputMapper implements Serializable {
 
     private final AzureEventHubsStreamInputConfiguration configuration;
+
+    private final UiActionService service;
 
     private final RecordBuilderFactory recordBuilderFactory;
 
@@ -56,9 +59,10 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
     private final Messages messages;
 
     public AzureEventHubsStreamInputMapper(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
-            RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
-            JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
+            final UiActionService service, RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory,
+            JsonProvider jsonProvider, JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
+        this.service = service;
         this.recordBuilderFactory = recordBuilderFactory;
         this.jsonBuilderFactory = jsonBuilderFactory;
         this.jsonProvider = jsonProvider;
@@ -83,8 +87,8 @@ public class AzureEventHubsStreamInputMapper implements Serializable {
             return new AzureEventHubsSamplingSource(configuration, recordBuilderFactory, jsonBuilderFactory, jsonProvider,
                     readerFactory, jsonb, messages);
         } else {
-            return new AzureEventHubsUnboundedSource(configuration, recordBuilderFactory, jsonBuilderFactory, jsonProvider,
-                    readerFactory, jsonb, messages);
+            return new AzureEventHubsUnboundedSource(configuration, service, recordBuilderFactory, jsonBuilderFactory,
+                    jsonProvider, readerFactory, jsonb, messages);
         }
     }
 }

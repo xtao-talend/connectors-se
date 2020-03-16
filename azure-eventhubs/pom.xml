@@ -30,27 +30,48 @@
   <description>Suite of Azure Event Hubs</description>
 
   <properties>
-    <spark.version>2.2.3</spark.version>
+    <!--
+    Used to inject service from the azurecommon module into the azureblob services
+    -->
+    <talend.scan.scannedDependencies>org.talend.components:azurecommon</talend.scan.scannedDependencies>
   </properties>
 
   <dependencies>
 
-  <dependency>
-    <groupId>com.microsoft.azure</groupId>
-    <artifactId>azure-eventhubs</artifactId>
-    <version>2.3.0</version>
-  </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-messaging-eventhubs</artifactId>
+      <version>5.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-messaging-eventhubs-checkpointstore-blob</artifactId>
+      <version>1.0.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-storage-blob</artifactId>
+      <version>12.4.0</version>
+      <!-- {x-version-update;com.azure:azure-storage-blob;dependency} -->
+    </dependency>
 
     <dependency>
-      <groupId>com.microsoft.azure</groupId>
-      <artifactId>azure-eventhubs-eph</artifactId>
-      <version>2.5.0</version>
+      <groupId>org.talend.components</groupId>
+      <artifactId>azureblob</artifactId>
+      <version>${common.version}</version>
     </dependency>
 
     <dependency>
       <groupId>org.talend.components</groupId>
       <artifactId>azurecommon</artifactId>
       <version>${common.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>${jackson.version}</version>
+      <scope>compile</scope>
     </dependency>
 
     <dependency>
@@ -73,30 +94,6 @@
       <scope>test</scope>
     </dependency>
 
-    <dependency>
-      <groupId>org.apache.beam</groupId>
-      <artifactId>beam-runners-spark</artifactId>
-      <version>${beam.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_2.11</artifactId>
-      <version>${spark.version}</version>
-      <scope>test</scope>
-      <exclusions>
-          <exclusion>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-log4j12</artifactId>
-          </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-streaming_2.11</artifactId>
-      <version>${spark.version}</version>
-      <scope>test</scope>
-    </dependency>
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-scala_2.11</artifactId>
@@ -121,7 +118,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M3</version>
+        <version>3.0.0-M4</version>
         <configuration>
           <systemPropertyVariables>
             <talend.component.junit.handler.state>static</talend.component.junit.handler.state>
