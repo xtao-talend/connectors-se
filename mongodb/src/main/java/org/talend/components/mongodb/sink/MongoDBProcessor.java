@@ -13,14 +13,18 @@
 package org.talend.components.mongodb.sink;
 
 import com.mongodb.MongoClient;
+import com.mongodb.WriteConcern;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
+import com.mongodb.client.model.*;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.Document;
+import org.talend.components.common.stream.output.json.RecordToJson;
+import org.talend.components.mongodb.BulkWriteType;
+import org.talend.components.mongodb.KeyMapping;
 import org.talend.components.mongodb.Mode;
 import org.talend.components.mongodb.PathMapping;
 import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
-import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.components.mongodb.service.I18nMessage;
 import org.talend.components.mongodb.service.MongoDBService;
@@ -28,15 +32,15 @@ import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.meta.Documentation;
-import org.talend.sdk.component.api.processor.ElementListener;
-import org.talend.sdk.component.api.processor.Input;
-import org.talend.sdk.component.api.processor.Processor;
+import org.talend.sdk.component.api.processor.*;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.json.JsonObject;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -58,11 +62,15 @@ public class MongoDBProcessor implements Serializable {
 
     private transient MongoCollection<Document> collection;
 
+    private transient RecordToJson recordToJson;
+
     public MongoDBProcessor(@Option("configuration") final MongoDBSinkConfiguration configuration, final MongoDBService service,
             final I18nMessage i18n) {
         this.configuration = configuration;
         this.service = service;
         this.i18n = i18n;
+
+        this.recordToJson = new RecordToJson();
     }
 
     @PostConstruct
@@ -72,6 +80,45 @@ public class MongoDBProcessor implements Serializable {
         client = service.createClient(datastore);
         MongoDatabase database = client.getDatabase(datastore.getDatabase());
         MongoCollection<Document> collection = database.getCollection(dataset.getCollection());
+
+        // apply to database level? not collection level?
+        if (configuration.isSetWriteConcern()) {
+            switch (configuration.getWriteConcern()) {
+            case ACKNOWLEDGED:
+                database.withWriteConcern(WriteConcern.ACKNOWLEDGED);
+                break;
+            case UNACKNOWLEDGED:
+                database.withWriteConcern(WriteConcern.UNACKNOWLEDGED);
+                break;
+            case JOURNALED:
+                database.withWriteConcern(WriteConcern.JOURNALED);
+                break;
+            case REPLICA_ACKNOWLEDGED:
+                database.withWriteConcern(WriteConcern.REPLICA_ACKNOWLEDGED);
+                break;
+            }
+        }
+    }
+
+    private transient List<WriteModel<Document>> writeModels = new ArrayList<>();
+
+    @BeforeGroup
+    public void beforeGroup() {
+        if (!configuration.isBulkWrite()) {
+            return;
+        }
+        writeModels.clear();
+    }
+
+    @AfterGroup
+    public void afterGroup() {
+        if (!configuration.isBulkWrite()) {
+            return;
+        }
+        if (writeModels != null && !writeModels.isEmpty()) {
+            boolean ordered = configuration.getBulkWriteType() == BulkWriteType.ORDERED;
+            collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(ordered));
+        }
     }
 
     private class DocumentGenerator {
@@ -132,6 +179,24 @@ public class MongoDBProcessor implements Serializable {
         }
     }
 
+    private Document getKeysQueryDocument(List<KeyMapping> keyMappings, Record record) {
+        Document keysQueryDocument = new Document();
+        // TODO
+        if (keyMappings == null || keyMappings.isEmpty()) {
+            throw new RuntimeException("need at least one key for set update/upsert action.");
+        }
+        for (KeyMapping keyMapping : configuration.getKeyMappings()) {
+            String column = keyMapping.getColumn();
+            String keyPath = keyMapping.getOriginElementPath();
+            // TODO format it for right value format for lookup, now only follow the logic in studio,
+            // so may not work for ObjectId, ISODate, NumberDecimal and so on, but they are not common as key
+            // and "_id" can set in mongodb, not necessary as ObjectId type
+            Object value = record.get(Object.class, column);
+            keysQueryDocument.put(keyPath, value);
+        }
+        return keysQueryDocument;
+    }
+
     @ElementListener
     public void onNext(@Input final Record record) {
         if (configuration.getDataset().getMode() == Mode.TEXT) {
@@ -139,7 +204,14 @@ public class MongoDBProcessor implements Serializable {
             String uniqueFieldName = record.getSchema().getEntries().get(0).getName();
             String value = record.getString(uniqueFieldName);
             Document document = Document.parse(value);
-            collection.insertOne(document);
+
+            doDataAction(record, document);
+        } else if (configuration.getDataset().getMode() == Mode.JSON) {
+            JsonObject jsonObject = this.recordToJson.fromRecord(record);
+            String jsonContent = jsonObject.toString();
+            Document document = Document.parse(jsonContent);
+
+            doDataAction(record, document);
         } else {
             DocumentGenerator dg = new DocumentGenerator();
             List<PathMapping> mappings = configuration.getDataset().getPathMappings();
@@ -158,7 +230,57 @@ public class MongoDBProcessor implements Serializable {
                         record.get(Object.class, entry.getName()));
             }
 
-            collection.insertOne(dg.getDocument());
+            doDataAction(record, dg.getDocument());
+        }
+    }
+
+    private void doDataAction(@Input Record record, Document document) {
+        switch (configuration.getDataAction()) {
+        case INSERT:
+            if (configuration.isBulkWrite()) {
+                writeModels.add(new InsertOneModel(document));
+            } else {
+                collection.insertOne(document);
+            }
+            break;
+        case SET:
+            if (configuration.isBulkWrite()) {
+                if (configuration.isUpdateAllDocuments()) {
+                    writeModels.add(new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document)));
+                } else {
+                    writeModels.add(new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document)));
+                }
+            } else {
+                if (configuration.isUpdateAllDocuments()) {
+                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document));
+                } else {
+                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document));
+                }
+            }
+            break;
+        case UPSERT_WITH_SET:
+            if (configuration.isBulkWrite()) {
+                if (configuration.isUpdateAllDocuments()) {
+                    writeModels.add(new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document), new UpdateOptions().upsert(true)));
+                } else {
+                    writeModels.add(new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document), new UpdateOptions().upsert(true)));
+                }
+            } else {
+                if (configuration.isUpdateAllDocuments()) {
+                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document), new UpdateOptions().upsert(true));
+                } else {
+                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                            new Document("$set", document), new UpdateOptions().upsert(true));
+                }
+            }
+            break;
         }
     }
 

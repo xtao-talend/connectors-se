@@ -13,8 +13,12 @@
 package org.talend.components.mongodb.sink;
 
 import java.io.Serializable;
+import java.util.Collections;
+import java.util.List;
 
+import org.talend.components.mongodb.BulkWriteType;
 import org.talend.components.mongodb.DataAction;
+import org.talend.components.mongodb.KeyMapping;
 import org.talend.components.mongodb.WriteConcern;
 import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
@@ -32,8 +36,8 @@ import lombok.Data;
 @GridLayouts({ @GridLayout({ @GridLayout.Row({ "dataset" }), //
         @GridLayout.Row({ "setWriteConcern" }), //
         @GridLayout.Row({ "writeConcern" }), //
-        @GridLayout.Row({ "bulkWrite" }), @GridLayout.Row({ "dataAction" }), @GridLayout.Row({ "updateAllDocuments" }),
-        @GridLayout.Row({ "skipNullValue" }) }),
+        @GridLayout.Row({ "bulkWrite" }), @GridLayout.Row({ "bulkWriteType" }), @GridLayout.Row({ "dataAction" }),
+        @GridLayout.Row({ "keyMappings" }), @GridLayout.Row({ "updateAllDocuments" }) }),
         @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "dataset" }) }) })
 @Documentation("MongoDB sink configuration")
 public class MongoDBSinkConfiguration implements Serializable {
@@ -56,16 +60,29 @@ public class MongoDBSinkConfiguration implements Serializable {
     private boolean bulkWrite = false;
 
     @Option
+    @ActiveIf(target = "bulkWrite", value = "true")
+    @Documentation("Bulk load type")
+    private BulkWriteType bulkWriteType = BulkWriteType.UNORDERED;
+
+    @Option
     @Documentation("Data action")
     private DataAction dataAction = DataAction.INSERT;
+
+    @Option
+    @ActiveIf(target = "dataAction", value = { "SET", "UPSERT_WITH_SET" })
+    @Documentation("Key mappings")
+    private List<KeyMapping> keyMappings = Collections.emptyList();
 
     @Option
     @ActiveIf(target = "dataAction", value = { "SET", "UPSERT_WITH_SET" })
     @Documentation("update all documents")
     private boolean updateAllDocuments = false;
 
-    @Option
-    @Documentation("not generate key without value in json if null")
-    private boolean skipNullValue = false;
-
+    // this one for work for mapping mode, but seems not necessary now, only whole document(text) and json mode now
+    /*
+     * @Option
+     * 
+     * @Documentation("not generate key without value in json if null")
+     * private boolean skipNullValue = false;
+     */
 }
