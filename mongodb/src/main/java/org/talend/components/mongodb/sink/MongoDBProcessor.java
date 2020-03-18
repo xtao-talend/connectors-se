@@ -202,8 +202,15 @@ public class MongoDBProcessor implements Serializable {
         if (configuration.getDataset().getMode() == Mode.TEXT) {
             // we store the whole document here as a string
             String uniqueFieldName = record.getSchema().getEntries().get(0).getName();
-            String value = record.getString(uniqueFieldName);
-            Document document = Document.parse(value);
+            Document document = null;
+            try {
+                String value = record.getString(uniqueFieldName);
+                document = Document.parse(value);
+            } catch (Exception e) {
+                log.error(e.getMessage(), e);
+                throw new RuntimeException(
+                        "the input record is no valid for TEXT mode, the record's first column must be a json format text.");
+            }
 
             doDataAction(record, document);
         } else if (configuration.getDataset().getMode() == Mode.JSON) {
@@ -263,6 +270,13 @@ public class MongoDBProcessor implements Serializable {
             }
             break;
         case UPSERT_WITH_SET:
+            // though mongodb support to set "_id" key self, not auto-generate, but when do upsert with "_id" or other key, it
+            // mean if not match, should do insert,
+            // but mongo here will throw : Performing an update on the path '_id' would modify the immutable field '_id', i think
+            // it's a limit of mongodb as i did't change the value of "_id"
+            // why update can works, upsert not work? As not match, should insert, i can't just remove "_id" column to make it
+            // right, as that is not expected as lose "_id", and auto-generated when insert.
+            // TODO show a more clear exception here
             if (configuration.isBulkWrite()) {
                 if (configuration.isUpdateAllDocuments()) {
                     writeModels.add(new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),

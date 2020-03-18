@@ -14,6 +14,7 @@ package org.talend.components.mongodb;
 
 import com.mongodb.MongoClientOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
@@ -28,13 +29,12 @@ import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import org.talend.sdk.component.junit.BaseComponentsHandler;
+import org.talend.sdk.component.junit.SimpleFactory;
 import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
+import org.talend.sdk.component.runtime.manager.chain.Job;
 
 import java.util.*;
-
-import org.talend.sdk.component.junit.SimpleFactory;
-import org.talend.sdk.component.runtime.manager.chain.Job;
 
 // TODO current only for local test which have mongo env, will refactor it later
 @Slf4j
@@ -229,7 +229,7 @@ public class MongoDBTestIT {
     }
 
     @Test
-    void testSink() {
+    void testSinkBasic() {
         MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
 
         dataset.setMode(Mode.JSON);
@@ -244,11 +244,201 @@ public class MongoDBTestIT {
         System.out.println(res);
     }
 
+    @Test
+    void testSinkBulkWriteAndOrdered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.ORDERED);
+
+        componentsHandler.setInputData(getTestData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testSinkBulkWriteAndUnordered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.UNORDERED);
+
+        componentsHandler.setInputData(getTestData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpdate() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("_id", "_id")));
+
+        componentsHandler.setInputData(getUpdateData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpdateWithBulkWriteOrdered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("_id", "_id")));
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.ORDERED);
+
+        componentsHandler.setInputData(getUpdateData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpdateWithBulkWriteUnordered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("_id", "_id")));
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.UNORDERED);
+
+        componentsHandler.setInputData(getUpdateData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpsertWithBulkWriteOrdered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.UPSERT_WITH_SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("id", "id")));
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.ORDERED);
+
+        componentsHandler.setInputData(getUpsertData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpsertWithBulkWriteUnordered() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.UPSERT_WITH_SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("id", "id")));
+        config.setBulkWrite(true);
+        config.setBulkWriteType(BulkWriteType.UNORDERED);
+
+        componentsHandler.setInputData(getUpsertData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testUpsert() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.UPSERT_WITH_SET);
+        // i can't use _id here as mongodb upsert limit, TODO show clear exception information
+        config.setKeyMappings(Arrays.asList(new KeyMapping("id", "id")));
+
+        componentsHandler.setInputData(getUpsertData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    @Test
+    void testSinkTextModeWithWrongInput() {
+        Assertions.assertThrows(RuntimeException.class, () -> {
+            MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+            dataset.setMode(Mode.TEXT);
+
+            MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+            config.setDataset(dataset);
+
+            componentsHandler.setInputData(getTestData());
+            executeSinkTestJob(config);
+        });
+    }
+
     private List<Record> getTestData() {
         List<Record> testRecords = new ArrayList<>();
-        for (int i = 1; i < 101; i++) {
-            Record record = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder().withLong("id", i)
-                    .withString("name", "wangwei").withInt("score", 100).withDouble("high", 178.5)
+        for (int i = 1; i < 11; i++) {
+            Record record = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder().withLong("_id", i)
+                    .withLong("id", i).withString("name", "wangwei").withInt("score", 100).withDouble("high", 178.5)
+                    .withDateTime("birth", new Date()).build();
+            testRecords.add(record);
+        }
+        return testRecords;
+    }
+
+    private List<Record> getUpdateData() {
+        List<Record> testRecords = new ArrayList<>();
+        for (int i = 2; i < 10; i++) {
+            Record record = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder().withLong("_id", i)
+                    .withLong("id", i).withString("name", "wangwei1").withInt("score", 100).withDouble("high", 180.5)
+                    .withDateTime("birth", new Date()).build();
+            testRecords.add(record);
+        }
+        return testRecords;
+    }
+
+    private List<Record> getUpsertData() {
+        List<Record> testRecords = new ArrayList<>();
+        for (int i = 2; i < 19; i++) {
+            Record record = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder().withLong("_id", i)
+                    .withLong("id", i).withString("name", "wangwei12").withInt("score", 100).withDouble("high", 180.5)
                     .withDateTime("birth", new Date()).build();
             testRecords.add(record);
         }
