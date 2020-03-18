@@ -179,9 +179,8 @@ public class MongoDBProcessor implements Serializable {
         }
     }
 
-    private Document getKeysQueryDocument(List<KeyMapping> keyMappings, Record record) {
+    private Document getKeysQueryDocument(List<KeyMapping> keyMappings, Record record, Document document) {
         Document keysQueryDocument = new Document();
-        // TODO
         if (keyMappings == null || keyMappings.isEmpty()) {
             throw new RuntimeException("need at least one key for set update/upsert action.");
         }
@@ -191,8 +190,16 @@ public class MongoDBProcessor implements Serializable {
             // TODO format it for right value format for lookup, now only follow the logic in studio,
             // so may not work for ObjectId, ISODate, NumberDecimal and so on, but they are not common as key
             // and "_id" can set in mongodb, not necessary as ObjectId type
-            Object value = record.get(Object.class, column);
-            keysQueryDocument.put(keyPath, value);
+            // in fact, record can be a tree like a json, not flat, but here we only suppose it's flat, not go deep
+            if (configuration.getDataset().getMode() == Mode.TEXT) {
+                // when TEXT mode, record is expected only have one column which contains the whole json content as text
+                // so need to get it from document, not record
+                Object value = document.get(column);
+                keysQueryDocument.put(keyPath, value);
+            } else {
+                Object value = record.get(Object.class, column);
+                keysQueryDocument.put(keyPath, value);
+            }
         }
         return keysQueryDocument;
     }
@@ -253,18 +260,20 @@ public class MongoDBProcessor implements Serializable {
         case SET:
             if (configuration.isBulkWrite()) {
                 if (configuration.isUpdateAllDocuments()) {
-                    writeModels.add(new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
-                            new Document("$set", document)));
+                    writeModels.add(
+                            new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
+                                    new Document("$set", document)));
                 } else {
-                    writeModels.add(new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
-                            new Document("$set", document)));
+                    writeModels.add(
+                            new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
+                                    new Document("$set", document)));
                 }
             } else {
                 if (configuration.isUpdateAllDocuments()) {
-                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
                             new Document("$set", document));
                 } else {
-                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
                             new Document("$set", document));
                 }
             }
@@ -279,18 +288,20 @@ public class MongoDBProcessor implements Serializable {
             // TODO show a more clear exception here
             if (configuration.isBulkWrite()) {
                 if (configuration.isUpdateAllDocuments()) {
-                    writeModels.add(new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
-                            new Document("$set", document), new UpdateOptions().upsert(true)));
+                    writeModels.add(
+                            new UpdateManyModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
+                                    new Document("$set", document), new UpdateOptions().upsert(true)));
                 } else {
-                    writeModels.add(new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record),
-                            new Document("$set", document), new UpdateOptions().upsert(true)));
+                    writeModels.add(
+                            new UpdateOneModel<Document>(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
+                                    new Document("$set", document), new UpdateOptions().upsert(true)));
                 }
             } else {
                 if (configuration.isUpdateAllDocuments()) {
-                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                    collection.updateMany(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
                             new Document("$set", document), new UpdateOptions().upsert(true));
                 } else {
-                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record),
+                    collection.updateOne(getKeysQueryDocument(configuration.getKeyMappings(), record, document),
                             new Document("$set", document), new UpdateOptions().upsert(true));
                 }
             }

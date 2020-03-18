@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.talend.components.common.stream.output.json.RecordToJson;
 import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
@@ -398,6 +399,49 @@ public class MongoDBTestIT {
     }
 
     @Test
+    void testSinkTextMode() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.TEXT);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+
+        componentsHandler.setInputData(getTestData4TextMode(getTestData()));
+        executeSinkTestJob(config);
+    }
+
+    @Test
+    void testSinkTextModeUpdate() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.TEXT);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("_id", "_id")));
+
+        componentsHandler.setInputData(getTestData4TextMode(getUpdateData()));
+        executeSinkTestJob(config);
+    }
+
+    @Test
+    void testSinkTextModeUpsert() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.TEXT);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+        config.setDataAction(DataAction.UPSERT_WITH_SET);
+        config.setKeyMappings(Arrays.asList(new KeyMapping("id", "id")));
+
+        componentsHandler.setInputData(getTestData4TextMode(getUpsertData()));
+        executeSinkTestJob(config);
+    }
+
+    @Test
     void testSinkTextModeWithWrongInput() {
         Assertions.assertThrows(RuntimeException.class, () -> {
             MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
@@ -419,6 +463,17 @@ public class MongoDBTestIT {
                     .withLong("id", i).withString("name", "wangwei").withInt("score", 100).withDouble("high", 178.5)
                     .withDateTime("birth", new Date()).build();
             testRecords.add(record);
+        }
+        return testRecords;
+    }
+
+    private List<Record> getTestData4TextMode(List<Record> records) {
+        RecordToJson rtj = new RecordToJson();
+        List<Record> testRecords = new ArrayList<>();
+        for (Record record : records) {
+            Record r = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder()
+                    .withString("content", rtj.fromRecord(record).toString()).build();
+            testRecords.add(r);
         }
         return testRecords;
     }
