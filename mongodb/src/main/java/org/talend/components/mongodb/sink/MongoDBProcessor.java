@@ -79,7 +79,7 @@ public class MongoDBProcessor implements Serializable {
         MongoDBDataStore datastore = dataset.getDatastore();
         client = service.createClient(datastore);
         MongoDatabase database = client.getDatabase(datastore.getDatabase());
-        MongoCollection<Document> collection = database.getCollection(dataset.getCollection());
+        collection = database.getCollection(dataset.getCollection());
 
         // apply to database level? not collection level?
         if (configuration.isSetWriteConcern()) {

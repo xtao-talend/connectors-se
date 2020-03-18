@@ -14,12 +14,15 @@ package org.talend.components.mongodb;
 
 import com.mongodb.MongoClientOptions;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Assert;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.talend.components.mongodb.dataset.MongoDBReadAndWriteDataSet;
 import org.talend.components.mongodb.dataset.MongoDBReadDataSet;
 import org.talend.components.mongodb.datastore.MongoDBDataStore;
 import org.talend.components.mongodb.service.MongoDBService;
+import org.talend.components.mongodb.sink.MongoDBSinkConfiguration;
+import org.talend.components.mongodb.source.BaseSourceConfiguration;
+import org.talend.components.mongodb.source.MongoDBCollectionSourceConfiguration;
 import org.talend.components.mongodb.source.MongoDBQuerySourceConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.Service;
@@ -28,11 +31,7 @@ import org.talend.sdk.component.junit.BaseComponentsHandler;
 import org.talend.sdk.component.junit5.Injected;
 import org.talend.sdk.component.junit5.WithComponents;
 
-import java.lang.reflect.Array;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 import org.talend.sdk.component.junit.SimpleFactory;
 import org.talend.sdk.component.runtime.manager.chain.Job;
@@ -65,11 +64,7 @@ public class MongoDBTestIT {
         // dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
-        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
-        config.setDataset(dataset);
-
-        executeJob(config);
-        final List<Record> res = componentsHandler.getCollectedData(Record.class);
+        final List<Record> res = getRecords(dataset);
 
         System.out.println(res);
     }
@@ -87,13 +82,25 @@ public class MongoDBTestIT {
         // dataset.setMode(Mode.MAPPING);
         dataset.setPathMappings(pathMappings);
 
+        final List<Record> res = getRecords(dataset);
+
+        System.out.println(res);
+    }
+
+    private List<Record> getRecords(MongoDBReadDataSet dataset) {
         MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
         config.setDataset(dataset);
 
-        executeJob(config);
-        final List<Record> res = componentsHandler.getCollectedData(Record.class);
+        executeSourceTestJob(config);
+        return componentsHandler.getCollectedData(Record.class);
+    }
 
-        System.out.println(res);
+    private List<Record> getRecords(MongoDBReadAndWriteDataSet dataset) {
+        MongoDBCollectionSourceConfiguration config = new MongoDBCollectionSourceConfiguration();
+        config.setDataset(dataset);
+
+        executeSourceTestJob(config);
+        return componentsHandler.getCollectedData(Record.class);
     }
 
     @Test
@@ -103,11 +110,7 @@ public class MongoDBTestIT {
         dataset.setQuery("{status : \"A\"}");
         dataset.setMode(Mode.TEXT);
 
-        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
-        config.setDataset(dataset);
-
-        executeJob(config);
-        final List<Record> res = componentsHandler.getCollectedData(Record.class);
+        final List<Record> res = getRecords(dataset);
 
         System.out.println(res);
     }
@@ -160,16 +163,24 @@ public class MongoDBTestIT {
         return dataset;
     }
 
+    private MongoDBReadAndWriteDataSet getMongoDBReadAndWriteDataSet(String collection) {
+        MongoDBDataStore datastore = new MongoDBDataStore();
+        datastore.setAddress(new Address("localhost", 27017));
+        datastore.setDatabase("test");
+        datastore.setAuth(new Auth());
+
+        MongoDBReadAndWriteDataSet dataset = new MongoDBReadAndWriteDataSet();
+        dataset.setDatastore(datastore);
+        dataset.setCollection(collection);
+        return dataset;
+    }
+
     @Test
     void testBasicDocumentMode() {
         MongoDBReadDataSet dataset = getMongoDBDataSet("test");
         dataset.setMode(Mode.TEXT);
 
-        MongoDBQuerySourceConfiguration config = new MongoDBQuerySourceConfiguration();
-        config.setDataset(dataset);
-
-        executeJob(config);
-        final List<Record> res = componentsHandler.getCollectedData(Record.class);
+        final List<Record> res = getRecords(dataset);
 
         System.out.println(res);
     }
@@ -209,11 +220,45 @@ public class MongoDBTestIT {
         System.out.println(options.getApplicationName());
     }
 
-    private void executeJob(MongoDBQuerySourceConfiguration configuration) {
-        final String inputConfig = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
-        Job.components().component("MongoDB_CollectionQuerySource", "MongoDB://CollectionQuerySource?" + inputConfig)
+    private void executeSourceTestJob(BaseSourceConfiguration configuration) {
+        final String sourceConfig = SimpleFactory.configurationByExample().forInstance(configuration).configured()
+                .toQueryString();
+        Job.components().component("MongoDB_CollectionQuerySource", "MongoDB://CollectionQuerySource?" + sourceConfig)
                 .component("collector", "test://collector").connections().from("MongoDB_CollectionQuerySource").to("collector")
                 .build().run();
+    }
+
+    @Test
+    void testSink() {
+        MongoDBReadAndWriteDataSet dataset = getMongoDBReadAndWriteDataSet("test");
+
+        dataset.setMode(Mode.JSON);
+
+        MongoDBSinkConfiguration config = new MongoDBSinkConfiguration();
+        config.setDataset(dataset);
+
+        componentsHandler.setInputData(getTestData());
+        executeSinkTestJob(config);
+
+        List<Record> res = getRecords(dataset);
+        System.out.println(res);
+    }
+
+    private List<Record> getTestData() {
+        List<Record> testRecords = new ArrayList<>();
+        for (int i = 1; i < 101; i++) {
+            Record record = componentsHandler.findService(RecordBuilderFactory.class).newRecordBuilder().withLong("id", i)
+                    .withString("name", "wangwei").withInt("score", 100).withDouble("high", 178.5)
+                    .withDateTime("birth", new Date()).build();
+            testRecords.add(record);
+        }
+        return testRecords;
+    }
+
+    private void executeSinkTestJob(MongoDBSinkConfiguration configuration) {
+        final String sinkConfig = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
+        Job.components().component("emitter", "test://emitter").component("MongoDB_Sink", "MongoDB://Sink?" + sinkConfig)
+                .connections().from("emitter").to("MongoDB_Sink").build().run();
     }
 
 }
