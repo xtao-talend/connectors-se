@@ -15,10 +15,12 @@ package org.talend.components.adlsgen2.common.connection;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import org.talend.components.AzureAuthType;
+import org.talend.components.AzureConnectionActiveDir;
 import org.talend.sdk.component.api.component.Version;
 import org.talend.sdk.component.api.configuration.Option;
-import org.talend.sdk.component.api.configuration.action.Suggestable;
-import org.talend.sdk.component.api.configuration.constraint.Required;
+import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.widget.Credential;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -45,7 +47,6 @@ public class AdlsGen2Connection implements Serializable {
 
     public String apiUrl() {
         return String.format(Constants.DFS_URL, getAccountName());
-        // return String.format("https://%s.blob.core.windows.net", getAccountName());
     }
 
 }

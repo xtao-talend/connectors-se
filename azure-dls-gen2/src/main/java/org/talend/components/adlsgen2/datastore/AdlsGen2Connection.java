@@ -14,6 +14,7 @@ package org.talend.components.adlsgen2.datastore;
 
 import java.io.Serializable;
 
+import org.talend.components.AzureConnectionActiveDir;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.action.Checkable;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
@@ -25,7 +26,6 @@ import org.talend.sdk.component.api.configuration.ui.widget.Credential;
 import org.talend.sdk.component.api.meta.Documentation;
 
 import lombok.Data;
-
 import static org.talend.components.adlsgen2.service.UIActionService.ACTION_HEALTHCHECK;
 import static org.talend.sdk.component.api.configuration.ui.layout.GridLayout.FormType.ADVANCED;
 
@@ -38,7 +38,7 @@ import static org.talend.sdk.component.api.configuration.ui.layout.GridLayout.Fo
         @GridLayout.Row("endpointSuffix"), //
         @GridLayout.Row("sharedKey"), //
         @GridLayout.Row("sas"), //
-})
+        @GridLayout.Row("activeDirProperties") })
 @GridLayout(names = ADVANCED, value = { @GridLayout.Row("timeout") })
 @Documentation("The datastore to connect Azure Data Lake Storage Gen2")
 public class AdlsGen2Connection implements Serializable {
@@ -70,6 +70,11 @@ public class AdlsGen2Connection implements Serializable {
     private String sas;
 
     @Option
+    @ActiveIf(target = "authMethod", value = "ACTIVE_DIRECTORY_CLIENT_CREDENTIAL")
+    @Documentation("")
+    private AzureConnectionActiveDir activeDirProperties;
+
+    @Option
     @Min(5)
     @Documentation("Timeout")
     private Integer timeout = 600;
@@ -81,6 +86,7 @@ public class AdlsGen2Connection implements Serializable {
     public enum AuthMethod {
         SharedKey,
         SAS,
+        ACTIVE_DIRECTORY_CLIENT_CREDENTIAL
     }
 
 }
