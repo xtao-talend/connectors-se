@@ -19,6 +19,9 @@ import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonDocument;
 import org.bson.Document;
+import org.bson.codecs.DocumentCodec;
+import org.bson.json.JsonMode;
+import org.bson.json.JsonWriterSettings;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.common.stream.input.json.JsonToRecord;
@@ -155,7 +158,7 @@ public class MongoDBReader implements Serializable {
 
     private Record toFlatRecord(Document document) {
         // TODO bson can convert to json with loss data? check it
-        String jsonContnt = document.toJson();
+        String jsonContnt = document2Json(document);
         // can't use org.talend.components.common.stream.input.json.JsonRecordReader here, please see
         // org.talend.components.common.stream.input.json.JsonRecordReaderTest that is not the result what we expect here
         // here we expect one document, one record always
@@ -202,6 +205,13 @@ public class MongoDBReader implements Serializable {
             addColumn(recordBuilder, entry, value);
         }
         return recordBuilder.build();
+    }
+
+    private String document2Json(Document document) {
+        // http://mongodb.github.io/mongo-java-driver/3.12/bson/extended-json/
+        // https://github.com/mongodb/specifications/blob/master/source/extended-json.rst
+        // http://mongodb.github.io/mongo-java-driver/3.12/bson/documents/
+        return document.toJson(JsonWriterSettings.builder().outputMode(JsonMode.RELAXED).build(), new DocumentCodec());
     }
 
     private Record toRecordWithWSingleDocumentContentColumn(Document document) {
@@ -264,7 +274,7 @@ public class MongoDBReader implements Serializable {
         case STRING:
             // toString is right for all type, like document? TODO
             recordBuilder.withString(entryBuilder.build(),
-                    value instanceof Document ? ((Document) value).toJson() : value.toString());
+                    value instanceof Document ? document2Json((Document) value) : value.toString());
             break;
         case LONG:
             recordBuilder.withLong(entryBuilder.build(), (Long) value);

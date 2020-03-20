@@ -178,7 +178,7 @@ public class MongoDBTestIT {
 
     @Test
     void testBasicDocumentMode() {
-        MongoDBReadDataSet dataset = getMongoDBDataSet("test");
+        MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
         dataset.setMode(Mode.TEXT);
 
         final List<Record> res = getRecords(dataset);

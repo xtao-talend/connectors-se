@@ -27,7 +27,7 @@ import java.util.List;
 import static java.util.Collections.singletonList;
 
 @Version(1)
-@Icon(value = Icon.IconType.CUSTOM, custom = "MongoDBSource")
+@Icon(value = Icon.IconType.CUSTOM, custom = "MongoDB")
 @PartitionMapper(name = "CollectionSource")
 @Documentation("MongoDB Source without query")
 public class MongoDBCollectionMapper implements Serializable {
