@@ -93,7 +93,7 @@ public class UiActionService {
             final Messages i18n) {
         ValidationResult result = new ValidationResult();
         try {
-            getPartitionIds(connection, eventHubName, i18n);
+            getPartitionIds(connection, eventHubName, new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(10)));
         } catch (Throwable exception) {
             String koComment = exception.getMessage();
             result.setStatus(ValidationResult.Status.KO);
@@ -140,8 +140,7 @@ public class UiActionService {
         return blobContainerAsyncClient;
     }
 
-    public List<String> getPartitionIds(@Option final AzureEventHubsDataStore connection, @Option final String eventHubName,
-            final Messages i18n) {
+    public List<String> getPartitionIds(AzureEventHubsDataStore connection, String eventHubName, AmqpRetryOptions retryOptions) {
         EventHubConsumerClient ehClient = null;
         try {
             String endpoint = null;
@@ -153,10 +152,12 @@ public class UiActionService {
             String ehConnString = String.format("Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s", endpoint,
                     connection.getSasKeyName(), connection.getSasKey(), eventHubName);
 
-            ehClient = new EventHubClientBuilder().connectionString(ehConnString).consumerGroup("$Default")
-                    .retry(new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(10))).shareConnection().buildConsumerClient();
+            ehClient = new EventHubClientBuilder().connectionString(ehConnString).consumerGroup("$Default").retry(retryOptions)
+                    .shareConnection().buildConsumerClient();
             List<String> partitionIds = new ArrayList<>();
-            ehClient.getPartitionIds().forEach(partitionIds::add);
+            for (String partitionId : ehClient.getPartitionIds()) {
+                partitionIds.add(partitionId);
+            }
             return partitionIds;
         } catch (Throwable throwable) {
             throw throwable;

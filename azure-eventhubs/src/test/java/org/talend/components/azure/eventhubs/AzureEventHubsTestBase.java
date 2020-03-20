@@ -93,37 +93,34 @@ public class AzureEventHubsTestBase implements Serializable {
         return Integer.toString(ThreadLocalRandom.current().nextInt(1, 100000));
     }
 
-    public static String getSasToken()  {
+    public static String getSasToken() {
 
-        String connectionString = String.format(EH_CONNECTION_PATTERN, ACCOUNT_NAME,ACCOUNT_KEY);;
+        String connectionString = String.format(EH_CONNECTION_PATTERN, ACCOUNT_NAME, ACCOUNT_KEY);
         // BEGIN: com.azure.storage.common.StorageSharedKeyCredential.fromConnectionString#String
         StorageSharedKeyCredential credential = StorageSharedKeyCredential.fromConnectionString(connectionString);
         // END: com.azure.storage.common.StorageSharedKeyCredential.fromConnectionString#String
         BlobServiceClient client = new BlobServiceClientBuilder().credential(credential).buildClient();
 
         OffsetDateTime myExpiryTime = OffsetDateTime.now().plusDays(1);
-        AccountSasPermission permissions = new AccountSasPermission()
-                .setAddPermission(true)
-                .setCreatePermission(true)
-                .setDeletePermission(true)
-                .setListPermission(true)
-                .setProcessMessages(true)
-                .setReadPermission(true)
-                .setUpdatePermission(true)
+        AccountSasPermission permissions = new AccountSasPermission() // Need to check whether those permissions all needed.
+                .setAddPermission(true) //
+                .setDeletePermission(true) //
+                .setListPermission(true) //
+                .setProcessMessages(true) //
+                .setReadPermission(true) //
+                .setUpdatePermission(true) //
                 .setWritePermission(true);
-        AccountSasService service = new AccountSasService()
-                .setBlobAccess(true);
+        AccountSasService service = new AccountSasService().setBlobAccess(true); //
 
-        AccountSasResourceType resourceType = new AccountSasResourceType()
-                .setContainer(true)
-                .setService(true)
-                .setObject(true);
+        AccountSasResourceType resourceType = new AccountSasResourceType().setContainer(true) //
+                .setService(true) //
+                .setObject(true); //
 
-        AccountSasSignatureValues blobServiceSasSignatureValues = new AccountSasSignatureValues(myExpiryTime, permissions,service,resourceType)
-                .setStartTime(OffsetDateTime.now());
+        AccountSasSignatureValues blobServiceSasSignatureValues = new AccountSasSignatureValues(myExpiryTime, permissions,
+                service, resourceType).setStartTime(OffsetDateTime.now());
         String sasToken = client.generateAccountSas(blobServiceSasSignatureValues);
-        String tokenURL= String.format(SAS_URI_PATTERN,ACCOUNT_NAME,sasToken);
-        return  tokenURL;
+        String tokenURL = String.format(SAS_URI_PATTERN, ACCOUNT_NAME, sasToken);
+        return tokenURL;
     }
 
 }

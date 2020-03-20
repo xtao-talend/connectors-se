@@ -65,29 +65,25 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final RecordBuilderFactory recordBuilderFactory;
-
     private ReceiverManager receiverManager;
 
     private Iterator<PartitionEvent> receivedEvents;
 
     private EventHubConsumerClient ehClient;
 
-    private long count;
-
     private Messages messages;
 
-    String[] partitionIds;
+    private transient RecordBuilderFactory recordBuilderFactory;
 
-    private RecordConverter recordConverter;
+    private transient RecordConverter recordConverter;
 
-    private JsonBuilderFactory jsonBuilderFactory;
+    private transient JsonBuilderFactory jsonBuilderFactory;
 
-    private JsonProvider jsonProvider;
+    private transient JsonProvider jsonProvider;
 
-    private JsonReaderFactory readerFactory;
+    private transient JsonReaderFactory readerFactory;
 
-    private Jsonb jsonb;
+    private transient Jsonb jsonb;
 
     private transient Schema schema;
 
@@ -127,8 +123,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
         receiverManager = new ReceiverManager();
         List<String> partitionIdList = new ArrayList<String>();
         ehClient.getPartitionIds().forEach(p -> partitionIdList.add(p));
-        partitionIds = partitionIdList.toArray(new String[partitionIdList.size()]);
-        receiverManager.addPartitions(partitionIds);
+        receiverManager.addPartitions(partitionIdList.toArray(new String[partitionIdList.size()]));
     }
 
     @Producer
@@ -151,7 +146,6 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                         EventPosition.fromSequenceNumber(eventData.getSequenceNumber()));
                 Record record = null;
                 if (eventData != null) {
-                    count++;
                     switch (configuration.getDataset().getValueFormat()) {
                     case AVRO: {
                         if (recordConverter == null) {

@@ -18,15 +18,14 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PARTITION_ID;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
-import java.util.function.Consumer;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -57,6 +56,8 @@ import org.talend.sdk.component.api.meta.Documentation;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
+import com.azure.core.amqp.AmqpRetryMode;
+import com.azure.core.amqp.AmqpRetryOptions;
 import com.azure.messaging.eventhubs.EventData;
 import com.azure.messaging.eventhubs.EventProcessorClient;
 import com.azure.messaging.eventhubs.EventProcessorClientBuilder;
@@ -66,7 +67,7 @@ import com.azure.messaging.eventhubs.models.CloseContext;
 import com.azure.messaging.eventhubs.models.ErrorContext;
 import com.azure.messaging.eventhubs.models.EventContext;
 import com.azure.messaging.eventhubs.models.EventPosition;
-import com.azure.messaging.eventhubs.models.PartitionOwnership;
+import com.azure.messaging.eventhubs.models.InitializationContext;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.google.common.collect.EvictingQueue;
 
@@ -87,7 +88,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     private EventProcessorClient eventProcessorClient;
 
-    private RecordConverter recordConverter;
+    private transient RecordConverter recordConverter;
 
     private transient Schema schema;
 
@@ -95,21 +96,26 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     private transient BinaryDecoder decoder;
 
-    private RecordBuilderFactory recordBuilderFactory;
+    private transient RecordBuilderFactory recordBuilderFactory;
 
-    private JsonBuilderFactory jsonBuilderFactory;
+    private transient JsonBuilderFactory jsonBuilderFactory;
 
-    private JsonProvider jsonProvider;
+    private transient JsonProvider jsonProvider;
 
-    private JsonReaderFactory readerFactory;
+    private transient JsonReaderFactory readerFactory;
 
-    private Jsonb jsonb;
-
-    private static int commitEvery;
-
-    private static volatile boolean processOpened;
+    private transient Jsonb jsonb;
 
     private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
+
+    /**
+     * Keeps track of the number of events processed from each partition.
+     * Key: Partition id
+     * Value: Number of events processed for each partition.
+     */
+    private final ConcurrentHashMap<String, Integer> eventsProcessed = new ConcurrentHashMap<>();
+
+    private BlobCheckpointStore blobCheckpointStore;
 
     public static final String ENDPOINT_PATTERN = "sb://(.*)";
 
@@ -153,121 +159,53 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                 throw new IllegalArgumentException(messages.invalidatedSASURL());
             }
             String fullyQualifiedNamespace = matcher.group(1);
+            // create the container if it not exist
             if (!blobContainerAsyncClient.exists().block()) {
                 blobContainerAsyncClient.create().block();
             }
-            BlobCheckpointStore blobCheckpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
+            blobCheckpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
             // init checkpoint and partition ownership
             Flux<Checkpoint> checkpoints = blobCheckpointStore.listCheckpoints(fullyQualifiedNamespace,
                     configuration.getContainerName(), configuration.getConsumerGroupName());
             Map<String, EventPosition> eventPosition = new HashMap<>();
-            if (checkpoints == null || !checkpoints.toIterable().iterator().hasNext()) {
-                List<PartitionOwnership> pos = new ArrayList<>();
-                List<String> partitionIds = service.getPartitionIds(configuration.getDataset().getConnection(),
-                        configuration.getDataset().getEventHubName(), messages);
-                for (String partitionId : partitionIds) {
-                    eventPosition.put(partitionId, getPosition());
-                    PartitionOwnership po = new PartitionOwnership().setEventHubName(configuration.getDataset().getEventHubName())
-                            .setConsumerGroup(configuration.getConsumerGroupName()).setOwnerId(ownerId)
-                            .setPartitionId(partitionId);
-                    pos.add(po);
-                }
-                // TODO need to check whether need handle returns
-                blobCheckpointStore.claimOwnership(pos);
-            } else {
-                // get position from exist checkpoint
+            // connection retry options when query partition ids, should not same with query event data retry option
+            AmqpRetryOptions connRetryOptions = new AmqpRetryOptions() //
+                    .setMaxDelay(Duration.ofSeconds(30)) //
+                    .setDelay(Duration.ofMillis(500)) //
+                    .setMaxRetries(5) //
+                    .setTryTimeout(Duration.ofSeconds(30)) //
+                    .setMode(AmqpRetryMode.EXPONENTIAL); //
+            for (String partitionId : service.getPartitionIds(configuration.getDataset().getConnection(),
+                    configuration.getDataset().getEventHubName(), connRetryOptions)) {
+                eventPosition.put(partitionId, getPosition());
+            }
+            if (checkpoints != null || checkpoints.toIterable().iterator().hasNext()) {
                 for (Checkpoint checkpoint : checkpoints.toIterable()) {
                     eventPosition.put(checkpoint.getPartitionId(),
                             EventPosition.fromSequenceNumber(checkpoint.getSequenceNumber()));
                 }
             }
 
-            Consumer<EventContext> PARTITION_PROCESSOR = eventContext -> {
-                log.debug("Processing event from partition " + eventContext.getPartitionContext().getPartitionId()
-                        + " with sequence number " + eventContext.getEventData().getSequenceNumber());
-                log.debug("Partition " + eventContext.getPartitionContext().getPartitionId() + " got event batch");
-                EventData data = eventContext.getEventData();
-                if (!processOpened) {
-                    // ignore the received event data, this would not handled by component
-                    receivedEvents.clear();
-                    return;
-                } else {
-                    receivedEvents.add(data);
-                }
-                try {
-                    if ((data.getSequenceNumber() % commitEvery) == 0) {
-                        log.debug("[onEvents]Updating Partition " + eventContext.getPartitionContext().getPartitionId()
-                                + " checkpointing at " + data.getOffset() + "," + data.getSequenceNumber());
-                        // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing
-                        // before exiting onEvents or before creating the next checkpoint, to detect errors and to
-                        // ensure proper ordering.
-                        eventContext.updateCheckpoint();
-                    }
-                } catch (Exception e) {
-                    log.error("Processing failed for an event: " + e.toString());
-                }
-            };
-
-            Consumer<ErrorContext> ERROR_HANDLER = errorContext -> {
-                log.error("Error occurred in partition processor for partition {}, {}",
-                        errorContext.getPartitionContext().getPartitionId(), errorContext.getThrowable());
-                // make sure checkpoint update when not reach the batch
-                if (lastEventDataMap.containsKey(errorContext.getPartitionContext().getPartitionId())) {
-                    EventData eventData = lastEventDataMap.get(errorContext.getPartitionContext().getPartitionId()).poll();
-                    if (eventData != null) {
-                        try {
-                            receivedEvents.clear();
-                            Checkpoint checkpoint = new Checkpoint()
-                                    .setFullyQualifiedNamespace(errorContext.getPartitionContext().getFullyQualifiedNamespace())
-                                    .setEventHubName(errorContext.getPartitionContext().getEventHubName())
-                                    .setConsumerGroup(errorContext.getPartitionContext().getConsumerGroup())
-                                    .setPartitionId(errorContext.getPartitionContext().getPartitionId())
-                                    .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
-                            blobCheckpointStore.updateCheckpoint(checkpoint).block();
-                            log.debug("[onError] Updating Partition " + errorContext.getPartitionContext().getPartitionId()
-                                    + " checkpointing at " + eventData.getOffset() + "," + eventData.getSequenceNumber());
-                        } catch (Exception e) {
-                            log.error("Partition " + errorContext.getPartitionContext().getPartitionId() + " onError: "
-                                    + e.getMessage());
-                        }
-                    }
-                }
-                log.error("Partition " + errorContext.getPartitionContext().getPartitionId() + " onError: "
-                        + errorContext.getThrowable().toString());
-            };
-
-            Consumer<CloseContext> CLOSE_HANDLER = closeContext -> {
-                // make sure checkpoint update when not reach the batch
-                if (lastEventDataMap.containsKey(closeContext.getPartitionContext().getPartitionId())) {
-                    EventData eventData = lastEventDataMap.get(closeContext.getPartitionContext().getPartitionId()).poll();
-                    if (eventData != null) {
-                        receivedEvents.clear();
-                        Checkpoint checkpoint = new Checkpoint()
-                                .setFullyQualifiedNamespace(closeContext.getPartitionContext().getFullyQualifiedNamespace())
-                                .setEventHubName(closeContext.getPartitionContext().getEventHubName())
-                                .setConsumerGroup(closeContext.getPartitionContext().getConsumerGroup())
-                                .setPartitionId(closeContext.getPartitionContext().getPartitionId())
-                                .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
-                        blobCheckpointStore.updateCheckpoint(checkpoint).block();
-                        log.debug("[onClose]onErrorUpdating Partition " + closeContext.getPartitionContext().getPartitionId()
-                                + " checkpointing at " + eventData.getOffset() + "," + eventData.getSequenceNumber());
-                    }
-                }
-                log.debug("Partition " + closeContext.getPartitionContext().getPartitionId() + " is closing for reason "
-                        + closeContext.getCloseReason().toString());
-            };
+            // Set some custom retry options other than the default set.
+            AmqpRetryOptions retryOptions = new AmqpRetryOptions().setDelay(Duration.ofMillis(500))//
+                    .setMaxDelay(Duration.ofSeconds(30)) //
+                    .setMaxRetries(Integer.MAX_VALUE - 1) // can't set Integer.MAX_VALUE directly
+                    .setTryTimeout(Duration.ofSeconds(30)) //
+                    .setMode(AmqpRetryMode.EXPONENTIAL); //
 
             final EventProcessorClientBuilder eventProcessorClientBuilder = new EventProcessorClientBuilder()
-                    .connectionString(ehConnString).consumerGroup(configuration.getConsumerGroupName())
-                    .processEvent(PARTITION_PROCESSOR).processError(ERROR_HANDLER).initialPartitionEventPosition(eventPosition)
-                    .checkpointStore(blobCheckpointStore);
+                    .connectionString(ehConnString) //
+                    .consumerGroup(configuration.getConsumerGroupName()) //
+                    .retry(retryOptions) //
+                    .processPartitionInitialization(initializationContext -> onInitialize(initializationContext)) //
+                    .processPartitionClose(closeContext -> onClose(closeContext)) //
+                    .processEvent(eventContext -> onEvent(eventContext)).processError(errorContext -> onError(errorContext)) //
+                    .initialPartitionEventPosition(eventPosition) //
+                    .checkpointStore(blobCheckpointStore); //
 
             eventProcessorClient = eventProcessorClientBuilder.buildEventProcessorClient();
             // Starts the event processor
             eventProcessorClient.start();
-
-            commitEvery = configuration.getCommitOffsetEvery();
-            processOpened = true;
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -342,7 +280,6 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     @PreDestroy
     public void release() {
-        processOpened = false;
         // Stops the event processor
         if (eventProcessorClient != null) {
             eventProcessorClient.stop();
@@ -373,5 +310,104 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             throw new IllegalArgumentException("unsupported strategy!!" + configuration.getAutoOffsetReset());
         }
         return position;
+    }
+
+    /**
+     * When an occurs, reports that error to a log.
+     *
+     * @param errorContext Context information for the partition in which this error occurred.
+     */
+    void onError(ErrorContext errorContext) {
+        log.error("Error occurred in partition processor for partition {}, {}",
+                errorContext.getPartitionContext().getPartitionId(), errorContext.getThrowable());
+        // make sure checkpoint update when not reach the batch
+        if (lastEventDataMap.containsKey(errorContext.getPartitionContext().getPartitionId())) {
+            EventData eventData = lastEventDataMap.get(errorContext.getPartitionContext().getPartitionId()).poll();
+            if (eventData != null) {
+                try {
+                    receivedEvents.clear();
+                    if (blobCheckpointStore != null) {
+                        Checkpoint checkpoint = new Checkpoint()
+                                .setFullyQualifiedNamespace(errorContext.getPartitionContext().getFullyQualifiedNamespace())
+                                .setEventHubName(errorContext.getPartitionContext().getEventHubName())
+                                .setConsumerGroup(errorContext.getPartitionContext().getConsumerGroup())
+                                .setPartitionId(errorContext.getPartitionContext().getPartitionId())
+                                .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
+                        blobCheckpointStore.updateCheckpoint(checkpoint).block();
+                    }
+                } catch (Exception e) {
+                    log.error("Partition " + errorContext.getPartitionContext().getPartitionId() + " onError: " + e.getMessage());
+                }
+            }
+        }
+        log.error("Error occurred processing partition '{}'. Exception: {}", errorContext.getPartitionContext().getPartitionId(),
+                errorContext.getThrowable());
+    }
+
+    /**
+     * On initialisation, keeps track of which partitions it is processing.
+     *
+     * @param initializationContext Information about partition it is processing.
+     */
+    void onInitialize(InitializationContext initializationContext) {
+        String partitionId = initializationContext.getPartitionContext().getPartitionId();
+        log.info("Starting to process partition {}", partitionId);
+    }
+
+    /**
+     * Invoked when a partition is no longer being processed.
+     *
+     * @param closeContext Context information for the partition that is no longer being processed.
+     */
+    void onClose(CloseContext closeContext) {
+        // make sure checkpoint update when not reach the batch
+        if (lastEventDataMap.containsKey(closeContext.getPartitionContext().getPartitionId())) {
+            EventData eventData = lastEventDataMap.get(closeContext.getPartitionContext().getPartitionId()).poll();
+            if (eventData != null) {
+                receivedEvents.clear();
+                if (blobCheckpointStore != null) {
+                    Checkpoint checkpoint = new Checkpoint()
+                            .setFullyQualifiedNamespace(closeContext.getPartitionContext().getFullyQualifiedNamespace())
+                            .setEventHubName(closeContext.getPartitionContext().getEventHubName())
+                            .setConsumerGroup(closeContext.getPartitionContext().getConsumerGroup())
+                            .setPartitionId(closeContext.getPartitionContext().getPartitionId())
+                            .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
+                    blobCheckpointStore.updateCheckpoint(checkpoint).block();
+                }
+            }
+        }
+        log.info("Stopping processing of partition {}. Reason: {}", closeContext.getPartitionContext().getPartitionId(),
+                closeContext.getCloseReason());
+        eventsProcessed.remove(closeContext.getPartitionContext().getPartitionId());
+    }
+
+    /**
+     * Processes an event from the partition. Aggregates the number of events that were processed in this partition.
+     *
+     * @param eventContext Information about which partition this event was in.
+     */
+    void onEvent(EventContext eventContext) {
+        final Integer count = eventsProcessed.compute(eventContext.getPartitionContext().getPartitionId(),
+                (key, value) -> value == null ? 1 : value + 1);
+
+        log.debug("Processing event from partition " + eventContext.getPartitionContext().getPartitionId()
+                + " with sequence number " + eventContext.getEventData().getSequenceNumber());
+        EventData data = eventContext.getEventData();
+        if (!eventProcessorClient.isRunning()) {
+            // ignore the received event data, this would not handled by component
+            receivedEvents.clear();
+            return;
+        } else {
+            receivedEvents.add(data);
+        }
+        if ((eventsProcessed.get(eventContext.getPartitionContext().getPartitionId())
+                % configuration.getCommitOffsetEvery()) == 0) {
+            // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing
+            // before exiting onEvents or before creating the next checkpoint, to detect errors and to
+            // ensure proper ordering.
+            eventContext.updateCheckpoint();
+        }
+        log.info("Event {} received for partition: {}. # of events processed: {}", data.getSequenceNumber(),
+                eventContext.getPartitionContext().getPartitionId(), count);
     }
 }

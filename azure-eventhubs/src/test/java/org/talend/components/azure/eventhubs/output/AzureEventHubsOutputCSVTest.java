@@ -255,7 +255,7 @@ class AzureEventHubsOutputCSVTest extends AzureEventHubsRWTestBase {
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);
         inputConfiguration.setAutoOffsetReset(AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.EARLIEST);
-        inputConfiguration.setCommitOffsetEvery(1);
+        inputConfiguration.setCommitOffsetEvery(maxRecords < 5 ? 1 : 5);
 
         final Mapper mapper = getComponentsHandler().createMapper(AzureEventHubsStreamInputMapper.class, inputConfiguration);
         assertTrue(mapper.isStream());
