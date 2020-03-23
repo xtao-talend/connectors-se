@@ -38,5 +38,12 @@
       <artifactId>httpclient</artifactId>
       <version>4.5.3</version>
     </dependency>
+
+    <!-- For Active directory authentication -->
+    <dependency>
+      <groupId>org.talend.components.lib</groupId>
+      <artifactId>azure-utils</artifactId>
+      <version>1.0.1</version>
+    </dependency>
   </dependencies>
 </project>
