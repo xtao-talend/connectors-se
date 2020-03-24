@@ -142,10 +142,10 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                 PartitionEvent partitionEvent = receivedEvents.next();
                 // update the position which current partition have read
                 EventData eventData = partitionEvent.getData();
-                receiverManager.updatePartitionPosition(partitionEvent.getPartitionContext().getPartitionId(),
-                        EventPosition.fromSequenceNumber(eventData.getSequenceNumber()));
                 Record record = null;
                 if (eventData != null) {
+                    receiverManager.updatePartitionPosition(partitionEvent.getPartitionContext().getPartitionId(),
+                            EventPosition.fromSequenceNumber(eventData.getSequenceNumber()));
                     switch (configuration.getDataset().getValueFormat()) {
                     case AVRO: {
                         if (recordConverter == null) {

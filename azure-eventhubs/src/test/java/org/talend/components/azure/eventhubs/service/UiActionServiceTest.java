@@ -16,6 +16,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.talend.components.azure.eventhubs.AzureEventHubsTestBase;
@@ -26,6 +27,7 @@ import org.talend.sdk.component.api.service.asyncvalidation.ValidationResult;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 import org.talend.sdk.component.junit5.WithComponents;
 
+@Disabled("Azure eventhubs credentials is not ready on ci")
 @WithComponents("org.talend.components.azure.eventhubs")
 class UiActionServiceTest extends AzureEventHubsTestBase {
 

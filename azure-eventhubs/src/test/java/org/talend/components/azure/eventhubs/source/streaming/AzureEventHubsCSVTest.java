@@ -34,6 +34,7 @@ import org.talend.sdk.component.runtime.input.Mapper;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Disabled("Azure eventhubs credentials is not ready on ci")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @WithComponents("org.talend.components.azure.eventhubs")
 class AzureEventHubsCSVTest extends AzureEventHubsRWTestBase {

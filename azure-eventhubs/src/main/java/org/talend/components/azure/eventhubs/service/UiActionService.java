@@ -162,7 +162,9 @@ public class UiActionService {
         } catch (Throwable throwable) {
             throw throwable;
         } finally {
-            ehClient.close();
+            if (ehClient != null) {
+                ehClient.close();
+            }
         }
     }
 

@@ -179,7 +179,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                     configuration.getDataset().getEventHubName(), connRetryOptions)) {
                 eventPosition.put(partitionId, getPosition());
             }
-            if (checkpoints != null || checkpoints.toIterable().iterator().hasNext()) {
+            if (checkpoints != null && checkpoints.toIterable().iterator().hasNext()) {
                 for (Checkpoint checkpoint : checkpoints.toIterable()) {
                     eventPosition.put(checkpoint.getPartitionId(),
                             EventPosition.fromSequenceNumber(checkpoint.getSequenceNumber()));
@@ -207,8 +207,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             // Starts the event processor
             eventProcessorClient.start();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+        } catch (Throwable e) {
             throw new IllegalStateException(e.getMessage(), e);
         }
 
