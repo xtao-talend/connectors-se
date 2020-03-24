@@ -13,6 +13,7 @@
 package org.talend.components;
 
 import org.talend.sdk.component.api.configuration.Option;
+import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.widget.Credential;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -24,14 +25,17 @@ import lombok.Data;
 public class AzureConnectionActiveDir {
 
     @Option
+    @Required
     @Documentation("Directory (tenant) ID of active directory application")
     private String tenantId;
 
     @Option
+    @Required
     @Documentation("Application (client) ID of active directory application")
     private String clientId;
 
     @Option
+    @Required
     @Credential
     @Documentation("A secret string that the application uses to prove its identity when requesting a token.")
     private String clientSecret;
