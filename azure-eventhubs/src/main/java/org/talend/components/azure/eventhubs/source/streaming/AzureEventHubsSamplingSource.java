@@ -187,7 +187,6 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                     }
                     log.debug(record.toString());
                 }
-                System.out.println(record.toString());
                 return record;
             } else {
                 return next();

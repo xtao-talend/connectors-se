@@ -18,7 +18,6 @@ import static org.talend.components.azure.common.service.AzureComponentServices.
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DOMAIN_NAME;
 
 import java.net.URISyntaxException;
-import java.security.InvalidKeyException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -27,6 +26,7 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.common.service.AzureComponentServices;
 import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.datastore.AzureEventHubsDataStore;
@@ -44,8 +44,8 @@ import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubConsumerClient;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
+import com.azure.storage.common.StorageSharedKeyCredential;
 import com.microsoft.azure.storage.CloudStorageAccount;
-import com.microsoft.azure.storage.StorageException;
 
 import lombok.Getter;
 
@@ -119,24 +119,27 @@ public class UiActionService {
     }
 
     public BlobContainerAsyncClient createBlobContainerAsyncClient(AzureCloudConnection azureConnection, String containerName)
-            throws URISyntaxException, StorageException, InvalidKeyException {
+            throws URISyntaxException {
 
         CloudStorageAccount cloudAccount = createStorageAccount(azureConnection);
-        String sasTokenURL = null;
-        if (azureConnection.isUseAzureSharedSignature()) {
-            sasTokenURL = azureConnection.getSignatureConnection().getAzureSharedAccessSignature();
-        } else {
-            sasTokenURL = cloudAccount.generateSharedAccessSignature(null);
-        }
-        Matcher matcher = Pattern.compile(SAS_PATTERN).matcher(sasTokenURL);
-        if (!matcher.matches()) {
-            throw new IllegalArgumentException("Invalidated sas URL!!!");
-        }
+        BlobContainerClientBuilder clientBuilder = new BlobContainerClientBuilder();
         String storageConnectionString = String.format("%s=%s", BLOB_ENDPOINT_NAME, cloudAccount.getBlobEndpoint().toString());
-
-        BlobContainerAsyncClient blobContainerAsyncClient = new BlobContainerClientBuilder()
-                .connectionString(storageConnectionString).containerName(containerName).sasToken(matcher.group(5))
-                .buildAsyncClient();
+        clientBuilder.connectionString(storageConnectionString);
+        clientBuilder.containerName(containerName);
+        if (azureConnection.isUseAzureSharedSignature()) {
+            String sasTokenURL = azureConnection.getSignatureConnection().getAzureSharedAccessSignature();
+            Matcher matcher = Pattern.compile(SAS_PATTERN).matcher(sasTokenURL);
+            if (!matcher.matches()) {
+                throw new IllegalArgumentException("Invalidated sas URL!!!");
+            }
+            clientBuilder.sasToken(matcher.group(5));
+        } else {
+            AzureStorageConnectionAccount accountConnection = azureConnection.getAccountConnection();
+            StorageSharedKeyCredential credential = new StorageSharedKeyCredential(accountConnection.getAccountName(),
+                    accountConnection.getAccountKey());
+            clientBuilder.credential(credential);
+        }
+        BlobContainerAsyncClient blobContainerAsyncClient = clientBuilder.buildAsyncClient();
         return blobContainerAsyncClient;
     }
 

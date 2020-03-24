@@ -62,7 +62,7 @@ class AzureEventHubsAvroTest extends AzureEventHubsRWTestBase {
         // here expect 5*20
         int maxRecords = PARTITION_COUNT * RECORD_PER_PARTITION;
         final String containerName = "eh-avro-read-earliest";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(true);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);
@@ -105,7 +105,7 @@ class AzureEventHubsAvroTest extends AzureEventHubsRWTestBase {
         // here expect 500
         int maxRecords = PARTITION_COUNT * RECORD_PER_PARTITION;
         final String containerName = "eh-avro-read-latest";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(false);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);

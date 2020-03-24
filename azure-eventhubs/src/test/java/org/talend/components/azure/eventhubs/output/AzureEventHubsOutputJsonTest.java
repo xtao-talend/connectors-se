@@ -219,7 +219,7 @@ class AzureEventHubsOutputJsonTest extends AzureEventHubsRWTestBase {
         int maxRecords = expected.size();
 
         final String containerName = "eh-check-json-write";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(false);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);

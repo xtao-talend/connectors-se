@@ -150,8 +150,10 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                     configuration.getDataset().getConnection().getSasKey(), configuration.getDataset().getEventHubName());
 
             AzureCloudConnection cloudConnection = new AzureCloudConnection();
-            cloudConnection.setUseAzureSharedSignature(true);
-            cloudConnection.setSignatureConnection(configuration.getStorageConnectionSignature());
+            cloudConnection.setUseAzureSharedSignature(configuration.getCheckpointStore().isUseAzureSharedSignature());
+            cloudConnection.setSignatureConnection(configuration.getCheckpointStore().getSignatureConnection());
+            cloudConnection.setAccountConnection(configuration.getCheckpointStore().getAccountConnection());
+            cloudConnection.setEndpointSuffix(configuration.getCheckpointStore().getEndpointSuffix());
             BlobContainerAsyncClient blobContainerAsyncClient = service.createBlobContainerAsyncClient(cloudConnection,
                     configuration.getContainerName());
             Matcher matcher = Pattern.compile(ENDPOINT_PATTERN).matcher(endpoint);

@@ -35,7 +35,7 @@ import lombok.Data;
         @GridLayout.Row({ "autoOffsetReset" }), //
         @GridLayout.Row({ "sequenceNum", "inclusiveFlag" }), //
         @GridLayout.Row({ "enqueuedDateTime" }), //
-        @GridLayout.Row({ "storageConnectionSignature" }), //
+        @GridLayout.Row({ "checkpointStore" }), //
         @GridLayout.Row({ "containerName" }), //
         @GridLayout.Row({ "commitOffsetEvery" }) })
 
@@ -72,9 +72,14 @@ public class AzureEventHubsStreamInputConfiguration implements Serializable {
 
     @Option
     @Reference(configurationId = "YXp1cmVibG9iI0F6dXJlI2RhdGFzdG9yZSNkZWZhdWx0", bindings = {
-            @Bindings(from = "configuration.signatureConnection.azureSharedAccessSignature", to = "configuration.storageConnectionSignature.azureSharedAccessSignature") })
+            @Bindings(from = "configuration.useAzureSharedSignature", to = "configuration.checkpointStore.useAzureSharedSignature"),
+            @Bindings(from = "configuration.signatureConnection.azureSharedAccessSignature", to = "configuration.checkpointStore.storageConnectionSignature.azureSharedAccessSignature"),
+            @Bindings(from = "configuration.endpointSuffix", to = "configuration.checkpointStore.endpointSuffix"),
+            @Bindings(from = "configuration.accountConnection.accountName", to = "configuration.checkpointStore.accountConnection.accountName"),
+            @Bindings(from = "configuration.accountConnection.accountKey", to = "configuration.checkpointStore.accountConnection.accountKey"),
+            @Bindings(from = "configuration.accountConnection.protocol", to = "configuration.checkpointStore.accountConnection.protocol") })
     @Documentation("Connection for the Azure Storage account to use for persisting leases and checkpoints.")
-    private AzureStorageConnectionSignature storageConnectionSignature;
+    private CheckpointStoreConfiguration checkpointStore;
 
     @Option
     @Documentation("Azure Storage container name for use by built-in lease and checkpoint manager.")

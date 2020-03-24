@@ -106,7 +106,7 @@ class AzureEventHubsOutputTextTest extends AzureEventHubsRWTestBase {
         int maxRecords = expected.size();
 
         final String containerName = "eh-check-text-write";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(true);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);

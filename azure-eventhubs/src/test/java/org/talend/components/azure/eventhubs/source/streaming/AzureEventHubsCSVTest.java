@@ -66,7 +66,7 @@ class AzureEventHubsCSVTest extends AzureEventHubsRWTestBase {
         int maxRecords = PARTITION_COUNT * RECORD_PER_PARTITION;
 
         final String containerName = "eh-csv-read-earliest";
-        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(true);
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
         inputConfiguration.setContainerName(containerName);

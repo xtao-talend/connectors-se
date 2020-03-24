@@ -16,11 +16,14 @@ import static org.talend.sdk.component.junit.SimpleFactory.configurationByExampl
 
 import java.util.List;
 
+import org.talend.components.azure.common.Protocol;
+import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
 import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
+import org.talend.components.azure.eventhubs.source.streaming.CheckpointStoreConfiguration;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.runtime.manager.chain.Job;
 
@@ -62,23 +65,40 @@ public abstract class AzureEventHubsRWTestBase extends AzureEventHubsTestBase {
      * 
      * @return
      */
-    protected AzureCloudConnection getAzureStorageConnection() {
-        AzureStorageConnectionSignature sasConn = new AzureStorageConnectionSignature();
-        sasConn.setAzureSharedAccessSignature(getSasToken());
+    protected AzureCloudConnection getAzureStorageConnection(boolean useSAS) {
 
         AzureCloudConnection storageAccount = new AzureCloudConnection();
-        storageAccount.setSignatureConnection(sasConn);
-        storageAccount.setUseAzureSharedSignature(true);
+        storageAccount.setUseAzureSharedSignature(useSAS);
+        if (useSAS) {
+            AzureStorageConnectionSignature sasConn = new AzureStorageConnectionSignature();
+            sasConn.setAzureSharedAccessSignature(getSasToken());
+            storageAccount.setSignatureConnection(sasConn);
+        } else {
+            AzureStorageConnectionAccount accountConn = new AzureStorageConnectionAccount();
+            accountConn.setAccountName(ACCOUNT_NAME);
+            accountConn.setAccountKey(ACCOUNT_KEY);
+            accountConn.setProtocol(Protocol.HTTPS);
+            storageAccount.setAccountConnection(accountConn);
+        }
         return storageAccount;
     }
 
     /**
      * Create a default input configuration instance
      */
-    protected AzureEventHubsStreamInputConfiguration createInputConfiguration() {
+    protected AzureEventHubsStreamInputConfiguration createInputConfiguration(boolean useSAS) {
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         inputConfiguration.setDataset(createDataSet());
-        inputConfiguration.setStorageConnectionSignature(getAzureStorageConnection().getSignatureConnection());
+        CheckpointStoreConfiguration checkpointStore = new CheckpointStoreConfiguration();
+        checkpointStore.setUseAzureSharedSignature(useSAS);
+        AzureCloudConnection cloudConnection = getAzureStorageConnection(useSAS);
+        if (useSAS) {
+            checkpointStore.setSignatureConnection(cloudConnection.getSignatureConnection());
+        } else {
+            checkpointStore.setAccountConnection(cloudConnection.getAccountConnection());
+            checkpointStore.setEndpointSuffix(cloudConnection.getEndpointSuffix());
+        }
+        inputConfiguration.setCheckpointStore(checkpointStore);
         return inputConfiguration;
     }
 
