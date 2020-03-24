@@ -36,7 +36,8 @@ import static org.talend.sdk.component.api.configuration.ui.layout.GridLayout.Fo
         @GridLayout.Row("accountName"), //
         @GridLayout.Row("endpointSuffix"), //
         @GridLayout.Row("sharedKey"), //
-        @GridLayout.Row("sas") })
+        @GridLayout.Row("sas"), //
+})
 @GridLayout(names = ADVANCED, value = { @GridLayout.Row("timeout") })
 @Documentation("The datastore to connect Azure Data Lake Storage Gen2")
 public class AdlsGen2Connection implements Serializable {
@@ -78,7 +79,7 @@ public class AdlsGen2Connection implements Serializable {
 
     public enum AuthMethod {
         SharedKey,
-        SAS
+        SAS,
     }
 
 }
