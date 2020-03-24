@@ -30,7 +30,7 @@ import java.io.Serializable;
 public class KeyMapping implements Serializable {
 
     @Option
-    @Documentation("Column which is value provider")
+    @Documentation("Field which is value provider")
     private String column;
 
     @Option

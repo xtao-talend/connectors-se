@@ -148,8 +148,8 @@ public class MongoDBReader implements Serializable {
         switch (configuration.getDataset().getMode()) {
         case TEXT:
             return toRecordWithWSingleDocumentContentColumn(document);
-        case MAPPING:
-            return toFlatRecordWithMapping(document);
+        // case MAPPING:
+        // return toFlatRecordWithMapping(document);
         case JSON:
         default:
             return toFlatRecord(document);
@@ -173,39 +173,41 @@ public class MongoDBReader implements Serializable {
         }
     }
 
-    private List<PathMapping> initPathMappings(Document document) {
-        List<PathMapping> pathMappings = configuration.getDataset().getPathMappings();
-        if (pathMappings == null || pathMappings.isEmpty()) {
-            return service.guessPathMappingsFromDocument(document);
-        }
-        return pathMappings;
-    }
-
-    // only create schema by first document and path mapping
-    private transient Schema schema;
-
-    private Record toFlatRecordWithMapping(Document document) {
-        List<PathMapping> pathMappings = initPathMappings(document);
-        if (schema == null) {
-            schema = service.createSchema(document, pathMappings);
-        }
-        final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schema);
-        Iterator<Schema.Entry> entries = schema.getEntries().iterator();
-        for (PathMapping mapping : pathMappings) {
-            // column for flow struct
-            String column = mapping.getColumn();
-            // the mongodb's origin element name in bson
-            String originElement = mapping.getOriginElement();
-            // path to locate the parent element of value provider of bson object
-            String parentNodePath = mapping.getParentNodePath();
-            Object value = service.getValueByPathFromDocument(document, parentNodePath, originElement);
-
-            Schema.Entry entry = entries.next();
-
-            addColumn(recordBuilder, entry, value);
-        }
-        return recordBuilder.build();
-    }
+    /*
+     * private List<PathMapping> initPathMappings(Document document) {
+     * List<PathMapping> pathMappings = configuration.getDataset().getPathMappings();
+     * if (pathMappings == null || pathMappings.isEmpty()) {
+     * return service.guessPathMappingsFromDocument(document);
+     * }
+     * return pathMappings;
+     * }
+     * 
+     * // only create schema by first document and path mapping
+     * private transient Schema schema;
+     * 
+     * private Record toFlatRecordWithMapping(Document document) {
+     * List<PathMapping> pathMappings = initPathMappings(document);
+     * if (schema == null) {
+     * schema = service.createSchema(document, pathMappings);
+     * }
+     * final Record.Builder recordBuilder = builderFactory.newRecordBuilder(schema);
+     * Iterator<Schema.Entry> entries = schema.getEntries().iterator();
+     * for (PathMapping mapping : pathMappings) {
+     * // column for flow struct
+     * String column = mapping.getColumn();
+     * // the mongodb's origin element name in bson
+     * String originElement = mapping.getOriginElement();
+     * // path to locate the parent element of value provider of bson object
+     * String parentNodePath = mapping.getParentNodePath();
+     * Object value = service.getValueByPathFromDocument(document, parentNodePath, originElement);
+     * 
+     * Schema.Entry entry = entries.next();
+     * 
+     * addColumn(recordBuilder, entry, value);
+     * }
+     * return recordBuilder.build();
+     * }
+     */
 
     private String document2Json(Document document) {
         // http://mongodb.github.io/mongo-java-driver/3.12/bson/extended-json/

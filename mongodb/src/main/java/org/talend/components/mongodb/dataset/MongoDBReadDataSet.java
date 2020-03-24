@@ -31,7 +31,7 @@ import java.util.List;
 @Data
 @DataSet("MongoDBReadDataSet")
 @GridLayout({ @GridLayout.Row({ "datastore" }), @GridLayout.Row({ "collection" }), @GridLayout.Row({ "mode" }),
-        @GridLayout.Row({ "pathMappings" }), @GridLayout.Row({ "query" }) })
+        @GridLayout.Row({ "query" }) })
 // @GridLayout(names = GridLayout.FormType.ADVANCED, value = { @GridLayout.Row({ "enableExternalSort" }) })
 @Documentation("MongoDB DataSet for read only")
 public class MongoDBReadDataSet implements BaseDataSet {
@@ -51,10 +51,14 @@ public class MongoDBReadDataSet implements BaseDataSet {
     private Mode mode = Mode.JSON;
 
     // TODO almost impossible to split dataset with source and sink, the common part is almost no meaning as dataset
-    @Option
-    @ActiveIf(target = "mode", value = "MAPPING")
-    @Documentation("Path Mapping")
-    private List<PathMapping> pathMappings = Collections.emptyList();
+    /*
+     * @Option
+     * 
+     * @ActiveIf(target = "mode", value = "MAPPING")
+     * 
+     * @Documentation("Path Mapping")
+     * private List<PathMapping> pathMappings = Collections.emptyList();
+     */
 
     /*
      * @Option

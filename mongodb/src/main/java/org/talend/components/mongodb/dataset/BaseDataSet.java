@@ -27,6 +27,6 @@ public interface BaseDataSet extends Serializable {
 
     Mode getMode();
 
-    List<PathMapping> getPathMappings();
+    // List<PathMapping> getPathMappings();
 
 }

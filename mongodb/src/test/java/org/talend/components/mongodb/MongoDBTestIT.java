@@ -14,7 +14,9 @@ package org.talend.components.mongodb;
 
 import com.mongodb.MongoClientOptions;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.talend.components.common.stream.output.json.RecordToJson;
@@ -38,6 +40,7 @@ import org.talend.sdk.component.runtime.manager.chain.Job;
 import java.util.*;
 
 // TODO current only for local test which have mongo env, will refactor it later
+@Disabled
 @Slf4j
 @WithComponents("org.talend.components.mongodb")
 @DisplayName("testing of MongoDB connector")
@@ -56,14 +59,16 @@ public class MongoDBTestIT {
     void testBasic() {
         MongoDBReadDataSet dataset = getMongoDBDataSet("test");
 
-        List<PathMapping> pathMappings = new ArrayList<>();
-        pathMappings.add(new PathMapping("_id", "_id", ""));
-        pathMappings.add(new PathMapping("item", "item", ""));
-        pathMappings.add(new PathMapping("qty", "qty", ""));
-        pathMappings.add(new PathMapping("status", "status", ""));
+        /*
+         * List<PathMapping> pathMappings = new ArrayList<>();
+         * pathMappings.add(new PathMapping("_id", "_id", ""));
+         * pathMappings.add(new PathMapping("item", "item", ""));
+         * pathMappings.add(new PathMapping("qty", "qty", ""));
+         * pathMappings.add(new PathMapping("status", "status", ""));
+         */
 
         // dataset.setMode(Mode.MAPPING);
-        dataset.setPathMappings(pathMappings);
+        // dataset.setPathMappings(pathMappings);
 
         final List<Record> res = getRecords(dataset);
 
@@ -74,14 +79,16 @@ public class MongoDBTestIT {
     void testDate() {
         MongoDBReadDataSet dataset = getMongoDBDataSet("bakesales");
 
-        List<PathMapping> pathMappings = new ArrayList<>();
-        pathMappings.add(new PathMapping("_id", "_id", ""));
-        pathMappings.add(new PathMapping("date", "date", ""));
-        pathMappings.add(new PathMapping("quantity", "quantity", ""));
-        pathMappings.add(new PathMapping("amount", "amount", ""));
+        /*
+         * List<PathMapping> pathMappings = new ArrayList<>();
+         * pathMappings.add(new PathMapping("_id", "_id", ""));
+         * pathMappings.add(new PathMapping("date", "date", ""));
+         * pathMappings.add(new PathMapping("quantity", "quantity", ""));
+         * pathMappings.add(new PathMapping("amount", "amount", ""));
+         */
 
         // dataset.setMode(Mode.MAPPING);
-        dataset.setPathMappings(pathMappings);
+        // dataset.setPathMappings(pathMappings);
 
         final List<Record> res = getRecords(dataset);
 

@@ -227,24 +227,26 @@ public class MongoDBProcessor implements Serializable {
 
             doDataAction(record, document);
         } else {
-            DocumentGenerator dg = new DocumentGenerator();
-            List<PathMapping> mappings = configuration.getDataset().getPathMappings();
-            Map<String, PathMapping> inputFieldName2PathMapping = new LinkedHashMap<>();
-
-            // TODO now only use name mapping, improve it with index mapping
-            for (PathMapping mapping : mappings) {
-                String column = mapping.getColumn();
-                inputFieldName2PathMapping.put(column, mapping);
-            }
-
-            for (Schema.Entry entry : record.getSchema().getEntries()) {// schema from input
-                PathMapping mapping = inputFieldName2PathMapping.get(entry.getName());
-                String originElement = mapping.getOriginElement();
-                dg.put(mapping.getParentNodePath(), originElement != null ? originElement : entry.getName(),
-                        record.get(Object.class, entry.getName()));
-            }
-
-            doDataAction(record, dg.getDocument());
+            /*
+             * DocumentGenerator dg = new DocumentGenerator();
+             * List<PathMapping> mappings = configuration.getDataset().getPathMappings();
+             * Map<String, PathMapping> inputFieldName2PathMapping = new LinkedHashMap<>();
+             * 
+             * // TODO now only use name mapping, improve it with index mapping
+             * for (PathMapping mapping : mappings) {
+             * String column = mapping.getColumn();
+             * inputFieldName2PathMapping.put(column, mapping);
+             * }
+             * 
+             * for (Schema.Entry entry : record.getSchema().getEntries()) {// schema from input
+             * PathMapping mapping = inputFieldName2PathMapping.get(entry.getName());
+             * String originElement = mapping.getOriginElement();
+             * dg.put(mapping.getParentNodePath(), originElement != null ? originElement : entry.getName(),
+             * record.get(Object.class, entry.getName()));
+             * }
+             * 
+             * doDataAction(record, dg.getDocument());
+             */
         }
     }
 

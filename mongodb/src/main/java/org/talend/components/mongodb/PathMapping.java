@@ -31,7 +31,7 @@ import java.io.Serializable;
 public class PathMapping implements Serializable {
 
     @Option
-    @Documentation("Column")
+    @Documentation("Field")
     private String column;
 
     @Option
