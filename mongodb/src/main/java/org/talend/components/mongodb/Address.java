@@ -37,6 +37,6 @@ public class Address implements Serializable {
     @Option
     @Documentation("Port")
     @Min(1)
-    private int port;
+    private int port = 27017;
 
 }
