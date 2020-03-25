@@ -17,6 +17,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.constraint.Min;
+import org.talend.sdk.component.api.configuration.ui.DefaultValue;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayouts;
 import org.talend.sdk.component.api.meta.Documentation;
@@ -36,6 +37,7 @@ public class Address implements Serializable {
 
     @Option
     @Documentation("Port")
+    @DefaultValue("27017")
     @Min(1)
     private int port = 27017;
 
