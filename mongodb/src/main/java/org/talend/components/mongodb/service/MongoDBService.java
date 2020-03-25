@@ -16,6 +16,7 @@ import com.mongodb.*;
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
 import org.bson.BsonDocument;
+import org.bson.BsonInt32;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -150,16 +151,14 @@ public class MongoDBService {
     public HealthCheckStatus healthCheck(@Option("configuration.dataset.connection") final MongoDBDataStore datastore) {
         try (MongoClient client = createClient(datastore)) {
             String database = datastore.getDatabase();
-            // TODO use another better method to replace it, here we do real check connection
-            client.getAddress();
 
             MongoDatabase md = client.getDatabase(database);
             if (md == null) {// TODO remove it as seems never go in even no that database exists
                 return new HealthCheckStatus(HealthCheckStatus.Status.KO, "Can't find the database : " + database);
             }
 
-            // TODO check connection status
-            // md.runCommand();
+            Document document = getDatabaseStats(md);
+            // TODO use it later
 
             return new HealthCheckStatus(HealthCheckStatus.Status.OK, "Connection OK");
         } catch (Exception exception) {
@@ -167,6 +166,11 @@ public class MongoDBService {
             LOG.error(message, exception);
             return new HealthCheckStatus(HealthCheckStatus.Status.KO, message);
         }
+    }
+
+    private Document getDatabaseStats(MongoDatabase database) {
+        BsonDocument commandDocument = (new BsonDocument("dbStats", new BsonInt32(1))).append("scale", new BsonInt32(1));
+        return database.runCommand(commandDocument);
     }
 
     public BsonDocument getBsonDocument(String bson) {
