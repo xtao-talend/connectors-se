@@ -69,8 +69,6 @@ public class MongoDBProcessor implements Serializable {
         this.configuration = configuration;
         this.service = service;
         this.i18n = i18n;
-
-        this.recordToJson = new RecordToJson();
     }
 
     @PostConstruct
@@ -221,6 +219,9 @@ public class MongoDBProcessor implements Serializable {
 
             doDataAction(record, document);
         } else if (configuration.getDataset().getMode() == Mode.JSON) {
+            if (this.recordToJson == null) {
+                this.recordToJson = new RecordToJson();
+            }
             JsonObject jsonObject = this.recordToJson.fromRecord(record);
             String jsonContent = jsonObject.toString();
             Document document = Document.parse(jsonContent);
