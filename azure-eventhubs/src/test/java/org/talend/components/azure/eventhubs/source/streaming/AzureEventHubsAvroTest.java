@@ -41,9 +41,9 @@ class AzureEventHubsAvroTest extends AzureEventHubsRWTestBase {
 
     protected static final String EVENTHUB_NAME = "eh-junit-avro";
 
-    protected static final int PARTITION_COUNT = 5;
+    protected static final int PARTITION_COUNT = 3;
 
-    protected static final int RECORD_PER_PARTITION = 20;
+    protected static final int RECORD_PER_PARTITION = 10;
 
     private static final String UNIQUE_ID;
 

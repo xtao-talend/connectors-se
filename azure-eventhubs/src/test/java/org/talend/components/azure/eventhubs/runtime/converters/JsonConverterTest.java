@@ -90,6 +90,5 @@ class JsonConverterTest {
                         + "\"Jigsaw\": null, \"JigsawCompanyId\": null, \"AccountSource\": null, \"SicDesc\": null, \"CustomerPriority__c\": null, "
                         + "\"SLA__c\": null, \"Active__c\": null, \"NumberofLocations__c\": null, \"UpsellOpportunity__c\": null, \"SLASerialNumber__c\": null, "
                         + "\"SLAExpirationDate__c\": null, \"copy_id__c\": null, \"test_underline__c\": null}");
-        System.out.println(record.getSchema().toString());
     }
 }

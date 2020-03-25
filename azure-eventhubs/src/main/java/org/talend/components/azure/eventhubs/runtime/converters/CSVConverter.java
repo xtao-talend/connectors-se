@@ -12,12 +12,13 @@
  */
 package org.talend.components.azure.eventhubs.runtime.converters;
 
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
+
 import java.io.IOException;
+import java.io.Serializable;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.commons.lang3.StringUtils;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
@@ -26,10 +27,8 @@ import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
-
 @Slf4j
-public class CSVConverter implements RecordConverter<String> {
+public class CSVConverter implements RecordConverter<String>, Serializable {
 
     private String fieldDelimiter;
 

@@ -12,28 +12,20 @@
  */
 package org.talend.components.azure.eventhubs.runtime.converters;
 
-import java.io.StringReader;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
 
-import javax.json.JsonBuilderFactory;
-import javax.json.JsonObject;
-import javax.json.JsonReaderFactory;
-import javax.json.bind.Jsonb;
-import javax.json.bind.JsonbBuilder;
-import javax.json.spi.JsonProvider;
+import java.io.Serializable;
 
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
-import org.talend.sdk.component.runtime.record.RecordConverters;
 
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.PAYLOAD_COLUMN;
-
 @Slf4j
-public class TextConverter implements RecordConverter<String> {
+public class TextConverter implements RecordConverter<String>, Serializable {
 
     private Messages messages;
 

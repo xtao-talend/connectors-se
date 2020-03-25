@@ -12,7 +12,9 @@
  */
 package org.talend.components.azure.eventhubs.runtime.converters;
 
-import java.io.IOException;
+import static java.util.stream.Collectors.toList;
+
+import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -29,24 +31,15 @@ import java.util.stream.Collectors;
 import org.apache.avro.LogicalTypes;
 import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericData;
-import org.apache.avro.generic.GenericDatumReader;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.DatumReader;
-import org.apache.avro.io.DatumWriter;
-import org.apache.avro.io.DecoderFactory;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.record.Schema;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
-import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 
-import static java.util.stream.Collectors.toList;
-
 @Slf4j
-public class AvroConverter implements RecordConverter<GenericRecord> {
+public class AvroConverter implements RecordConverter<GenericRecord>, Serializable {
 
     private static final String AVRO_LOGICAL_TYPE = "logicalType";
 

@@ -73,9 +73,6 @@ class AzureEventHubsTextTest extends AzureEventHubsRWTestBase {
         assertTrue(mapper.isStream());
         getComponentsHandler().start();
         List<Record> records = getComponentsHandler().collectAsList(Record.class, mapper, maxRecords);
-        for (Record record : records) {
-            System.out.println(record.getString("Event"));
-        }
         assertEquals(maxRecords, records.size());
 
         getComponentsHandler().resetState();

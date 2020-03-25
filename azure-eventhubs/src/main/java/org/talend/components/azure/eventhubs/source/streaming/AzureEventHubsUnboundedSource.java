@@ -36,17 +36,9 @@ import javax.json.JsonReaderFactory;
 import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DecoderFactory;
 import org.talend.components.azure.datastore.AzureCloudConnection;
-import org.talend.components.azure.eventhubs.runtime.converters.AvroConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.CSVConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.JsonConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.RecordConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.TextConverter;
+import org.talend.components.azure.eventhubs.runtime.adapter.ContentAdapterFactory;
+import org.talend.components.azure.eventhubs.runtime.adapter.EventDataContentAdapter;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.service.UiActionService;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
@@ -84,27 +76,11 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private final Messages messages;
+    private final transient Messages messages;
 
-    private EventProcessorClient eventProcessorClient;
+    private transient EventProcessorClient eventProcessorClient;
 
-    private transient RecordConverter recordConverter;
-
-    private transient Schema schema;
-
-    private transient GenericDatumReader<GenericRecord> datumReader;
-
-    private transient BinaryDecoder decoder;
-
-    private transient RecordBuilderFactory recordBuilderFactory;
-
-    private transient JsonBuilderFactory jsonBuilderFactory;
-
-    private transient JsonProvider jsonProvider;
-
-    private transient JsonReaderFactory readerFactory;
-
-    private transient Jsonb jsonb;
+    private final EventDataContentAdapter contentFormatter;
 
     private static Map<String, Queue<EventData>> lastEventDataMap = new HashMap<>();
 
@@ -124,11 +100,8 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             JsonProvider jsonProvider, JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
         this.service = service;
-        this.recordBuilderFactory = recordBuilderFactory;
-        this.jsonBuilderFactory = jsonBuilderFactory;
-        this.jsonProvider = jsonProvider;
-        this.readerFactory = readerFactory;
-        this.jsonb = jsonb;
+        this.contentFormatter = ContentAdapterFactory.getAdapter(configuration.getDataset(), recordBuilderFactory,
+                jsonBuilderFactory, jsonProvider, readerFactory, jsonb, messages);
         this.messages = messages;
 
     }
@@ -229,48 +202,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                 } else {
                     lastEventDataMap.get(partitionKey).add(eventData);
                 }
-                switch (configuration.getDataset().getValueFormat()) {
-                case AVRO: {
-                    if (recordConverter == null) {
-                        recordConverter = AvroConverter.of(recordBuilderFactory);
-                    }
-                    if (schema == null) {
-                        schema = new org.apache.avro.Schema.Parser().parse(configuration.getDataset().getAvroSchema());
-                        datumReader = new GenericDatumReader<GenericRecord>(schema);
-                    }
-                    decoder = DecoderFactory.get().binaryDecoder(eventData.getBody(), decoder);
-                    GenericRecord genericRecord = datumReader.read(null, decoder);
-                    record = recordConverter.toRecord(genericRecord);
-                    break;
-                }
-                case CSV: {
-                    if (recordConverter == null) {
-                        recordConverter = CSVConverter.of(recordBuilderFactory, configuration.getDataset().getFieldDelimiter(),
-                                messages);
-                    }
-                    record = recordConverter.toRecord(eventData.getBodyAsString());
-                    break;
-                }
-                case TEXT: {
-                    if (recordConverter == null) {
-                        recordConverter = TextConverter.of(recordBuilderFactory, messages);
-                    }
-                    record = recordConverter.toRecord(eventData.getBodyAsString());
-                    break;
-                }
-                case JSON: {
-                    if (recordConverter == null) {
-                        recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider, readerFactory,
-                                jsonb, messages);
-                    }
-                    record = recordConverter.toRecord(eventData.getBodyAsString());
-                    break;
-                }
-                default:
-                    throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
-                }
-                System.out.println(record.toString());
-                log.debug(record.toString());
+                record = contentFormatter.toRecord(eventData.getBody());
                 return record;
             } catch (Throwable e) {
                 throw new IllegalStateException(e.getMessage(), e);

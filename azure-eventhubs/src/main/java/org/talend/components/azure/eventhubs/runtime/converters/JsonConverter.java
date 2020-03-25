@@ -12,6 +12,7 @@
  */
 package org.talend.components.azure.eventhubs.runtime.converters;
 
+import java.io.Serializable;
 import java.io.StringReader;
 
 import javax.json.JsonBuilderFactory;
@@ -30,7 +31,7 @@ import org.talend.sdk.component.runtime.record.RecordConverters;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class JsonConverter implements RecordConverter<String> {
+public class JsonConverter implements RecordConverter<String>, Serializable {
 
     private Messages messages;
 

@@ -13,10 +13,8 @@
 package org.talend.components.azure.eventhubs.output;
 
 import static com.azure.messaging.eventhubs.implementation.ClientConstants.ENDPOINT_FORMAT;
-import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CHARSET;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DOMAIN_NAME;
 
-import java.io.ByteArrayOutputStream;
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,16 +26,8 @@ import javax.json.JsonReaderFactory;
 import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumWriter;
-import org.apache.avro.generic.IndexedRecord;
-import org.apache.avro.io.BinaryEncoder;
-import org.apache.avro.io.EncoderFactory;
-import org.talend.components.azure.eventhubs.runtime.converters.AvroConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.CSVConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.JsonConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.RecordConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.TextConverter;
+import org.talend.components.azure.eventhubs.runtime.adapter.ContentAdapterFactory;
+import org.talend.components.azure.eventhubs.runtime.adapter.EventDataContentAdapter;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.sdk.component.api.component.Icon;
 import org.talend.sdk.component.api.component.Version;
@@ -70,37 +60,20 @@ public class AzureEventHubsOutput implements Serializable {
 
     private transient List<Record> records;
 
-    private Messages messages;
+    private transient Messages messages;
 
     private boolean init;
 
-    private EventHubProducerClient eventHubClient;
+    private transient EventHubProducerClient eventHubClient;
 
-    private RecordConverter recordConverter;
-
-    private GenericDatumWriter<IndexedRecord> datumWriter;
-
-    private BinaryEncoder encoder;
-
-    private RecordBuilderFactory recordBuilderFactory;
-
-    private JsonBuilderFactory jsonBuilderFactory;
-
-    private JsonProvider jsonProvider;
-
-    private JsonReaderFactory readerFactory;
-
-    private Jsonb jsonb;
+    private EventDataContentAdapter contentAdapter;
 
     public AzureEventHubsOutput(@Option("configuration") final AzureEventHubsOutputConfiguration outputConfig,
             RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
             JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = outputConfig;
-        this.recordBuilderFactory = recordBuilderFactory;
-        this.jsonBuilderFactory = jsonBuilderFactory;
-        this.jsonProvider = jsonProvider;
-        this.readerFactory = readerFactory;
-        this.jsonb = jsonb;
+        this.contentAdapter = ContentAdapterFactory.getAdapter(configuration.getDataset(), recordBuilderFactory,
+                jsonBuilderFactory, jsonProvider, readerFactory, jsonb, messages);
         this.messages = messages;
     }
 
@@ -150,52 +123,7 @@ public class AzureEventHubsOutput implements Serializable {
                 events = eventHubClient.createBatch();
             }
             for (Record record : records) {
-                log.debug(record.toString());
-                byte[] payloadBytes = null;
-                switch (configuration.getDataset().getValueFormat()) {
-                case AVRO: {
-                    if (recordConverter == null) {
-                        recordConverter = AvroConverter.of(null);
-                    }
-                    IndexedRecord indexedRecord = ((AvroConverter) recordConverter).fromRecord(record);
-                    if (datumWriter == null) {
-                        org.apache.avro.Schema.Parser parser = new org.apache.avro.Schema.Parser();
-                        Schema schema = parser.parse(configuration.getDataset().getAvroSchema());
-                        datumWriter = new GenericDatumWriter<IndexedRecord>(schema);
-                    }
-                    ByteArrayOutputStream out = new ByteArrayOutputStream();
-                    encoder = EncoderFactory.get().binaryEncoder(out, encoder);
-                    datumWriter.write(indexedRecord, encoder);
-                    encoder.flush();
-                    payloadBytes = out.toByteArray();
-                    out.close();
-                    break;
-                }
-                case CSV: {
-                    if (recordConverter == null) {
-                        recordConverter = CSVConverter.of(null, configuration.getDataset().getFieldDelimiter(), messages);
-                    }
-                    payloadBytes = ((CSVConverter) recordConverter).fromRecord(record).getBytes(DEFAULT_CHARSET);
-                    break;
-                }
-                case TEXT: {
-                    if (recordConverter == null) {
-                        recordConverter = TextConverter.of(recordBuilderFactory, messages);
-                    }
-                    payloadBytes = ((TextConverter) recordConverter).fromRecord(record).getBytes(DEFAULT_CHARSET);
-                    break;
-                }
-                case JSON: {
-                    if (recordConverter == null) {
-                        recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider, readerFactory,
-                                jsonb, messages);
-                    }
-                    payloadBytes = ((JsonConverter) recordConverter).fromRecord(record).getBytes(DEFAULT_CHARSET);
-                    break;
-                }
-                default:
-                    throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
-                }
+                byte[] payloadBytes = contentAdapter.toBytes(record);
                 events.tryAdd(new EventData(payloadBytes));
             }
             eventHubClient.send(events);

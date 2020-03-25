@@ -33,16 +33,8 @@ import javax.json.JsonReaderFactory;
 import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
-import org.apache.avro.Schema;
-import org.apache.avro.generic.GenericDatumReader;
-import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DecoderFactory;
-import org.talend.components.azure.eventhubs.runtime.converters.AvroConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.CSVConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.JsonConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.RecordConverter;
-import org.talend.components.azure.eventhubs.runtime.converters.TextConverter;
+import org.talend.components.azure.eventhubs.runtime.adapter.ContentAdapterFactory;
+import org.talend.components.azure.eventhubs.runtime.adapter.EventDataContentAdapter;
 import org.talend.components.azure.eventhubs.service.Messages;
 import org.talend.components.azure.eventhubs.source.AzureEventHubsSource;
 import org.talend.sdk.component.api.configuration.Option;
@@ -65,41 +57,22 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
 
     private final AzureEventHubsStreamInputConfiguration configuration;
 
-    private ReceiverManager receiverManager;
+    private transient ReceiverManager receiverManager;
 
     private Iterator<PartitionEvent> receivedEvents;
 
-    private EventHubConsumerClient ehClient;
+    private transient EventHubConsumerClient ehClient;
 
-    private Messages messages;
+    private transient Messages messages;
 
-    private transient RecordBuilderFactory recordBuilderFactory;
-
-    private transient RecordConverter recordConverter;
-
-    private transient JsonBuilderFactory jsonBuilderFactory;
-
-    private transient JsonProvider jsonProvider;
-
-    private transient JsonReaderFactory readerFactory;
-
-    private transient Jsonb jsonb;
-
-    private transient Schema schema;
-
-    private transient GenericDatumReader<GenericRecord> datumReader;
-
-    private transient BinaryDecoder decoder;
+    private final EventDataContentAdapter contentAdapter;
 
     public AzureEventHubsSamplingSource(@Option("configuration") final AzureEventHubsStreamInputConfiguration configuration,
             RecordBuilderFactory recordBuilderFactory, JsonBuilderFactory jsonBuilderFactory, JsonProvider jsonProvider,
             JsonReaderFactory readerFactory, Jsonb jsonb, Messages messages) {
         this.configuration = configuration;
-        this.recordBuilderFactory = recordBuilderFactory;
-        this.jsonBuilderFactory = jsonBuilderFactory;
-        this.jsonProvider = jsonProvider;
-        this.readerFactory = readerFactory;
-        this.jsonb = jsonb;
+        this.contentAdapter = ContentAdapterFactory.getAdapter(configuration.getDataset(), recordBuilderFactory,
+                jsonBuilderFactory, jsonProvider, readerFactory, jsonb, messages);
         this.messages = messages;
 
     }
@@ -146,46 +119,7 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                 if (eventData != null) {
                     receiverManager.updatePartitionPosition(partitionEvent.getPartitionContext().getPartitionId(),
                             EventPosition.fromSequenceNumber(eventData.getSequenceNumber()));
-                    switch (configuration.getDataset().getValueFormat()) {
-                    case AVRO: {
-                        if (recordConverter == null) {
-                            recordConverter = AvroConverter.of(recordBuilderFactory);
-                        }
-                        if (schema == null) {
-                            schema = new org.apache.avro.Schema.Parser().parse(configuration.getDataset().getAvroSchema());
-                            datumReader = new GenericDatumReader<GenericRecord>(schema);
-                        }
-                        decoder = DecoderFactory.get().binaryDecoder(eventData.getBody(), decoder);
-                        record = recordConverter.toRecord(datumReader.read(null, decoder));
-                        break;
-                    }
-                    case CSV: {
-                        if (recordConverter == null) {
-                            recordConverter = CSVConverter.of(recordBuilderFactory,
-                                    configuration.getDataset().getFieldDelimiter(), messages);
-                        }
-                        record = recordConverter.toRecord(eventData.getBodyAsString());
-                        break;
-                    }
-                    case TEXT: {
-                        if (recordConverter == null) {
-                            recordConverter = TextConverter.of(recordBuilderFactory, messages);
-                        }
-                        record = recordConverter.toRecord(eventData.getBodyAsString());
-                        break;
-                    }
-                    case JSON: {
-                        if (recordConverter == null) {
-                            recordConverter = JsonConverter.of(recordBuilderFactory, jsonBuilderFactory, jsonProvider,
-                                    readerFactory, jsonb, messages);
-                        }
-                        record = recordConverter.toRecord(eventData.getBodyAsString());
-                        break;
-                    }
-                    default:
-                        throw new RuntimeException("To be implemented: " + configuration.getDataset().getValueFormat());
-                    }
-                    log.debug(record.toString());
+                    record = contentAdapter.toRecord(eventData.getBody());
                 }
                 return record;
             } else {
@@ -247,7 +181,6 @@ public class AzureEventHubsSamplingSource implements Serializable, AzureEventHub
                         continue;
                     } else {
                         // TODO batch size and read timeout configurable ?
-                        System.out.println(eventPositionMap.get(partitionId));
                         events = ehClient.receiveFromPartition(partitionId, 100, eventPositionMap.get(partitionId),
                                 Duration.ofMillis(1000)).iterator();
                         if (events != null && events.hasNext()) {
