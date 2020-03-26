@@ -25,17 +25,14 @@ import lombok.Data;
 public class AzureConnectionActiveDir {
 
     @Option
-    @Required
     @Documentation("Directory (tenant) ID of active directory application")
     private String tenantId;
 
     @Option
-    @Required
     @Documentation("Application (client) ID of active directory application")
     private String clientId;
 
     @Option
-    @Required
     @Credential
     @Documentation("A secret string that the application uses to prove its identity when requesting a token.")
     private String clientSecret;
