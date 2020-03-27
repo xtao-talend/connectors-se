@@ -12,6 +12,8 @@
  */
 package org.talend.components;
 
+import java.io.Serializable;
+
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.constraint.Required;
 import org.talend.sdk.component.api.configuration.ui.layout.GridLayout;
@@ -22,7 +24,7 @@ import lombok.Data;
 
 @GridLayout({ @GridLayout.Row("tenantId"), @GridLayout.Row("clientId"), @GridLayout.Row("clientSecret") })
 @Data
-public class AzureConnectionActiveDir {
+public class AzureConnectionActiveDir implements Serializable {
 
     @Option
     @Documentation("Directory (tenant) ID of active directory application")
