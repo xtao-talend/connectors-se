@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.junit.Rule;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.mockftpserver.fake.filesystem.DirectoryEntry;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.UnixFakeFileSystem;
@@ -99,6 +100,7 @@ public class FTPOutputTest {
     }
 
     @EnvironmentalTest
+    @Disabled
     public void testRecordLimit(UnixFakeFileSystem fileSystem) {
         String path = "/out1";
         fileSystem.add(new DirectoryEntry(path));
@@ -165,6 +167,7 @@ public class FTPOutputTest {
     }
 
     @EnvironmentalTest
+    @Disabled
     public void testSizeLimit(UnixFakeFileSystem fileSystem) {
         String path = "/out2";
         fileSystem.add(new DirectoryEntry(path));
