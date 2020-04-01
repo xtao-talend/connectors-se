@@ -1,3 +1,15 @@
+/*
+ * Copyright (C) 2006-2020 Talend Inc. - www.talend.com
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+ * the License. You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+ * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+ * specific language governing permissions and limitations under the License.
+ */
 package org.talend.components.common.stream.input.json.jsonToRecord;
 
 import org.talend.sdk.component.api.record.Record;
@@ -23,56 +35,47 @@ public class JsonToRecord {
 
     private final RecordBuilderFactory factory;
 
-    public JsonToRecord(final RecordBuilderFactory factory){
+    public JsonToRecord(final RecordBuilderFactory factory) {
         this.factory = factory;
     }
 
-    /* Copy from TCK RecordConverters.java
+    /*
+     * Copy from TCK RecordConverters.java
      * Just removing dependency to JsonLorg.apache.johnzon.core.JsonLongImpl
-     * https://github.com/Talend/component-runtime/blob/0597e8dc0498559528a65cde64eccfe1cfea2913/component-runtime-impl/src/main/java/org/talend/sdk/component/runtime/record/RecordConverters.java#L134
+     * https://github.com/Talend/component-runtime/blob/0597e8dc0498559528a65cde64eccfe1cfea2913/component-runtime-impl/src/main/
+     * java/org/talend/sdk/component/runtime/record/RecordConverters.java#L134
      */
     public Record toRecord(final JsonObject object) {
         final Record.Builder builder = factory.newRecordBuilder();
         object.forEach((key, value) -> {
             switch (value.getValueType()) {
-                case ARRAY: {
-                    final List<Object> items =
-                            value.asJsonArray().stream().map(it -> mapJson(factory, it)).collect(toList());
-                    builder
-                            .withArray(factory
-                                    .newEntryBuilder()
-                                    .withName(key)
-                                    .withType(Schema.Type.ARRAY)
-                                    .withElementSchema(getArrayElementSchema(factory, items))
-                                    .build(), items);
-                    break;
-                }
-                case OBJECT: {
-                    final Record record = toRecord(value.asJsonObject());
-                    builder
-                            .withRecord(factory
-                                    .newEntryBuilder()
-                                    .withName(key)
-                                    .withType(Schema.Type.RECORD)
-                                    .withElementSchema(record.getSchema())
-                                    .build(), record);
-                    break;
-                }
-                case TRUE:
-                case FALSE:
-                    builder.withBoolean(key, JsonValue.TRUE.equals(value));
-                    break;
-                case STRING:
-                    builder.withString(key, JsonString.class.cast(value).getString());
-                    break;
-                case NUMBER:
-                    final JsonNumber number = JsonNumber.class.cast(value);
-                    builder.withDouble(key, number.doubleValue());
-                    break;
-                case NULL:
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unsupported value type: " + value);
+            case ARRAY: {
+                final List<Object> items = value.asJsonArray().stream().map(it -> mapJson(factory, it)).collect(toList());
+                builder.withArray(factory.newEntryBuilder().withName(key).withType(Schema.Type.ARRAY)
+                        .withElementSchema(getArrayElementSchema(factory, items)).build(), items);
+                break;
+            }
+            case OBJECT: {
+                final Record record = toRecord(value.asJsonObject());
+                builder.withRecord(factory.newEntryBuilder().withName(key).withType(Schema.Type.RECORD)
+                        .withElementSchema(record.getSchema()).build(), record);
+                break;
+            }
+            case TRUE:
+            case FALSE:
+                builder.withBoolean(key, JsonValue.TRUE.equals(value));
+                break;
+            case STRING:
+                builder.withString(key, JsonString.class.cast(value).getString());
+                break;
+            case NUMBER:
+                final JsonNumber number = JsonNumber.class.cast(value);
+                builder.withDouble(key, number.doubleValue());
+                break;
+            case NULL:
+                break;
+            default:
+                throw new IllegalArgumentException("Unsupported value type: " + value);
             }
         });
         return builder.build();
@@ -103,38 +106,37 @@ public class JsonToRecord {
         return it;
     }
 
-
     private Schema getArrayElementSchema(final RecordBuilderFactory factory, final List<Object> items) {
         if (items.isEmpty()) {
             return factory.newSchemaBuilder(Schema.Type.STRING).build();
         }
         final Schema firstSchema = toSchema(factory, items.iterator().next());
         switch (firstSchema.getType()) {
-            case RECORD:
-                return items.stream().map(it -> toSchema(factory, it)).reduce(null, (s1, s2) -> {
-                    if (s1 == null) {
-                        return s2;
-                    }
-                    if (s2 == null) { // unlikely
-                        return s1;
-                    }
-                    final List<Schema.Entry> entries1 = s1.getEntries();
-                    final List<Schema.Entry> entries2 = s2.getEntries();
-                    final Set<String> names1 = entries1.stream().map(Schema.Entry::getName).collect(toSet());
-                    final Set<String> names2 = entries2.stream().map(Schema.Entry::getName).collect(toSet());
-                    if (!names1.equals(names2)) {
-                        // here we are not good since values will not be right anymore,
-                        // forbidden for current version anyway but potentially supported later
-                        final Schema.Builder builder = factory.newSchemaBuilder(Schema.Type.RECORD);
-                        entries1.forEach(builder::withEntry);
-                        names2.removeAll(names1);
-                        entries2.stream().filter(it -> names2.contains(it.getName())).forEach(builder::withEntry);
-                        return builder.build();
-                    }
+        case RECORD:
+            return items.stream().map(it -> toSchema(factory, it)).reduce(null, (s1, s2) -> {
+                if (s1 == null) {
+                    return s2;
+                }
+                if (s2 == null) { // unlikely
                     return s1;
-                });
-            default:
-                return firstSchema;
+                }
+                final List<Schema.Entry> entries1 = s1.getEntries();
+                final List<Schema.Entry> entries2 = s2.getEntries();
+                final Set<String> names1 = entries1.stream().map(Schema.Entry::getName).collect(toSet());
+                final Set<String> names2 = entries2.stream().map(Schema.Entry::getName).collect(toSet());
+                if (!names1.equals(names2)) {
+                    // here we are not good since values will not be right anymore,
+                    // forbidden for current version anyway but potentially supported later
+                    final Schema.Builder builder = factory.newSchemaBuilder(Schema.Type.RECORD);
+                    entries1.forEach(builder::withEntry);
+                    names2.removeAll(names1);
+                    entries2.stream().filter(it -> names2.contains(it.getName())).forEach(builder::withEntry);
+                    return builder.build();
+                }
+                return s1;
+            });
+        default:
+            return firstSchema;
         }
     }
 
@@ -171,9 +173,7 @@ public class JsonToRecord {
             if (collection.isEmpty()) {
                 return factory.newSchemaBuilder(Schema.Type.STRING).build();
             }
-            return factory
-                    .newSchemaBuilder(Schema.Type.ARRAY)
-                    .withElementSchema(toSchema(factory, collection.iterator().next()))
+            return factory.newSchemaBuilder(Schema.Type.ARRAY).withElementSchema(toSchema(factory, collection.iterator().next()))
                     .build();
         }
         if (Record.class.isInstance(next)) {

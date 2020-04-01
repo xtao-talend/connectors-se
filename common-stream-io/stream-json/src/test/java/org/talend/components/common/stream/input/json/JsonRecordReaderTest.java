@@ -72,8 +72,7 @@ class JsonRecordReaderTest {
     }
 
     @Test
-    void
-    toRecordWithArray(){
+    void toRecordWithArray() {
         RecordBuilderFactory factory = new RecordBuilderFactoryImpl("test");
         JsonConfiguration jsonCfg = new JsonConfiguration();
         jsonCfg.setJsonPointer("/");
@@ -95,8 +94,7 @@ class JsonRecordReaderTest {
     }
 
     @Test
-    void
-    toRecordWithRootArray(){
+    void toRecordWithRootArray() {
         RecordBuilderFactory factory = new RecordBuilderFactoryImpl("test");
         JsonConfiguration jsonCfg = new JsonConfiguration();
         jsonCfg.setJsonPointer("/");
@@ -113,21 +111,20 @@ class JsonRecordReaderTest {
         Assertions.assertEquals(Schema.Type.RECORD, next.getSchema().getType());
 
         List<Object[]> expectedSchema = new ArrayList<>();
-        expectedSchema.add(new Object[]{"coordinates", Schema.Type.RECORD});
-        expectedSchema.add(new Object[]{"name", Schema.Type.STRING});
-        expectedSchema.add(new Object[]{"code", Schema.Type.STRING});
-        expectedSchema.add(new Object[]{"population", Schema.Type.DOUBLE});
-        expectedSchema.add(new Object[]{"updated_at", Schema.Type.STRING});
-        expectedSchema.add(new Object[]{"today", Schema.Type.RECORD});
-        expectedSchema.add(new Object[]{"latest_data", Schema.Type.RECORD});
+        expectedSchema.add(new Object[] { "coordinates", Schema.Type.RECORD });
+        expectedSchema.add(new Object[] { "name", Schema.Type.STRING });
+        expectedSchema.add(new Object[] { "code", Schema.Type.STRING });
+        expectedSchema.add(new Object[] { "population", Schema.Type.DOUBLE });
+        expectedSchema.add(new Object[] { "updated_at", Schema.Type.STRING });
+        expectedSchema.add(new Object[] { "today", Schema.Type.RECORD });
+        expectedSchema.add(new Object[] { "latest_data", Schema.Type.RECORD });
 
         int i = 0;
-        for(Schema.Entry entry : next.getSchema().getEntries()){
-            Assertions.assertEquals((String)expectedSchema.get(i)[0], entry.getName());
-            Assertions.assertEquals((Schema.Type)expectedSchema.get(i)[1], entry.getType());
+        for (Schema.Entry entry : next.getSchema().getEntries()) {
+            Assertions.assertEquals((String) expectedSchema.get(i)[0], entry.getName());
+            Assertions.assertEquals((Schema.Type) expectedSchema.get(i)[1], entry.getType());
             i++;
         }
-
 
         // Two records
         Assertions.assertTrue(recordIterator.hasNext());
@@ -136,8 +133,7 @@ class JsonRecordReaderTest {
     }
 
     @Test
-    void
-    toRecordWithNestedArrays(){
+    void toRecordWithNestedArrays() {
         RecordBuilderFactory factory = new RecordBuilderFactoryImpl("test");
         JsonConfiguration jsonCfg = new JsonConfiguration();
         jsonCfg.setJsonPointer("/");
@@ -152,24 +148,29 @@ class JsonRecordReaderTest {
         final Record next = recordIterator.next();
 
         Assertions.assertEquals(Schema.Type.ARRAY, next.getSchema().getEntries().get(0).getType());
-        Assertions.assertEquals(Schema.Type.RECORD, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getType());
-        Assertions.assertEquals(Schema.Type.ARRAY, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getType());
-        Assertions.assertEquals(Schema.Type.RECORD, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getElementSchema().getType());
+        Assertions.assertEquals(Schema.Type.RECORD,
+                next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getType());
+        Assertions.assertEquals(Schema.Type.ARRAY, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0)
+                .getElementSchema().getEntries().get(0).getType());
+        Assertions.assertEquals(Schema.Type.RECORD, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0)
+                .getElementSchema().getEntries().get(0).getElementSchema().getType());
 
+        Assertions.assertEquals(Schema.Type.ARRAY, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0)
+                .getElementSchema().getEntries().get(1).getType());
+        Assertions.assertEquals(Schema.Type.LONG, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0)
+                .getElementSchema().getEntries().get(1).getElementSchema().getType());
 
-        Assertions.assertEquals(Schema.Type.ARRAY, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getElementSchema().getEntries().get(1).getType());
-        Assertions.assertEquals(Schema.Type.LONG, next.getSchema().getEntries().get(0).getElementSchema().getEntries().get(0).getElementSchema().getEntries().get(1).getElementSchema().getType());
-
-        Assertions.assertEquals(1.0d, next.getArray(Record.class, "data").iterator().next().getRecord("coordinates").getArray(Record.class, "latitude").iterator().next().getDouble("aa"));
-        Assertions.assertEquals(1L, next.getArray(Record.class, "data").iterator().next().getRecord("coordinates").getArray(Long.class, "longitude").iterator().next());
+        Assertions.assertEquals(1.0d, next.getArray(Record.class, "data").iterator().next().getRecord("coordinates")
+                .getArray(Record.class, "latitude").iterator().next().getDouble("aa"));
+        Assertions.assertEquals(1L, next.getArray(Record.class, "data").iterator().next().getRecord("coordinates")
+                .getArray(Long.class, "longitude").iterator().next());
 
         Assertions.assertFalse(recordIterator.hasNext());
 
     }
 
     @Test
-    void
-    toRecordWithArrayOfArrays(){
+    void toRecordWithArrayOfArrays() {
         RecordBuilderFactory factory = new RecordBuilderFactoryImpl("test");
         JsonConfiguration jsonCfg = new JsonConfiguration();
         jsonCfg.setJsonPointer("/");
@@ -183,11 +184,8 @@ class JsonRecordReaderTest {
         Assertions.assertTrue(recordIterator.hasNext());
         final Record next = recordIterator.next();
 
-
-
         Assertions.assertFalse(recordIterator.hasNext());
 
     }
-
 
 }

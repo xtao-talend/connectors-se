@@ -40,7 +40,7 @@ class JsonToRecordTest {
                             .add(Json.createArrayBuilder().add(11).add(12).add(13)))
             .add("subRecord", Json.createObjectBuilder().add("field_1", "val1").add("field_2", "val2")).build();
 
-    private JsonToRecord  toRecord;
+    private JsonToRecord toRecord;
 
     @BeforeAll
     static void initLog() {

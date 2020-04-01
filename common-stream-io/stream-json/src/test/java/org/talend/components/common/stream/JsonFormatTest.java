@@ -49,7 +49,7 @@ import static org.talend.sdk.component.junit.SimpleFactory.configurationByExampl
 @EnvironmentConfiguration(environment = "Spark", systemProperties = {
         @EnvironmentConfiguration.Property(key = "talend.beam.job.runner", value = "org.apache.beam.runners.spark.SparkRunner"),
         @EnvironmentConfiguration.Property(key = "talend.beam.job.filesToStage", value = ""),
-        @EnvironmentConfiguration.Property(key = "spark.ui.enabled", value = "false")})
+        @EnvironmentConfiguration.Property(key = "spark.ui.enabled", value = "false") })
 
 @WithComponents("org.talend.components.common.stream.api")
 class JsonFormatTest {
@@ -85,7 +85,6 @@ class JsonFormatTest {
         config.setJsonFile("Simple.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
-
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
                 .component("out", "test://collector") //
@@ -109,7 +108,6 @@ class JsonFormatTest {
     void testComplex() {
         config.setJsonFile("corona-api.countries.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
 
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
@@ -143,7 +141,6 @@ class JsonFormatTest {
         config.setJsonFile("arrayOfArrays.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
-
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
                 .component("out", "test://collector") //
@@ -161,7 +158,6 @@ class JsonFormatTest {
 
         final Iterator<List> data = record.getArray(List.class, "data").iterator();
 
-
         for (int i = 1; i < 4; i++) {
             final List next = data.next();
             final Iterator<String> expected = Arrays.asList("aaa" + i, "bbb" + i, "ccc" + i).iterator();
@@ -176,7 +172,6 @@ class JsonFormatTest {
     void testEmptyRecord() {
         config.setJsonFile("withEmptyRecord.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
 
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
@@ -203,7 +198,6 @@ class JsonFormatTest {
         config.setJsonFile("corona-api.countries.json");
         config.setJsonPointer("/data");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
 
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
@@ -232,7 +226,6 @@ class JsonFormatTest {
         config.setJsonPointer("/data");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
-
         Job.components() //
                 .component("emitter", "jsonFamily://jsonInput?" + configStr) //
                 .component("out", "test://collector") //
@@ -250,4 +243,5 @@ class JsonFormatTest {
             Assertions.assertEquals(expected.next(), r.getString("field"));
         }
     }
+
 }
