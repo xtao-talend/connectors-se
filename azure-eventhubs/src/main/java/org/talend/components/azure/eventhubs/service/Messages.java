@@ -19,7 +19,7 @@ public interface Messages {
 
     String healthCheckOk();
 
-    String healthCheckFailed(final String cause);
+    String healthCheckFailed();
 
     String errorUnsupportedType(String fieldType, String fieldName);
 

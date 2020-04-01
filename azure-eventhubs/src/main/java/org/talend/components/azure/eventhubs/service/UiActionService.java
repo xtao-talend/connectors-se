@@ -15,6 +15,7 @@ package org.talend.components.azure.eventhubs.service;
 import static com.azure.messaging.eventhubs.implementation.ClientConstants.ENDPOINT_FORMAT;
 import static com.azure.storage.common.implementation.Constants.ConnectionStringConstants.BLOB_ENDPOINT_NAME;
 import static org.talend.components.azure.common.service.AzureComponentServices.SAS_PATTERN;
+import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_CONSUMER_GROUP;
 import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstant.DEFAULT_DOMAIN_NAME;
 
 import java.net.URISyntaxException;
@@ -23,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -40,8 +42,11 @@ import org.talend.sdk.component.api.service.healthcheck.HealthCheck;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 
 import com.azure.core.amqp.AmqpRetryOptions;
+import com.azure.core.amqp.exception.AmqpErrorCondition;
+import com.azure.core.amqp.exception.AmqpException;
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubConsumerClient;
+import com.azure.messaging.eventhubs.EventHubProperties;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -52,6 +57,8 @@ import lombok.Getter;
 @Service
 public class UiActionService {
 
+    private static Long DEFAULT_TIMEOUT = 10L;
+
     @Getter
     @Service
     AzureComponentServices connectionService;
@@ -61,25 +68,19 @@ public class UiActionService {
         EventHubConsumerClient ehClient = null;
         try {
 
-            String endpoint = null;
-            if (conn.isSpecifyEndpoint()) {
-                endpoint = conn.getEndpoint();//
-            } else {
-                endpoint = String.format(Locale.US, ENDPOINT_FORMAT, conn.getNamespace(), DEFAULT_DOMAIN_NAME);
-            }
-            String ehConnString = String.format("Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s", endpoint,
-                    conn.getSasKeyName(), conn.getSasKey(), "fakeEventhub");
-
-            ehClient = new EventHubClientBuilder().connectionString(ehConnString).consumerGroup("fakeGroup")
-                    .retry(new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(10))).shareConnection().buildConsumerClient();
+            final String fakeEventhubName = "fake-" + System.currentTimeMillis();
+            ehClient = createEventHubConsumerClient(conn, fakeEventhubName);
             ehClient.getEventHubProperties();
         } catch (Throwable exception) {
-            // TODO which kind of error i
-            String errorMessage = exception.getMessage();
-            if (errorMessage.contains(String.valueOf(10 * 1000))) {
-                // errorMessage = "invalid endpoint or network issue!";
-                return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.healthCheckFailed(errorMessage));
+            if ((exception instanceof AmqpException)) {
+                AmqpErrorCondition errorCondition = ((AmqpException) exception).getErrorCondition();
+                // This is a workaround to check the endpoint:
+                // If the endpoint/namespace is correct, but we set a wrong eventhub, it should return not found exception.
+                if (errorCondition != null && AmqpErrorCondition.NOT_FOUND.equals(errorCondition)) {
+                    return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.healthCheckOk());
+                }
             }
+            return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.healthCheckFailed());
         } finally {
             if (ehClient != null) {
                 ehClient.close();
@@ -92,17 +93,43 @@ public class UiActionService {
     public ValidationResult checkEventHub(@Option final AzureEventHubsDataStore connection, @Option final String eventHubName,
             final Messages i18n) {
         ValidationResult result = new ValidationResult();
+        EventHubConsumerClient ehClient = null;
         try {
-            getPartitionIds(connection, eventHubName, new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(10)));
+            ehClient = createEventHubConsumerClient(connection, eventHubName);
+            ehClient.getEventHubProperties();
         } catch (Throwable exception) {
+            exception.printStackTrace();
             String koComment = exception.getMessage();
+            if ((exception instanceof AmqpException)) {
+                koComment = exception.getMessage();
+            } else {
+                // connection issue
+                koComment = i18n.healthCheckFailed();
+            }
             result.setStatus(ValidationResult.Status.KO);
             result.setComment(koComment);
             return result;
+        } finally {
+            if (ehClient != null) {
+                ehClient.close();
+            }
         }
         result.setStatus(ValidationResult.Status.OK);
         result.setComment("EventHub is available!");
         return result;
+    }
+
+    private EventHubConsumerClient createEventHubConsumerClient(AzureEventHubsDataStore conn, String eventhubName) {
+        String endpoint = null;
+        if (conn.isSpecifyEndpoint()) {
+            endpoint = conn.getEndpoint();//
+        } else {
+            endpoint = String.format(Locale.US, ENDPOINT_FORMAT, conn.getNamespace(), DEFAULT_DOMAIN_NAME);
+        }
+        String ehConnString = String.format("Endpoint=%s;SharedAccessKeyName=%s;SharedAccessKey=%s;EntityPath=%s", endpoint,
+                conn.getSasKeyName(), conn.getSasKey(), eventhubName);
+        return new EventHubClientBuilder().connectionString(ehConnString).consumerGroup(DEFAULT_CONSUMER_GROUP)
+                .retry(new AmqpRetryOptions().setTryTimeout(Duration.ofSeconds(DEFAULT_TIMEOUT))).buildConsumerClient();
     }
 
     // This INCOMING_PATHS_DYNAMIC service is a flag for inject incoming paths dynamic, won't be called

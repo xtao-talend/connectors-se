@@ -134,6 +134,7 @@ class UiActionServiceTest extends AzureEventHubsTestBase {
     @DisplayName("Test bad SAS Key [Invalid]")
     public void checkBadSASKey() {
         final AzureEventHubsDataStore dataStore = new AzureEventHubsDataStore();
+        dataStore.setSpecifyEndpoint(true);
         dataStore.setEndpoint(ENDPOINT);
         dataStore.setSasKeyName(SASKEY_NAME);
         dataStore.setSasKey(BAD_SASKEY);
