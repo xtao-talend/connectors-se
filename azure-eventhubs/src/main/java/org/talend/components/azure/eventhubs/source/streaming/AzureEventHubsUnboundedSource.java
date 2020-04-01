@@ -26,6 +26,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -135,8 +136,8 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             }
             String fullyQualifiedNamespace = matcher.group(1);
             // create the container if it not exist
-            if (!blobContainerAsyncClient.exists().block()) {
-                blobContainerAsyncClient.create().block();
+            if (!blobContainerAsyncClient.exists().toFuture().get()) {
+                blobContainerAsyncClient.create().toFuture().get();
             }
             blobCheckpointStore = new BlobCheckpointStore(blobContainerAsyncClient);
             // init checkpoint and partition ownership
@@ -266,7 +267,11 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                                 .setConsumerGroup(errorContext.getPartitionContext().getConsumerGroup())
                                 .setPartitionId(errorContext.getPartitionContext().getPartitionId())
                                 .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
-                        blobCheckpointStore.updateCheckpoint(checkpoint).block();
+                        try {
+                            blobCheckpointStore.updateCheckpoint(checkpoint).toFuture().get();
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new IllegalArgumentException(e);
+                        }
                     }
                 } catch (Exception e) {
                     log.error("Partition " + errorContext.getPartitionContext().getPartitionId() + " onError: " + e.getMessage());
@@ -305,7 +310,11 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                             .setConsumerGroup(closeContext.getPartitionContext().getConsumerGroup())
                             .setPartitionId(closeContext.getPartitionContext().getPartitionId())
                             .setSequenceNumber(eventData.getSequenceNumber()).setOffset(eventData.getOffset());
-                    blobCheckpointStore.updateCheckpoint(checkpoint).block();
+                    try {
+                        blobCheckpointStore.updateCheckpoint(checkpoint).toFuture().get();
+                    } catch (InterruptedException | ExecutionException e) {
+                        throw new IllegalArgumentException(e);
+                    }
                 }
             }
         }
@@ -338,7 +347,11 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             // Checkpoints are created asynchronously. It is important to wait for the result of checkpointing
             // before exiting onEvents or before creating the next checkpoint, to detect errors and to
             // ensure proper ordering.
-            eventContext.updateCheckpoint();
+            try {
+                eventContext.updateCheckpointAsync().toFuture().get();
+            } catch (InterruptedException | ExecutionException e) {
+                throw new IllegalArgumentException(e);
+            }
         }
         log.info("Event {} received for partition: {}. # of events processed: {}", data.getSequenceNumber(),
                 eventContext.getPartitionContext().getPartitionId(), count);
