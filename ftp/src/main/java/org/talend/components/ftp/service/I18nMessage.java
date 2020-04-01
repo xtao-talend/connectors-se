@@ -28,4 +28,6 @@ public interface I18nMessage {
     String errorConnection(String message);
 
     String errorListFiles(String message);
+
+    String errorInitWriter(String message);
 }

@@ -48,8 +48,7 @@ public class FTPService implements Serializable {
             return new HealthCheckStatus(HealthCheckStatus.Status.KO, i18n.hostRequired());
         }
 
-        GenericFTPClient ftpClient = getClient(dataStore);
-        try {
+        try (GenericFTPClient ftpClient = getClient(dataStore)) {
             if (ftpClient.isConnected()) {
                 return new HealthCheckStatus(HealthCheckStatus.Status.OK, i18n.successConnection());
             } else {
@@ -58,8 +57,6 @@ public class FTPService implements Serializable {
         } catch (Exception e) {
             log.error(e.getMessage(), e);
             return new HealthCheckStatus(HealthCheckStatus.Status.KO, e.getMessage());
-        } finally {
-            ftpClient.disconnect();
         }
     }
 

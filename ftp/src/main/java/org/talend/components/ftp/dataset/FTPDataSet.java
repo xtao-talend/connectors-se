@@ -31,6 +31,7 @@ import org.talend.sdk.component.api.meta.Documentation;
 
 import java.io.Serializable;
 import java.lang.reflect.Field;
+import java.util.function.Function;
 
 @Data
 @DataSet("FtpDataset")
@@ -61,27 +62,24 @@ public class FTPDataSet implements Serializable {
     private CSVConfiguration csvConfiguration = new CSVConfiguration();
 
     public enum Format {
-        CSV("csvConfiguration", "csv");
+        CSV(FTPDataSet::getCsvConfiguration, "csv");
 
-        @Getter(AccessLevel.PROTECTED)
-        private String configName;
+        private Function<FTPDataSet, ContentFormat> contentFormatProvider;
 
         @Getter
         private String extension;
 
-        private Format(String configName, String extension) {
-            this.configName = configName;
+        private Format(Function<FTPDataSet, ContentFormat> contentFormatProvider, String extension) {
+            this.contentFormatProvider = contentFormatProvider;
             this.extension = extension;
+        }
+
+        public ContentFormat getConfiguration(FTPDataSet dataset) {
+            return contentFormatProvider.apply(dataset);
         }
     }
 
     public ContentFormat getFormatConfiguration() {
-        try {
-            Field f = FTPDataSet.class.getDeclaredField(format.getConfigName());
-            return (ContentFormat) f.get(this);
-        } catch (NoSuchFieldException | IllegalAccessException e) {
-            log.error(e.getMessage(), e);
-            return null;
-        }
+        return format.getConfiguration(this);
     }
 }

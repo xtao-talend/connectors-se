@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.talend.components.common.collections.IteratorComposer;
 import org.talend.components.common.stream.api.RecordIORepository;
 import org.talend.components.common.stream.api.input.RecordReader;
 import org.talend.components.common.stream.format.ContentFormat;
@@ -97,21 +98,14 @@ public class FTPInput implements Serializable {
             fileIterator = filesToRead.iterator();
             ContentFormat contentFormat = configuration.getDataSet().getFormatConfiguration();
             recordReader = recordIORepository.findReader(contentFormat.getClass()).getReader(recordBuilderFactory, contentFormat);
-        }
 
-        if (recordIterator == null || !recordIterator.hasNext()) {
-            // No more record to read in current file, or first fille to be read
-            if (fileIterator.hasNext()) {
-                GenericFTPFile file = fileIterator.next();
-                final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
-
-                String path = configuration.getDataSet().getPath()
-                        + (configuration.getDataSet().getPath().endsWith(FTPService.PATH_SEPARATOR) ? ""
-                                : FTPService.PATH_SEPARATOR)
-                        + file.getName();
-                getFtpClient().retrieveFile(path, buffer);
-                recordIterator = recordReader.read(new ByteArrayInputStream(buffer.toByteArray()));
-            }
+            recordIterator = IteratorComposer.of(fileIterator).map(file -> configuration.getDataSet().getPath()
+                    + (configuration.getDataSet().getPath().endsWith(FTPService.PATH_SEPARATOR) ? "" : FTPService.PATH_SEPARATOR)
+                    + file.getName()).flatmap(path -> {
+                        final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+                        getFtpClient().retrieveFile(path, buffer);
+                        return recordReader.read(new ByteArrayInputStream(buffer.toByteArray()));
+                    }).build();
         }
 
         if (recordIterator != null && recordIterator.hasNext()) {

@@ -20,7 +20,9 @@ import org.talend.components.common.stream.api.RecordIORepository;
 import org.talend.components.common.stream.api.output.RecordWriter;
 import org.talend.components.common.stream.api.output.TargetFinder;
 import org.talend.components.common.stream.format.ContentFormat;
+import org.talend.components.ftp.service.FTPConnectorException;
 import org.talend.components.ftp.service.FTPService;
+import org.talend.components.ftp.service.I18nMessage;
 import org.talend.components.ftp.service.ftpclient.GenericFTPClient;
 import org.talend.components.ftp.service.ftpclient.LogWriter;
 import org.talend.sdk.component.api.component.Icon;
@@ -58,6 +60,8 @@ public class FTPOutput implements Serializable {
     private final FTPService ftpService;
 
     private final RecordIORepository recordIORepository;
+
+    private final I18nMessage i18n;
 
     private transient GenericFTPClient ftpClient;
 
@@ -105,19 +109,7 @@ public class FTPOutput implements Serializable {
                 || (configuration.getLimitBy().isLimitedByRecords() && currentRecords >= configuration.getRecordsLimit())
                 || (configuration.getLimitBy().isLimitedBySize()
                         && currentStream.getCurrentSize() >= configuration.getSizeUnit().apply(configuration.getSizeLimit()))) {
-            if (currentStream != null) {
-                // end current stream
-                try {
-                    recordWriter.end();
-                    recordWriter.flush();
-                    recordWriter.close();
-                    if (ftpClient.isConnected()) {
-                        getFtpClient().disconnect();
-                    }
-                } catch (IOException e) {
-                    log.error(e.getMessage(), e);
-                }
-            }
+            closeStream();
             currentRecords = 0;
             // Must create new file
             String path = fileBaseName + "_" + fileIndex++ + "." + configuration.getDataSet().getFormat().getExtension();
@@ -128,10 +120,27 @@ public class FTPOutput implements Serializable {
             try {
                 recordWriter.init(contentFormat);
             } catch (IOException e) {
-                e.printStackTrace();
+                log.error(e.getMessage(), e);
+                throw new FTPConnectorException(i18n.errorInitWriter(e.getMessage()));
             }
         }
 
+    }
+
+    private void closeStream() {
+        if (currentStream != null) {
+            // end current stream
+            try {
+                recordWriter.end();
+                recordWriter.flush();
+                recordWriter.close();
+                if (ftpClient.isConnected()) {
+                    getFtpClient().disconnect();
+                }
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+            }
+        }
     }
 
     private GenericFTPClient getFtpClient() {
@@ -150,18 +159,7 @@ public class FTPOutput implements Serializable {
 
     @PreDestroy
     public void release() {
-        if (currentStream != null) {
-            try {
-                recordWriter.end();
-                recordWriter.flush();
-                recordWriter.close();
-            } catch (IOException e) {
-                log.error(e.getMessage(), e);
-            }
-        }
-        if (ftpClient != null) {
-            ftpClient.disconnect();
-        }
+        closeStream();
     }
 
 }
