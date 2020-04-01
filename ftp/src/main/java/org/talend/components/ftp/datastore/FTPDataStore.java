@@ -41,7 +41,7 @@ import java.io.Serializable;
 public class FTPDataStore implements Serializable {
 
     @Option
-    @Documentation("Type of protocol to use to connect")
+    @Documentation("Type of protocol to use to connect.")
     @DefaultValue("FTP")
     @Required
     private FileProtocol fileProtocol = FileProtocol.FTP;

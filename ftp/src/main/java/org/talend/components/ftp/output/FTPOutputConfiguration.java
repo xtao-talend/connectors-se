@@ -44,11 +44,11 @@ public class FTPOutputConfiguration implements Serializable {
     private LimitBy limitBy = LimitBy.RECORDS;
 
     @Option
-    @DefaultValue("1000")
+    @DefaultValue("100")
     @ActiveIfs(operator = ActiveIfs.Operator.OR, value = { @ActiveIf(target = "limitBy", value = "RECORDS"),
             @ActiveIf(target = "limitBy", value = "BOTH") })
     @Documentation("Max number of records per file.")
-    private int recordsLimit = 1000;
+    private int recordsLimit = 100;
 
     @Option
     @DefaultValue("1000")
