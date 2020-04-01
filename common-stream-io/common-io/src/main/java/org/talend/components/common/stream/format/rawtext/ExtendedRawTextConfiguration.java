@@ -10,15 +10,17 @@
  * an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
  * specific language governing permissions and limitations under the License.
  */
-package org.talend.components.rest.virtual;
+package org.talend.components.common.stream.format.rawtext;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
 
 @Data
-@RequiredArgsConstructor
-public class StringBody {
+@AllArgsConstructor
+public class ExtendedRawTextConfiguration {
 
-    final String body;
+    private final String charset;
+
+    private final boolean forceOneRow;
 
 }
