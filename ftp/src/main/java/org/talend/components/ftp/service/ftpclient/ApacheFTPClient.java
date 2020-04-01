@@ -200,4 +200,14 @@ public class ApacheFTPClient extends GenericFTPClient {
         }
     }
 
+    @Override
+    public String getReplyCode() {
+        try {
+            return ftpClient.getReply() + " : " + ftpClient.getReplyString();
+        } catch (IOException e) {
+            log.error(e.getMessage());
+            return e.getMessage();
+        }
+    }
+
 }

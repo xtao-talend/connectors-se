@@ -30,4 +30,10 @@ public interface I18nMessage {
     String errorListFiles(String message);
 
     String errorInitWriter(String message);
+
+    String errorCreateRemoteFile(String path, String replyCode);
+
+    String infoCreateRemoteFile(String path);
+
+    String errorTooManyRetries(int nbMaxRetriesPut);
 }

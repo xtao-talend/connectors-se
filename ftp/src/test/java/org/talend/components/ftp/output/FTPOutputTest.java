@@ -22,6 +22,7 @@ import org.mockftpserver.fake.filesystem.DirectoryEntry;
 import org.mockftpserver.fake.filesystem.FileEntry;
 import org.mockftpserver.fake.filesystem.UnixFakeFileSystem;
 import org.slf4j.impl.StaticLoggerBinder;
+import org.talend.components.common.stream.format.LineConfiguration;
 import org.talend.components.ftp.dataset.FTPDataSet;
 import org.talend.components.ftp.datastore.FTPDataStore;
 import org.talend.components.ftp.jupiter.FtpFile;
@@ -100,7 +101,6 @@ public class FTPOutputTest {
     }
 
     @EnvironmentalTest
-    @Disabled
     public void testRecordLimit(UnixFakeFileSystem fileSystem) {
         String path = "/out1";
         fileSystem.add(new DirectoryEntry(path));
@@ -109,6 +109,7 @@ public class FTPOutputTest {
 
         configuration.getDataSet().setPath(path);
         configuration.getDataSet().setFormat(FTPDataSet.Format.CSV);
+        configuration.getDataSet().getCsvConfiguration().setLineConfiguration(new LineConfiguration());
         configuration.setLimitBy(FTPOutputConfiguration.LimitBy.RECORDS);
         configuration.setRecordsLimit(50);
 
@@ -167,7 +168,6 @@ public class FTPOutputTest {
     }
 
     @EnvironmentalTest
-    @Disabled
     public void testSizeLimit(UnixFakeFileSystem fileSystem) {
         String path = "/out2";
         fileSystem.add(new DirectoryEntry(path));
@@ -176,6 +176,7 @@ public class FTPOutputTest {
 
         configuration.getDataSet().setPath(path);
         configuration.getDataSet().setFormat(FTPDataSet.Format.CSV);
+        configuration.getDataSet().getCsvConfiguration().setLineConfiguration(new LineConfiguration());
         configuration.setLimitBy(FTPOutputConfiguration.LimitBy.SIZE);
         configuration.setSizeLimit(1);
         configuration.setSizeUnit(FTPOutputConfiguration.SizeUnit.KB);

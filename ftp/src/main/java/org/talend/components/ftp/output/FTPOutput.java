@@ -35,6 +35,7 @@ import org.talend.sdk.component.api.record.Record;
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,6 +45,7 @@ import java.io.PrintWriter;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
+import java.util.Optional;
 import java.util.UUID;
 
 @RequiredArgsConstructor
@@ -54,6 +56,8 @@ import java.util.UUID;
         + "(will be the file name in the dataset folder) and `content` payload (either of type string or bytes).")
 @Slf4j
 public class FTPOutput implements Serializable {
+
+    private static final int NB_MAX_RETRIES_PUT = 3;
 
     private final FTPOutputConfiguration configuration;
 
@@ -87,14 +91,15 @@ public class FTPOutput implements Serializable {
             }
             fileBaseName = remoteDir + "file_" + shortUUID();
         }
-
-        checkCurrentStream();
-        try {
-            recordWriter.add(record);
-            recordWriter.flush();
-            currentRecords++;
-        } catch (IOException e) {
-            log.error(e.getMessage(), e);
+        if (record != null) {
+            checkCurrentStream();
+            try {
+                recordWriter.add(record);
+                recordWriter.flush();
+                currentRecords++;
+            } catch (IOException e) {
+                log.error(e.getMessage(), e);
+            }
         }
     }
 
@@ -105,6 +110,16 @@ public class FTPOutput implements Serializable {
     }
 
     private void checkCurrentStream() {
+        checkCurrentStream(0);
+    }
+
+    private void checkCurrentStream(int nbRetry) {
+        if (nbRetry > NB_MAX_RETRIES_PUT) {
+            String msg = i18n.errorTooManyRetries(NB_MAX_RETRIES_PUT);
+            log.error(msg);
+            throw new FTPConnectorException(msg);
+        }
+
         if (currentStream == null
                 || (configuration.getLimitBy().isLimitedByRecords() && currentRecords >= configuration.getRecordsLimit())
                 || (configuration.getLimitBy().isLimitedBySize()
@@ -112,11 +127,20 @@ public class FTPOutput implements Serializable {
             closeStream();
             currentRecords = 0;
             // Must create new file
-            String path = fileBaseName + "_" + fileIndex++ + "." + configuration.getDataSet().getFormat().getExtension();
-            log.debug("Creating remote file " + path);
-            currentStream = new SizeAwareOutputStream(getFtpClient().storeFileStream(path));
+            String path = fileBaseName + "_" + fileIndex + "." + configuration.getDataSet().getFormat().getExtension();
+            log.info(i18n.infoCreateRemoteFile(path));
+            OutputStream ftpout = getFtpClient().storeFileStream(path);
+            if (ftpout == null) {
+                log.error(i18n.errorCreateRemoteFile(path, ftpClient.getReplyCode()));
+                checkCurrentStream(nbRetry++);
+                return;
+            }
+            currentStream = new SizeAwareOutputStream(ftpout);
+            fileIndex++;
             ContentFormat contentFormat = configuration.getDataSet().getFormatConfiguration();
-            recordWriter = recordIORepository.findWriter(contentFormat.getClass()).getWriter(() -> currentStream, contentFormat);
+            recordWriter = recordIORepository.findWriter(contentFormat.getClass()).getWriter(() -> Optional
+                    .ofNullable(currentStream).orElseGet(() -> new SizeAwareOutputStream(new ByteArrayOutputStream())),
+                    contentFormat);
             try {
                 recordWriter.init(contentFormat);
             } catch (IOException e) {
@@ -134,9 +158,9 @@ public class FTPOutput implements Serializable {
                 recordWriter.end();
                 recordWriter.flush();
                 recordWriter.close();
-                if (ftpClient.isConnected()) {
-                    getFtpClient().disconnect();
-                }
+                currentStream.close();
+                currentStream = null;
+                recordWriter = null;
             } catch (IOException e) {
                 log.error(e.getMessage(), e);
             }
@@ -145,7 +169,6 @@ public class FTPOutput implements Serializable {
 
     private GenericFTPClient getFtpClient() {
         if (ftpClient == null || !ftpClient.isConnected()) {
-            log.debug("Creating new client");
             ftpClient = ftpService.getClient(configuration.getDataSet().getDatastore());
             if (configuration.isDebug()) {
                 ftpClient.enableDebug(log);
@@ -160,6 +183,9 @@ public class FTPOutput implements Serializable {
     @PreDestroy
     public void release() {
         closeStream();
+        if (ftpClient != null && ftpClient.isConnected()) {
+            getFtpClient().disconnect();
+        }
     }
 
 }

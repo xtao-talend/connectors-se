@@ -58,8 +58,6 @@ public class FTPInput implements Serializable {
 
     protected List<GenericFTPFile> filesToRead;
 
-    private transient Iterator<GenericFTPFile> fileIterator;
-
     private transient Iterator<Record> recordIterator;
 
     private transient GenericFTPClient ftpClient;
@@ -95,11 +93,11 @@ public class FTPInput implements Serializable {
                 }
 
             }
-            fileIterator = filesToRead.iterator();
+
             ContentFormat contentFormat = configuration.getDataSet().getFormatConfiguration();
             recordReader = recordIORepository.findReader(contentFormat.getClass()).getReader(recordBuilderFactory, contentFormat);
 
-            recordIterator = IteratorComposer.of(fileIterator).map(file -> configuration.getDataSet().getPath()
+            recordIterator = IteratorComposer.of(filesToRead.iterator()).map(file -> configuration.getDataSet().getPath()
                     + (configuration.getDataSet().getPath().endsWith(FTPService.PATH_SEPARATOR) ? "" : FTPService.PATH_SEPARATOR)
                     + file.getName()).flatmap(path -> {
                         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();

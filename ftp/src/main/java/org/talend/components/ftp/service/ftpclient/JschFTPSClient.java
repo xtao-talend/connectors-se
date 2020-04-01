@@ -222,4 +222,9 @@ public class JschFTPSClient extends GenericFTPClient {
             return null;
         }
     }
+
+    @Override
+    public String getReplyCode() {
+        return "???";
+    }
 }

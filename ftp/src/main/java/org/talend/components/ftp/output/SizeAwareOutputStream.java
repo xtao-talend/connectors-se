@@ -20,11 +20,17 @@ import lombok.extern.slf4j.Slf4j;
 import java.io.IOException;
 import java.io.OutputStream;
 
-@RequiredArgsConstructor
 @Slf4j
 public class SizeAwareOutputStream extends OutputStream {
 
     private final OutputStream out;
+
+    public SizeAwareOutputStream(OutputStream out) {
+        if (out == null) {
+            throw new IllegalArgumentException("OutputStream must not be null.");
+        }
+        this.out = out;
+    }
 
     @Getter
     private long currentSize;
