@@ -49,7 +49,7 @@ import static org.talend.sdk.component.junit.SimpleFactory.configurationByExampl
 @EnvironmentConfiguration(environment = "Spark", systemProperties = {
         @EnvironmentConfiguration.Property(key = "talend.beam.job.runner", value = "org.apache.beam.runners.spark.SparkRunner"),
         @EnvironmentConfiguration.Property(key = "talend.beam.job.filesToStage", value = ""),
-        @EnvironmentConfiguration.Property(key = "spark.ui.enabled", value = "false") })
+        @EnvironmentConfiguration.Property(key = "spark.ui.enabled", value = "false")})
 
 @WithComponents("org.talend.components.common.stream.api")
 class JsonFormatTest {
@@ -81,7 +81,7 @@ class JsonFormatTest {
     }
 
     @EnvironmentalTest
-    void testSimple(){
+    void testSimple() {
         config.setJsonFile("Simple.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
@@ -106,7 +106,7 @@ class JsonFormatTest {
     }
 
     @EnvironmentalTest
-    void testComplex(){
+    void testComplex() {
         config.setJsonFile("corona-api.countries.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
@@ -139,7 +139,7 @@ class JsonFormatTest {
     }
 
     @EnvironmentalTest
-    void testArrayOfArrays(){
+    void testArrayOfArrays() {
         config.setJsonFile("arrayOfArrays.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
@@ -162,9 +162,9 @@ class JsonFormatTest {
         final Iterator<List> data = record.getArray(List.class, "data").iterator();
 
 
-        for(int i=1; i<4; i++) {
+        for (int i = 1; i < 4; i++) {
             final List next = data.next();
-            final Iterator<String> expected = Arrays.asList("aaa"+i, "bbb"+i, "ccc"+i).iterator();
+            final Iterator<String> expected = Arrays.asList("aaa" + i, "bbb" + i, "ccc" + i).iterator();
             final Iterator nested = next.iterator();
             while (nested.hasNext()) {
                 Assertions.assertEquals(expected.next(), nested.next());
@@ -173,7 +173,7 @@ class JsonFormatTest {
     }
 
     @EnvironmentalTest
-    void testEmptyRecord(){
+    void testEmptyRecord() {
         config.setJsonFile("withEmptyRecord.json");
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
@@ -198,4 +198,56 @@ class JsonFormatTest {
         Assertions.assertEquals(0, record.getRecord("empty_rec").getSchema().getEntries().size());
     }
 
+    @EnvironmentalTest
+    void testLoopOnRecords() {
+        config.setJsonFile("corona-api.countries.json");
+        config.setJsonPointer("/data");
+        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
+
+
+        Job.components() //
+                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
+                .component("out", "test://collector") //
+                .connections() //
+                .from("emitter") //
+                .to("out") //
+                .build() //
+                .run();
+
+        final List<Record> records = handler.getCollectedData(Record.class);
+        Assertions.assertEquals(2, records.size());
+
+        final Record record1 = records.get(0);
+        Assertions.assertEquals(Schema.Type.RECORD, record1.getSchema().getType());
+        Assertions.assertEquals("Afghanistan", record1.getString("name"));
+
+        final Record record2 = records.get(1);
+        Assertions.assertEquals(Schema.Type.RECORD, record2.getSchema().getType());
+        Assertions.assertEquals("Albania", record2.getString("name"));
+    }
+
+    @EnvironmentalTest
+    void testLoopOnValues() {
+        config.setJsonFile("ArrayOfValues.json");
+        config.setJsonPointer("/data");
+        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
+
+
+        Job.components() //
+                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
+                .component("out", "test://collector") //
+                .connections() //
+                .from("emitter") //
+                .to("out") //
+                .build() //
+                .run();
+
+        final List<Record> records = handler.getCollectedData(Record.class);
+        Assertions.assertEquals(4, records.size());
+
+        final Iterator<String> expected = Arrays.asList("aaaaa", "bbbbb", "ccccc", "ddddd").iterator();
+        for (Record r : records) {
+            Assertions.assertEquals(expected.next(), r.getString("field"));
+        }
+    }
 }
