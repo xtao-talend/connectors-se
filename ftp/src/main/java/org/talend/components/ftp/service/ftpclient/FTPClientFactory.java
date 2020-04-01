@@ -18,29 +18,30 @@ import org.talend.components.ftp.service.I18nMessage;
 import org.talend.sdk.component.api.service.Service;
 
 import java.io.Serializable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+import java.util.function.Function;
 
 @Service
 public class FTPClientFactory implements Serializable {
+
+    private static final Map<FTPDataStore.FileProtocol, Function<FTPDataStore, GenericFTPClient>> CLIENT_PROVIDERS = getClientProviders();
+
+    private static Map<FTPDataStore.FileProtocol, Function<FTPDataStore, GenericFTPClient>> getClientProviders() {
+        Map<FTPDataStore.FileProtocol, Function<FTPDataStore, GenericFTPClient>> map = new HashMap<>();
+        map.put(FTPDataStore.FileProtocol.FTP, ApacheFTPClient::createFTP);
+        // Complete for other protocol
+        return map;
+    }
 
     @Service
     private I18nMessage i18n;
 
     public GenericFTPClient getClient(FTPDataStore datastore) {
-        GenericFTPClient ftpClient = null;
-        switch (datastore.getFileProtocol()) {
-        case FTP:
-            ftpClient = ApacheFTPClient.createFTP(datastore);
-            break;
-        // case FTPS:
-        // ftpClient = ApacheFTPClient.createFTPS(datastore);
-        // break;
-        // case SFTP:
-        // ftpClient = JschFTPSClient.create(datastore);
-        // break;
-        default:
-            throw new FTPConnectorException("Unknown File protocol : " + datastore.getFileProtocol());
-        }
-
+        GenericFTPClient ftpClient = Optional.ofNullable(CLIENT_PROVIDERS.get(datastore.getFileProtocol()))
+                .orElseThrow(() -> new FTPConnectorException("Unknown File protocol : " + datastore.getFileProtocol()))
+                .apply(datastore);
         ftpClient.setI18n(i18n);
         return ftpClient;
     }
