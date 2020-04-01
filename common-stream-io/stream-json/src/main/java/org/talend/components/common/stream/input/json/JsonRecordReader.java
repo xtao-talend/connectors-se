@@ -26,6 +26,7 @@ import javax.json.stream.JsonParserFactory;
 import org.talend.components.common.collections.IteratorMap;
 import org.talend.components.common.stream.api.input.RecordReader;
 import org.talend.components.common.stream.format.json.JsonPointerParser;
+import org.talend.components.common.stream.input.json.jsonToRecord.JsonToRecord;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
