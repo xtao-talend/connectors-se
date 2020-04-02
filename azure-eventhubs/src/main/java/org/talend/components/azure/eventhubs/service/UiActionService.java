@@ -24,14 +24,13 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.common.service.AzureComponentServices;
-import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.datastore.AzureEventHubsDataStore;
+import org.talend.components.azure.eventhubs.source.streaming.CheckpointStoreConfiguration;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.asyncvalidation.AsyncValidation;
@@ -46,7 +45,6 @@ import com.azure.core.amqp.exception.AmqpErrorCondition;
 import com.azure.core.amqp.exception.AmqpException;
 import com.azure.messaging.eventhubs.EventHubClientBuilder;
 import com.azure.messaging.eventhubs.EventHubConsumerClient;
-import com.azure.messaging.eventhubs.EventHubProperties;
 import com.azure.storage.blob.BlobContainerAsyncClient;
 import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.azure.storage.common.StorageSharedKeyCredential;
@@ -98,7 +96,6 @@ public class UiActionService {
             ehClient = createEventHubConsumerClient(connection, eventHubName);
             ehClient.getEventHubProperties();
         } catch (Throwable exception) {
-            exception.printStackTrace();
             String koComment = exception.getMessage();
             if ((exception instanceof AmqpException)) {
                 koComment = exception.getMessage();
@@ -138,15 +135,15 @@ public class UiActionService {
         return new Values(Collections.EMPTY_LIST);
     }
 
-    public CloudStorageAccount createStorageAccount(AzureCloudConnection azureConnection) throws URISyntaxException {
+    public CloudStorageAccount createStorageAccount(CheckpointStoreConfiguration azureConnection) throws URISyntaxException {
         return azureConnection.isUseAzureSharedSignature()
                 ? connectionService.createStorageAccount(azureConnection.getSignatureConnection())
                 : connectionService.createStorageAccount(azureConnection.getAccountConnection(),
                         azureConnection.getEndpointSuffix());
     }
 
-    public BlobContainerAsyncClient createBlobContainerAsyncClient(AzureCloudConnection azureConnection, String containerName)
-            throws URISyntaxException {
+    public BlobContainerAsyncClient createBlobContainerAsyncClient(CheckpointStoreConfiguration azureConnection,
+            String containerName) throws URISyntaxException {
 
         CloudStorageAccount cloudAccount = createStorageAccount(azureConnection);
         BlobContainerClientBuilder clientBuilder = new BlobContainerClientBuilder();
@@ -189,8 +186,6 @@ public class UiActionService {
                 partitionIds.add(partitionId);
             }
             return partitionIds;
-        } catch (Throwable throwable) {
-            throw throwable;
         } finally {
             if (ehClient != null) {
                 ehClient.close();

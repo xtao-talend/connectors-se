@@ -38,7 +38,6 @@ import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
 import org.apache.commons.lang3.StringUtils;
-import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.runtime.adapter.ContentAdapterFactory;
 import org.talend.components.azure.eventhubs.runtime.adapter.EventDataContentAdapter;
 import org.talend.components.azure.eventhubs.service.Messages;
@@ -127,13 +126,8 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
                     configuration.getDataset().getConnection().getSasKeyName(),
                     configuration.getDataset().getConnection().getSasKey(), configuration.getDataset().getEventHubName());
 
-            AzureCloudConnection cloudConnection = new AzureCloudConnection();
-            cloudConnection.setUseAzureSharedSignature(configuration.getCheckpointStore().isUseAzureSharedSignature());
-            cloudConnection.setSignatureConnection(configuration.getCheckpointStore().getSignatureConnection());
-            cloudConnection.setAccountConnection(configuration.getCheckpointStore().getAccountConnection());
-            cloudConnection.setEndpointSuffix(configuration.getCheckpointStore().getEndpointSuffix());
-            BlobContainerAsyncClient blobContainerAsyncClient = service.createBlobContainerAsyncClient(cloudConnection,
-                    configuration.getContainerName());
+            BlobContainerAsyncClient blobContainerAsyncClient = service
+                    .createBlobContainerAsyncClient(configuration.getCheckpointStore(), configuration.getContainerName());
             Matcher matcher = Pattern.compile(ENDPOINT_PATTERN).matcher(endpoint);
             if (!matcher.matches()) {
                 throw new IllegalArgumentException(messages.invalidatedSASURL());

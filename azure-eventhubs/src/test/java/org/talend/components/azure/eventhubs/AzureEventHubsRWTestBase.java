@@ -19,7 +19,6 @@ import java.util.List;
 import org.talend.components.azure.common.Protocol;
 import org.talend.components.azure.common.connection.AzureStorageConnectionAccount;
 import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
-import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.output.AzureEventHubsOutputConfiguration;
 import org.talend.components.azure.eventhubs.source.streaming.AzureEventHubsStreamInputConfiguration;
@@ -65,9 +64,9 @@ public abstract class AzureEventHubsRWTestBase extends AzureEventHubsTestBase {
      * 
      * @return
      */
-    protected AzureCloudConnection getAzureStorageConnection(boolean useSAS) {
+    protected CheckpointStoreConfiguration getAzureStorageConnection(boolean useSAS) {
 
-        AzureCloudConnection storageAccount = new AzureCloudConnection();
+        CheckpointStoreConfiguration storageAccount = new CheckpointStoreConfiguration();
         storageAccount.setUseAzureSharedSignature(useSAS);
         if (useSAS) {
             AzureStorageConnectionSignature sasConn = new AzureStorageConnectionSignature();
@@ -89,15 +88,7 @@ public abstract class AzureEventHubsRWTestBase extends AzureEventHubsTestBase {
     protected AzureEventHubsStreamInputConfiguration createInputConfiguration(boolean useSAS) {
         AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
         inputConfiguration.setDataset(createDataSet());
-        CheckpointStoreConfiguration checkpointStore = new CheckpointStoreConfiguration();
-        checkpointStore.setUseAzureSharedSignature(useSAS);
-        AzureCloudConnection cloudConnection = getAzureStorageConnection(useSAS);
-        if (useSAS) {
-            checkpointStore.setSignatureConnection(cloudConnection.getSignatureConnection());
-        } else {
-            checkpointStore.setAccountConnection(cloudConnection.getAccountConnection());
-            checkpointStore.setEndpointSuffix(cloudConnection.getEndpointSuffix());
-        }
+        CheckpointStoreConfiguration checkpointStore = getAzureStorageConnection(useSAS);
         inputConfiguration.setCheckpointStore(checkpointStore);
         return inputConfiguration;
     }
