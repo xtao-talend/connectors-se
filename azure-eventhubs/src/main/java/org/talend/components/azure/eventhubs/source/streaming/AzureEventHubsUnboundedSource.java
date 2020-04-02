@@ -228,8 +228,7 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             position = EventPosition.latest();
         } else if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.SEQUENCE
                 .equals(configuration.getAutoOffsetReset())) {
-            // every partition seq maybe not same
-            throw new IllegalArgumentException("seems useless for this!");
+            position = EventPosition.fromSequenceNumber(configuration.getSequenceNum());
         } else if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.DATETIME
                 .equals(configuration.getAutoOffsetReset())) {
             Instant enqueuedDateTime = null;

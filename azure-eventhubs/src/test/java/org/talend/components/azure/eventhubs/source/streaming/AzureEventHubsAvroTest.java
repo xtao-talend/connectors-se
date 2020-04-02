@@ -24,8 +24,8 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.azure.eventhubs.AzureEventHubsRWTestBase;
+import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.sdk.component.api.record.Record;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 import org.talend.sdk.component.junit5.WithComponents;
@@ -80,18 +80,19 @@ class AzureEventHubsAvroTest extends AzureEventHubsRWTestBase {
     }
 
     @Test
-    @Disabled("need make sampling is serializable")
-    @DisplayName("test sampling avro format")
-    void testSamplingAvroFormat() {
+    @DisplayName("Read Avro format data from sequence")
+    void testReadFromSequence() {
 
-        // here expect 5*20
+        final String containerName = "eh-avro-read-sequence";
         int maxRecords = PARTITION_COUNT * RECORD_PER_PARTITION;
-        AzureEventHubsStreamInputConfiguration inputConfiguration = new AzureEventHubsStreamInputConfiguration();
+        AzureEventHubsStreamInputConfiguration inputConfiguration = createInputConfiguration(true);
         inputConfiguration.setDataset(createDataSet());
 
         inputConfiguration.setConsumerGroupName(CONSUME_GROUP);
-        inputConfiguration.setSampling(true);
-        inputConfiguration.setAutoOffsetReset(AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.EARLIEST);
+        inputConfiguration.setContainerName(containerName);
+        inputConfiguration.setAutoOffsetReset(AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.SEQUENCE);
+        // -1L is same with EARLIEST
+        inputConfiguration.setSequenceNum(-1L);
 
         final Mapper mapper = getComponentsHandler().createMapper(AzureEventHubsStreamInputMapper.class, inputConfiguration);
         getComponentsHandler().start();

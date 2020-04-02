@@ -16,11 +16,9 @@ import static org.talend.components.azure.eventhubs.common.AzureEventHubsConstan
 
 import java.io.Serializable;
 
-import org.talend.components.azure.common.connection.AzureStorageConnectionSignature;
-import org.talend.components.azure.datastore.AzureCloudConnection;
+import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.components.extension.Reference;
 import org.talend.components.extension.Reference.Bindings;
-import org.talend.components.azure.eventhubs.dataset.AzureEventHubsDataSet;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.configuration.condition.ActiveIf;
 import org.talend.sdk.component.api.configuration.constraint.Min;
