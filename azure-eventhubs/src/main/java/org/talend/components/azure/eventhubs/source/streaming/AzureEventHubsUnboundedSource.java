@@ -37,6 +37,7 @@ import javax.json.JsonReaderFactory;
 import javax.json.bind.Jsonb;
 import javax.json.spi.JsonProvider;
 
+import org.apache.commons.lang3.StringUtils;
 import org.talend.components.azure.datastore.AzureCloudConnection;
 import org.talend.components.azure.eventhubs.runtime.adapter.ContentAdapterFactory;
 import org.talend.components.azure.eventhubs.runtime.adapter.EventDataContentAdapter;
@@ -104,6 +105,9 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
         this.contentFormatter = ContentAdapterFactory.getAdapter(configuration.getDataset(), recordBuilderFactory,
                 jsonBuilderFactory, jsonProvider, readerFactory, jsonb, messages);
         this.messages = messages;
+
+        // check whether all required properties are set
+        this.validateConfiguration();
 
     }
 
@@ -220,6 +224,11 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
         }
     }
 
+    /**
+     * Get the start position for read, it would called when there is no checkpoint stored in target checkpoint store
+     *
+     * @return configured position
+     */
     private EventPosition getPosition() {
         final EventPosition position;
         if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.EARLIEST.equals(configuration.getAutoOffsetReset())) {
@@ -243,6 +252,26 @@ public class AzureEventHubsUnboundedSource implements Serializable, AzureEventHu
             throw new IllegalArgumentException("unsupported strategy!!" + configuration.getAutoOffsetReset());
         }
         return position;
+    }
+
+    /**
+     * Check required configuration property
+     */
+    private void validateConfiguration() {
+        if (StringUtils.isBlank(configuration.getConsumerGroupName())) {
+            throw new IllegalArgumentException(messages.missingConsumerGroup());
+        }
+        if (StringUtils.isBlank(configuration.getContainerName())) {
+            throw new IllegalArgumentException(messages.missingContainerName());
+        }
+        if (AzureEventHubsStreamInputConfiguration.OffsetResetStrategy.DATETIME.equals(configuration.getAutoOffsetReset())) {
+            if (StringUtils.isBlank(configuration.getEnqueuedDateTime())) {
+                throw new IllegalArgumentException(messages.missingEnqueuedDateTime());
+            }
+        }
+        if (configuration.getCheckpointStore() == null) {
+            throw new IllegalArgumentException(messages.missingCheckpointStore());
+        }
     }
 
     /**

@@ -84,6 +84,7 @@ public class AzureEventHubsStreamInputConfiguration implements Serializable {
     private String containerName;
 
     @Option
+    @Min(1)
     @Documentation("How frequently checkpointing")
     private int commitOffsetEvery = 5;
 

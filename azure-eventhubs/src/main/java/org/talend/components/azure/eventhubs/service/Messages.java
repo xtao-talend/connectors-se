@@ -30,4 +30,12 @@ public interface Messages {
     String errorMissingElement(String element);
 
     String invalidatedSASURL();
+
+    String missingConsumerGroup();
+
+    String missingEnqueuedDateTime();
+
+    String missingContainerName();
+
+    String missingCheckpointStore();
 }
