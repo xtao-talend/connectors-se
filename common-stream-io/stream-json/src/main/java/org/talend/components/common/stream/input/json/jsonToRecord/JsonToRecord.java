@@ -47,10 +47,10 @@ public class JsonToRecord {
      */
     public Record toRecord(final JsonObject object) {
         final Record.Builder builder = factory.newRecordBuilder();
-        object.forEach((key, value) -> {
+        object.forEach((String key, JsonValue value) -> {
             switch (value.getValueType()) {
             case ARRAY: {
-                final List<Object> items = value.asJsonArray().stream().map(it -> mapJson(factory, it)).collect(toList());
+                final List<Object> items = value.asJsonArray().stream().map(this::mapJson).collect(toList());
                 builder.withArray(factory.newEntryBuilder().withName(key).withType(Schema.Type.ARRAY)
                         .withElementSchema(getArrayElementSchema(factory, items)).build(), items);
                 break;
@@ -81,12 +81,12 @@ public class JsonToRecord {
         return builder.build();
     }
 
-    private Object mapJson(final RecordBuilderFactory factory, final JsonValue it) {
+    private Object mapJson(final JsonValue it) {
         if (JsonObject.class.isInstance(it)) {
-            return toRecord(JsonObject.class.cast(it));
+            return toRecord(it.asJsonObject());
         }
         if (JsonArray.class.isInstance(it)) {
-            return JsonArray.class.cast(it).stream().map(i -> mapJson(factory, i)).collect(toList());
+            return it.asJsonArray().stream().map(this::mapJson).collect(toList());
         }
         if (JsonString.class.isInstance(it)) {
             return JsonString.class.cast(it).getString();
@@ -110,10 +110,10 @@ public class JsonToRecord {
         if (items.isEmpty()) {
             return factory.newSchemaBuilder(Schema.Type.STRING).build();
         }
-        final Schema firstSchema = toSchema(factory, items.iterator().next());
-        switch (firstSchema.getType()) {
-        case RECORD:
-            return items.stream().map(it -> toSchema(factory, it)).reduce(null, (s1, s2) -> {
+        final Schema firstSchema = toSchema(items.get(0));
+        if (firstSchema.getType() == Schema.Type.RECORD) {
+            // This code merges schema of all record of the array [{aaa, bbb}, {aaa, ccc}] => {aaa, bbb, ccc}
+            return items.stream().map(it -> toSchema(it)).reduce(null, (Schema s1, Schema s2) -> {
                 if (s1 == null) {
                     return s2;
                 }
@@ -129,18 +129,17 @@ public class JsonToRecord {
                     // forbidden for current version anyway but potentially supported later
                     final Schema.Builder builder = factory.newSchemaBuilder(Schema.Type.RECORD);
                     entries1.forEach(builder::withEntry);
-                    names2.removeAll(names1);
-                    entries2.stream().filter(it -> names2.contains(it.getName())).forEach(builder::withEntry);
+                    entries2.stream().filter(it -> !names1.contains(it.getName())).forEach(builder::withEntry);
                     return builder.build();
                 }
                 return s1;
             });
-        default:
+        } else {
             return firstSchema;
         }
     }
 
-    private Schema toSchema(final RecordBuilderFactory factory, final Object next) {
+    private Schema toSchema(final Object next) {
         if (String.class.isInstance(next) || JsonString.class.isInstance(next)) {
             return factory.newSchemaBuilder(Schema.Type.STRING).build();
         }
@@ -173,8 +172,7 @@ public class JsonToRecord {
             if (collection.isEmpty()) {
                 return factory.newSchemaBuilder(Schema.Type.STRING).build();
             }
-            return factory.newSchemaBuilder(Schema.Type.ARRAY).withElementSchema(toSchema(factory, collection.iterator().next()))
-                    .build();
+            return factory.newSchemaBuilder(Schema.Type.ARRAY).withElementSchema(toSchema(collection.iterator().next())).build();
         }
         if (Record.class.isInstance(next)) {
             return Record.class.cast(next).getSchema();

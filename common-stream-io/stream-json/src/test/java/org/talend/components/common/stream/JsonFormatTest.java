@@ -83,18 +83,7 @@ class JsonFormatTest {
     @EnvironmentalTest
     void testSimple() {
         config.setJsonFile("Simple.json");
-        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
-        Job.components() //
-                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
-                .component("out", "test://collector") //
-                .connections() //
-                .from("emitter") //
-                .to("out") //
-                .build() //
-                .run();
-
-        final List<Record> records = handler.getCollectedData(Record.class);
+        final List<Record> records = runPipeline();
         Assertions.assertEquals(1, records.size());
 
         final Record record = records.get(0);
@@ -107,22 +96,15 @@ class JsonFormatTest {
     @EnvironmentalTest
     void testComplex() {
         config.setJsonFile("corona-api.countries.json");
-        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
-        Job.components() //
-                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
-                .component("out", "test://collector") //
-                .connections() //
-                .from("emitter") //
-                .to("out") //
-                .build() //
-                .run();
-
-        final List<Record> records = handler.getCollectedData(Record.class);
+        final List<Record> records = runPipeline();
         Assertions.assertEquals(1, records.size());
 
         final Record record = records.get(0);
         Assertions.assertEquals(Schema.Type.RECORD, record.getSchema().getType());
+
+        // Test Array level
+        Assertions.assertEquals(Schema.Type.ARRAY, record.getSchema().getEntries().get(0).getType());
+        Assertions.assertEquals(Schema.Type.RECORD, record.getSchema().getEntries().get(0).getElementSchema().getType());
 
         Assertions.assertEquals(true, record.getBoolean("_cacheHit"));
 
@@ -132,6 +114,7 @@ class JsonFormatTest {
         Assertions.assertEquals(65, first.getRecord("coordinates").getInt("longitude"));
         Assertions.assertEquals("2020-03-30T14:16:08.516Z", first.getString("updated_at"));
 
+        // Test if missing field (null) can be retrieve by get(class, key)
         final Record second = dataIterator.next();
         Assertions.assertNull(second.getRecord("latest_data").getRecord("calculated").get(Double.class, "death_rate"));
     }
@@ -139,18 +122,7 @@ class JsonFormatTest {
     @EnvironmentalTest
     void testArrayOfArrays() {
         config.setJsonFile("arrayOfArrays.json");
-        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
-        Job.components() //
-                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
-                .component("out", "test://collector") //
-                .connections() //
-                .from("emitter") //
-                .to("out") //
-                .build() //
-                .run();
-
-        final List<Record> records = handler.getCollectedData(Record.class);
+        final List<Record> records = runPipeline();
         Assertions.assertEquals(1, records.size());
 
         final Record record = records.get(0);
@@ -171,18 +143,7 @@ class JsonFormatTest {
     @EnvironmentalTest
     void testEmptyRecord() {
         config.setJsonFile("withEmptyRecord.json");
-        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
-        Job.components() //
-                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
-                .component("out", "test://collector") //
-                .connections() //
-                .from("emitter") //
-                .to("out") //
-                .build() //
-                .run();
-
-        final List<Record> records = handler.getCollectedData(Record.class);
+        final List<Record> records = runPipeline();
         Assertions.assertEquals(1, records.size());
 
         final Record record = records.get(0);
@@ -197,18 +158,7 @@ class JsonFormatTest {
     void testLoopOnRecords() {
         config.setJsonFile("corona-api.countries.json");
         config.setJsonPointer("/data");
-        final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
-
-        Job.components() //
-                .component("emitter", "jsonFamily://jsonInput?" + configStr) //
-                .component("out", "test://collector") //
-                .connections() //
-                .from("emitter") //
-                .to("out") //
-                .build() //
-                .run();
-
-        final List<Record> records = handler.getCollectedData(Record.class);
+        final List<Record> records = runPipeline();
         Assertions.assertEquals(2, records.size());
 
         final Record record1 = records.get(0);
@@ -224,6 +174,44 @@ class JsonFormatTest {
     void testLoopOnValues() {
         config.setJsonFile("ArrayOfValues.json");
         config.setJsonPointer("/data");
+        final List<Record> records = runPipeline();
+        Assertions.assertEquals(4, records.size());
+
+        final Iterator<String> expected = Arrays.asList("aaaaa", "bbbbb", "ccccc", "ddddd").iterator();
+        for (Record r : records) {
+            Assertions.assertEquals(expected.next(), r.getString("field"));
+        }
+    }
+
+    // If an array have Heterogeneous records, it merges all schemas
+    @EnvironmentalTest
+    void testHeterogeneousArray() {
+        config.setJsonFile("heterogeneousArray.json");
+        final List<Record> records = runPipeline();
+        Assertions.assertEquals(1, records.size());
+
+        final Record record = records.get(0);
+        Assertions.assertEquals(Schema.Type.ARRAY, record.getSchema().getEntries().get(0).getType());
+        Assertions.assertEquals(Schema.Type.RECORD, record.getSchema().getEntries().get(0).getElementSchema().getType());
+        Assertions.assertEquals(3, record.getSchema().getEntries().get(0).getElementSchema().getEntries().size());
+    }
+
+    @EnvironmentalTest
+    void testHeterogeneousArraySameFieldWithDifferentTypes() {
+        config.setJsonFile("heterogeneousArray2.json");
+        final List<Record> records = runPipeline();
+        Assertions.assertEquals(1, records.size());
+
+        final Record record = records.get(0);
+        Assertions.assertEquals(Schema.Type.ARRAY, record.getSchema().getEntries().get(0).getType());
+        Assertions.assertEquals(Schema.Type.RECORD, record.getSchema().getEntries().get(0).getElementSchema().getType());
+        Assertions.assertEquals(4, record.getSchema().getEntries().get(0).getElementSchema().getEntries().size());
+        Assertions.assertEquals(Schema.Type.STRING,
+                record.getSchema().getEntries().get(0).getElementSchema().getEntries().get(2).getType());
+        Assertions.assertEquals("ddd", record.getSchema().getEntries().get(0).getElementSchema().getEntries().get(2).getName());
+    }
+
+    private List<Record> runPipeline() {
         final String configStr = configurationByExample().forInstance(config).configured().toQueryString();
 
         Job.components() //
@@ -235,13 +223,7 @@ class JsonFormatTest {
                 .build() //
                 .run();
 
-        final List<Record> records = handler.getCollectedData(Record.class);
-        Assertions.assertEquals(4, records.size());
-
-        final Iterator<String> expected = Arrays.asList("aaaaa", "bbbbb", "ccccc", "ddddd").iterator();
-        for (Record r : records) {
-            Assertions.assertEquals(expected.next(), r.getString("field"));
-        }
+        return handler.getCollectedData(Record.class);
     }
 
 }
