@@ -30,6 +30,10 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class CSVConverter implements RecordConverter<String>, Serializable {
 
+    public static final String FIELD_PREFIX = "field";
+
+    public static final String FIELD_DEFAULT_VALUE = "";
+
     private String fieldDelimiter;
 
     @Getter
@@ -57,7 +61,7 @@ public class CSVConverter implements RecordConverter<String>, Serializable {
         String[] fieldValues = value.split(fieldDelimiter, -1);
         for (int i = 0; i < fieldValues.length; i++) {
             Schema.Entry.Builder entryBuilder = recordBuilderFactory.newEntryBuilder();
-            String fieldName = "field" + i;
+            String fieldName = FIELD_PREFIX + i;
 
             String finalName = SchemaUtils.correct(fieldName, index++, existNames);
             existNames.add(finalName);
@@ -77,7 +81,11 @@ public class CSVConverter implements RecordConverter<String>, Serializable {
         String[] fieldValues = value.split(fieldDelimiter, -1);
         Record.Builder recordBuilder = recordBuilderFactory.newRecordBuilder(schema);
         for (int i = 0; i < schema.getEntries().size(); i++) {
-            recordBuilder.withString(schema.getEntries().get(i), fieldValues[i]);
+            if (i < fieldValues.length) {
+                recordBuilder.withString(schema.getEntries().get(i), fieldValues[i]);
+            } else {
+                recordBuilder.withString(schema.getEntries().get(i), FIELD_DEFAULT_VALUE);
+            }
         }
         return recordBuilder.build();
     }

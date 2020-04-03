@@ -80,6 +80,39 @@ class CSVConverterTest {
     }
 
     @Test
+    void toRecord4NotSameFieldSize() {
+        CSVConverter converter = CSVConverter.of(recordBuilderFactory,
+                AzureEventHubsDataSet.FieldDelimiterType.COMMA.getDelimiter(), i18n);
+        String value_1 = "1,test1,2017-01-01,1000.2,ant\"ique,";
+        // the schema would generated based on value_1
+        converter.toRecord(value_1);
+        // value_2 have less fields than value_1
+        String value_2 = "2,test2,2017-02-01,2000.2,";
+        Record record = converter.toRecord(value_2);
+        List<Schema.Entry> entries = record.getSchema().getEntries();
+        assertEquals(6, entries.size());
+        assertEquals("field0", entries.get(0).getName());
+        assertEquals("field1", entries.get(1).getName());
+        assertEquals("field2", entries.get(2).getName());
+        assertEquals("field3", entries.get(3).getName());
+        assertEquals("field4", entries.get(4).getName());
+        assertEquals("field5", entries.get(5).getName());
+
+        assertEquals("2", record.getString("field0"));
+        assertEquals("test2", record.getString("field1"));
+        assertEquals("2017-02-01", record.getString("field2"));
+        assertEquals("2000.2", record.getString("field3"));
+        assertEquals("", record.getString("field4"));
+        assertEquals("", record.getString("field5"));
+
+        // more fields than value_1, only keep fields same with value_2
+        String value_3 = "1,test1,2017-01-01,1000.2,ant\"ique,ttt6,fff7";
+        record = converter.toRecord(value_3);
+        assertEquals(6, record.getSchema().getEntries().size());
+
+    }
+
+    @Test
     void fromRecord() {
         CSVConverter converter = CSVConverter.of(recordBuilderFactory,
                 AzureEventHubsDataSet.FieldDelimiterType.TAB.getDelimiter(), i18n);
