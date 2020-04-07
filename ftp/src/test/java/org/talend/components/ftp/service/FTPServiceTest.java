@@ -13,12 +13,14 @@
 package org.talend.components.ftp.service;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.talend.components.ftp.dataset.FTPDataSet;
 import org.talend.components.ftp.datastore.FTPDataStore;
 import org.talend.components.ftp.jupiter.FtpFile;
 import org.talend.components.ftp.jupiter.FtpServer;
 import org.talend.sdk.component.api.service.Service;
+import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 import org.talend.sdk.component.api.service.injector.Injector;
 import org.talend.sdk.component.junit5.WithComponents;
 
@@ -29,8 +31,12 @@ public class FTPServiceTest {
     @Service
     Injector injector;
 
-    @Test
-    public void testPathIsFile() {
+    private FTPDataSet dataset;
+
+    private FTPService beanUnderTest;
+
+    @BeforeEach
+    public void init() {
         FTPDataStore datastore = new FTPDataStore();
         datastore.setHost("localhost");
         datastore.setUseCredentials(true);
@@ -38,16 +44,31 @@ public class FTPServiceTest {
         datastore.setPassword(FtpServer.PASSWD);
         datastore.setPort(4528);
 
-        FTPDataSet dataset = new FTPDataSet();
+        dataset = new FTPDataSet();
         dataset.setDatastore(datastore);
         dataset.setPath("/communes");
 
-        FTPService ftpService = new FTPService();
-        injector.inject(ftpService);
-        Assertions.assertFalse(ftpService.pathIsFile(dataset), "/communes is not a file.");
+        beanUnderTest = new FTPService();
+        injector.inject(beanUnderTest);
+    }
+
+    @Test
+    public void testPathIsFile() {
+
+        Assertions.assertFalse(beanUnderTest.pathIsFile(dataset), "/communes is not a file.");
 
         dataset.setPath("/communes/communes_0.csv");
-        Assertions.assertTrue(ftpService.pathIsFile(dataset), "/communes/communes_0.csv is a file.");
+        Assertions.assertTrue(beanUnderTest.pathIsFile(dataset), "/communes/communes_0.csv is a file.");
+    }
+
+    @Test
+    public void testConnection() {
+        Assertions.assertEquals(HealthCheckStatus.Status.OK, beanUnderTest.validateDataStore(dataset.getDatastore()).getStatus(),
+                "Status should be OK.");
+
+        dataset.getDatastore().setPassword("WRONG");
+        Assertions.assertEquals(HealthCheckStatus.Status.KO, beanUnderTest.validateDataStore(dataset.getDatastore()).getStatus(),
+                "Status should be KO.");
     }
 
 }

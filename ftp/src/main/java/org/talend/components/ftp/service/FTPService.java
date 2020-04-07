@@ -67,7 +67,9 @@ public class FTPService implements Serializable {
         GenericFTPClient ftpClient = ftpClientFactory.getClient(dataStore);
         ftpClient.connect(dataStore.getHost(), dataStore.getPort());
         if (dataStore.isUseCredentials()) {
-            ftpClient.auth(dataStore.getUsername(), dataStore.getPassword());
+            if (!(ftpClient.auth(dataStore.getUsername(), dataStore.getPassword()))) {
+                throw new FTPConnectorException(i18n.statusNotConnected());
+            }
         }
         ftpClient.afterAuth(dataStore);
         return ftpClient;
