@@ -107,4 +107,27 @@ public class FTPInputTest {
         Assertions.assertEquals(207, records.size());
     }
 
+    @EnvironmentalTest
+    public void csvOneFileTest() {
+        configuration.getDataSet().setPath("/communes/communes_0.csv");
+        configuration.getDataSet().setFormat(FTPDataSet.Format.CSV);
+        FieldSeparator fieldSeparator = new FieldSeparator();
+        fieldSeparator.setFieldSeparatorType(FieldSeparator.Type.SEMICOLON);
+        configuration.getDataSet().getCsvConfiguration().setFieldSeparator(fieldSeparator);
+        configuration.getDataSet().getCsvConfiguration().setLineConfiguration(new LineConfiguration());
+
+        String configURI = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
+
+        try {
+            Job.components().component("input", "FTP://FTPInput?" + configURI).component("output", "test://collector")
+                    .connections().from("input").to("output").build().run();
+        } catch (Exception e) {
+            Assertions.fail(e);
+        }
+
+        List<Record> records = componentsHandler.getCollectedData(Record.class);
+
+        Assertions.assertNotNull(records);
+        Assertions.assertEquals(49, records.size());
+    }
 }

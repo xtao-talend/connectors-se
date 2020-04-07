@@ -66,6 +66,8 @@ public class FTPInput implements Serializable {
 
     private transient boolean init = false;
 
+    private transient boolean pathIsFile = false;
+
     protected FTPInput(FTPInputConfiguration configuration, FTPService ftpService, RecordBuilderFactory recordBuilderFactory,
             I18nMessage i18n, RecordIORepository recordIORepository, List<GenericFTPFile> filesToRead) {
         this.configuration = configuration;
@@ -77,6 +79,7 @@ public class FTPInput implements Serializable {
             this.filesToRead = new ArrayList<>();
             this.filesToRead.addAll(filesToRead);
         }
+        pathIsFile = ftpService.pathIsFile(configuration.getDataSet());
     }
 
     @Producer
@@ -86,7 +89,6 @@ public class FTPInput implements Serializable {
             if (filesToRead == null) {
                 GenericFTPClient currentClient = getFtpClient();
                 try {
-
                     filesToRead = currentClient.listFiles(configuration.getDataSet().getPath(), f -> !(f.isDirectory()));
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -97,9 +99,14 @@ public class FTPInput implements Serializable {
             ContentFormat contentFormat = configuration.getDataSet().getFormatConfiguration();
             recordReader = recordIORepository.findReader(contentFormat.getClass()).getReader(recordBuilderFactory, contentFormat);
 
-            recordIterator = IteratorComposer.of(filesToRead.iterator()).map(file -> configuration.getDataSet().getPath()
-                    + (configuration.getDataSet().getPath().endsWith(FTPService.PATH_SEPARATOR) ? "" : FTPService.PATH_SEPARATOR)
-                    + file.getName()).flatmap(path -> {
+            recordIterator = IteratorComposer
+                    .of(filesToRead
+                            .iterator())
+                    .map(file -> configuration.getDataSet().getPath()
+                            + (configuration.getDataSet().getPath().endsWith(FTPService.PATH_SEPARATOR) || pathIsFile ? ""
+                                    : FTPService.PATH_SEPARATOR)
+                            + (pathIsFile ? "" : file.getName()))
+                    .flatmap(path -> {
                         final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
                         getFtpClient().retrieveFile(path, buffer);
                         return recordReader.read(new ByteArrayInputStream(buffer.toByteArray()));

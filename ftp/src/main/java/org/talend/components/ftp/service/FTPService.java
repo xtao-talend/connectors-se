@@ -16,9 +16,11 @@ import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPClientConfig;
 import org.apache.commons.net.ftp.FTPSClient;
 import org.apache.commons.net.util.TrustManagerUtils;
+import org.talend.components.ftp.dataset.FTPDataSet;
 import org.talend.components.ftp.datastore.FTPDataStore;
 import org.talend.components.ftp.service.ftpclient.FTPClientFactory;
 import org.talend.components.ftp.service.ftpclient.GenericFTPClient;
+import org.talend.components.ftp.service.ftpclient.GenericFTPFile;
 import org.talend.sdk.component.api.configuration.Option;
 import org.talend.sdk.component.api.service.Service;
 import org.talend.sdk.component.api.service.healthcheck.HealthCheck;
@@ -27,6 +29,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -68,6 +71,26 @@ public class FTPService implements Serializable {
         }
         ftpClient.afterAuth(dataStore);
         return ftpClient;
+    }
+
+    /**
+     * Checks if the path in the dataset points to a single file
+     * 
+     * @param dataset
+     * @return true if the path is a file, false otherwise
+     */
+    public boolean pathIsFile(FTPDataSet dataset) {
+        try (GenericFTPClient ftpClient = getClient(dataset.getDatastore())) {
+            List<GenericFTPFile> files = ftpClient.listFiles(dataset.getPath());
+            if (files.size() == 1) {
+                String[] pathElements = dataset.getPath().split(PATH_SEPARATOR);
+                String pathLastElement = pathElements[pathElements.length - 1];
+                return !files.get(0).isDirectory() && files.get(0).getName().equals(pathLastElement);
+            }
+
+            return false;
+        }
+
     }
 
 }
