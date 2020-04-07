@@ -48,6 +48,23 @@ class JsonRecordReaderTest {
         reader.close();
     }
 
+    @Test
+    void testEmbeddedArray() {
+        RecordBuilderFactory factory = new RecordBuilderFactoryImpl("test");
+        JsonConfiguration jsonCfg = new JsonConfiguration();
+
+        JsonReaderSupplier supplier = new JsonReaderSupplier();
+        final RecordReader reader = supplier.getReader(factory, jsonCfg);
+        InputStream input = new ByteArrayInputStream("{\"time\":1584366489,\"states\":[\"4b1807\",\"SWR145K\",\"Switzerland\"]}".getBytes());
+        final Iterator<Record> recordIterator = reader.read(input);
+
+        Assertions.assertTrue(recordIterator.hasNext());
+        Record record = recordIterator.next();
+        Assertions.assertNotNull(record.getArray(String.class,"states"));
+
+        reader.close();
+    }
+
     private void testRecord(Iterator<Record> recordIterator, int value) {
         Assertions.assertTrue(recordIterator.hasNext());
         final Record rec = recordIterator.next();
