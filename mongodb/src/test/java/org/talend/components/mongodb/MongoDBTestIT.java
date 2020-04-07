@@ -14,7 +14,6 @@ package org.talend.components.mongodb;
 
 import com.mongodb.MongoClientOptions;
 import lombok.extern.slf4j.Slf4j;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -511,6 +510,21 @@ public class MongoDBTestIT {
         final String sinkConfig = SimpleFactory.configurationByExample().forInstance(configuration).configured().toQueryString();
         Job.components().component("emitter", "test://emitter").component("MongoDB_Sink", "MongoDB://Sink?" + sinkConfig)
                 .connections().from("emitter").to("MongoDB_Sink").build().run();
+    }
+
+    @Test
+    void testSpecialWhere() {
+        String query = "{$where:function() {\n" + "   return this.item == \"journal\"" + "}}";
+
+        MongoDBReadDataSet dataset = getMongoDBDataSet("inventory");
+
+        dataset.setQuery(query);
+        dataset.setMode(Mode.TEXT);
+
+        final List<Record> res = getRecords(dataset);
+
+        System.out.println(res.size());
+        System.out.println(res);
     }
 
 }

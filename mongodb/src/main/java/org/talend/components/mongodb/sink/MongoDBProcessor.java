@@ -96,9 +96,11 @@ public class MongoDBProcessor implements Serializable {
                 break;
             }
         }
+
+        writeModels = new ArrayList<>();
     }
 
-    private transient List<WriteModel<Document>> writeModels = new ArrayList<>();
+    private transient List<WriteModel<Document>> writeModels;
 
     @BeforeGroup
     public void beforeGroup() {

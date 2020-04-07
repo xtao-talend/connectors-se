@@ -15,9 +15,9 @@ package org.talend.components.mongodb.service;
 import com.mongodb.*;
 import com.mongodb.client.MongoDatabase;
 import lombok.extern.slf4j.Slf4j;
-import org.bson.BsonDocument;
-import org.bson.BsonInt32;
-import org.bson.Document;
+import org.bson.*;
+import org.bson.codecs.BsonStringCodec;
+import org.bson.json.JsonParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.talend.components.mongodb.Address;
@@ -38,6 +38,8 @@ import org.talend.sdk.component.api.service.healthcheck.HealthCheckStatus;
 import org.talend.sdk.component.api.service.record.RecordBuilderFactory;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static org.talend.sdk.component.api.record.Schema.Type.*;
 
@@ -174,7 +176,19 @@ public class MongoDBService {
     }
 
     public BsonDocument getBsonDocument(String bson) {
-        return Document.parse(bson).toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
+        try {
+            return Document.parse(bson).toBsonDocument(BasicDBObject.class, MongoClient.getDefaultCodecRegistry());
+        } catch (JsonParseException e) {
+            Pattern pattern = Pattern.compile("^\\s*\\{\\s*\\$where\\s*:\\s*(function.+)\\}\\s*$", Pattern.DOTALL);
+            Matcher matcher = pattern.matcher(bson);
+            if (matcher.find()) {
+                String result = matcher.group(1);
+                return new BsonDocument("$where", new BsonJavaScript(result));
+            } else {
+                throw e;
+            }
+
+        }
     }
 
     public Schema retrieveSchema(@Option("dataset") final MongoDBReadDataSet dataset) {
